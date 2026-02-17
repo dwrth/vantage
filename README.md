@@ -46,10 +46,15 @@ function App() {
 Build your own UI using the headless hooks:
 
 ```tsx
-import { usePageData, usePageActions, ApiStorageAdapter } from '@vantage/page-builder';
+import { usePageData, usePageActions, StorageAdapter } from '@vantage/page-builder';
+
+class MyStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData) { /* ... */ }
+  async load(pageId: string) { /* ... */ }
+}
 
 function CustomEditor() {
-  const storage = new ApiStorageAdapter('https://api.example.com');
+  const storage = new MyStorageAdapter();
   
   const { pageData, setPageData, save } = usePageData('page-1', {
     storage,
@@ -81,17 +86,117 @@ function CustomEditor() {
 
 ## Custom Storage
 
+The package **never makes network requests**. You provide your own storage implementation using any HTTP client you prefer (axios, fetch, server actions, etc.).
+
+### Using localStorage (Default)
+
 ```tsx
-import { PageEditor, ApiStorageAdapter } from '@vantage/page-builder';
+import { PageEditor, LocalStorageAdapter } from '@vantage/page-builder';
 
-const storage = new ApiStorageAdapter('https://api.example.com');
+const storage = new LocalStorageAdapter();
 
-<PageEditor
-  pageId="home"
-  config={{
-    storage,
-  }}
-/>
+<PageEditor pageId="home" config={{ storage }} />
+```
+
+### Custom Storage with Axios
+
+```tsx
+import { PageEditor, StorageAdapter, HistorySnapshot } from '@vantage/page-builder';
+import axios from 'axios';
+
+class AxiosStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData): Promise<void> {
+    await axios.put(`/api/pages/${pageId}`, data, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+  }
+
+  async load(pageId: string): Promise<PageData | null> {
+    const res = await axios.get(`/api/pages/${pageId}`);
+    return res.data;
+  }
+
+  async saveHistory(pageId: string, history: HistorySnapshot[]): Promise<void> {
+    await axios.put(`/api/pages/${pageId}/history`, { history });
+  }
+
+  async loadHistory(pageId: string): Promise<HistorySnapshot[] | null> {
+    const res = await axios.get(`/api/pages/${pageId}/history`);
+    return res.data.history;
+  }
+}
+
+const storage = new AxiosStorageAdapter();
+<PageEditor pageId="home" config={{ storage }} />
+```
+
+### Custom Storage with Next.js Server Actions
+
+```tsx
+import { PageEditor, StorageAdapter } from '@vantage/page-builder';
+import { savePage, loadPage, savePageHistory, loadPageHistory } from './actions';
+
+class ServerActionStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData): Promise<void> {
+    await savePage(pageId, data);
+  }
+
+  async load(pageId: string): Promise<PageData | null> {
+    return await loadPage(pageId);
+  }
+
+  async saveHistory(pageId: string, history: HistorySnapshot[]): Promise<void> {
+    await savePageHistory(pageId, history);
+  }
+
+  async loadHistory(pageId: string): Promise<HistorySnapshot[] | null> {
+    return await loadPageHistory(pageId);
+  }
+}
+
+const storage = new ServerActionStorageAdapter();
+<PageEditor pageId="home" config={{ storage }} />
+```
+
+### Custom Storage with Fetch
+
+```tsx
+import { PageEditor, StorageAdapter } from '@vantage/page-builder';
+
+class FetchStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData): Promise<void> {
+    await fetch(`/api/pages/${pageId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async load(pageId: string): Promise<PageData | null> {
+    const res = await fetch(`/api/pages/${pageId}`);
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  // History methods are optional
+  async saveHistory(pageId: string, history: HistorySnapshot[]): Promise<void> {
+    await fetch(`/api/pages/${pageId}/history`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history }),
+    });
+  }
+
+  async loadHistory(pageId: string): Promise<HistorySnapshot[] | null> {
+    const res = await fetch(`/api/pages/${pageId}/history`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.history;
+  }
+}
+
+const storage = new FetchStorageAdapter();
+<PageEditor pageId="home" config={{ storage }} />
 ```
 
 ## Custom Components
@@ -175,29 +280,27 @@ const {
 ## Server-Side Saving Example
 
 ```tsx
-import { usePageData, usePageActions } from '@vantage/page-builder';
+import { usePageData, usePageActions, StorageAdapter } from '@vantage/page-builder';
+import axios from 'axios';
 
-class ServerStorageAdapter implements StorageAdapter {
-  async save(pageId: string, data: PageData) {
-    await fetch(`/api/pages/${pageId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+// Implement your own storage adapter
+class MyStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData): Promise<void> {
+    await axios.put(`/api/pages/${pageId}`, data);
   }
 
   async load(pageId: string): Promise<PageData | null> {
-    const res = await fetch(`/api/pages/${pageId}`);
-    return res.json();
+    const res = await axios.get(`/api/pages/${pageId}`);
+    return res.data;
   }
 }
 
 function MyEditor() {
-  const storage = new ServerStorageAdapter();
+  const storage = new MyStorageAdapter();
   
   const { pageData, setPageData, save } = usePageData('page-1', {
     storage,
-    autoSaveDelay: 2000, // Auto-save every 2 seconds
+    autoSaveDelay: 2000, // Auto-save every 2 seconds (optimistic updates)
   });
 
   const { addElement, updateLayout } = usePageActions(pageData, setPageData);
@@ -205,6 +308,59 @@ function MyEditor() {
   // Your custom UI here
 }
 ```
+
+## Server-Side History (Undo/Redo)
+
+Enable persistent history that survives page refreshes:
+
+```tsx
+import { PageEditor, StorageAdapter, HistorySnapshot } from '@vantage/page-builder';
+import axios from 'axios';
+
+class MyStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData): Promise<void> {
+    await axios.put(`/api/pages/${pageId}`, data);
+  }
+
+  async load(pageId: string): Promise<PageData | null> {
+    const res = await axios.get(`/api/pages/${pageId}`);
+    return res.data;
+  }
+
+  // History methods (required for persistHistory: true)
+  async saveHistory(pageId: string, history: HistorySnapshot[]): Promise<void> {
+    await axios.put(`/api/pages/${pageId}/history`, { history });
+  }
+
+  async loadHistory(pageId: string): Promise<HistorySnapshot[] | null> {
+    const res = await axios.get(`/api/pages/${pageId}/history`);
+    return res.data?.history || null;
+  }
+
+  async clearHistory(pageId: string): Promise<void> {
+    await axios.delete(`/api/pages/${pageId}/history`);
+  }
+}
+
+const storage = new MyStorageAdapter();
+
+<PageEditor
+  pageId="home"
+  config={{
+    storage,
+    persistHistory: true, // Enable server-side history
+    maxHistorySize: 100, // Store up to 100 undo steps
+  }}
+/>
+```
+
+**How it works:**
+- **Optimistic Updates**: UI updates immediately, server syncs in background
+- **History Persistence**: Undo/redo history is saved via your storage adapter
+- **Auto-Load**: History loads automatically when page opens
+- **Debounced**: History saves are debounced (1 second) to reduce server calls
+
+**Note:** The package never makes network requests. You implement `saveHistory`, `loadHistory`, and `clearHistory` methods using your preferred HTTP client.
 
 ## Live View
 
@@ -277,7 +433,7 @@ npm run example:dev
 
 - `StorageAdapter` - Storage interface
 - `LocalStorageAdapter` - Browser localStorage implementation
-- `ApiStorageAdapter` - API-based storage
+- `StorageAdapter` - Interface for custom storage implementations
 - `ComponentRegistry` - Component registry interface
 
 ## License

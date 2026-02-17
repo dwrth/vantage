@@ -9,7 +9,7 @@ export { usePageEditor } from './hooks/usePageEditor';
 export { usePageData } from './hooks/usePageData';
 export { usePageActions } from './hooks/usePageActions';
 export { useHistory } from './hooks/useHistory';
-export { LocalStorageAdapter, ApiStorageAdapter } from './adapters/storage';
+export { LocalStorageAdapter } from './adapters/storage';
 export { defaultComponents } from './adapters/components';
 // Utils
 export { pixelsToResponsive, responsiveToPixels, scaleLayoutToBreakpoint, getCanvasWidth, snapToGrid, snapToCenteredGrid, snapSizeToGrid, getGridOffset, } from './utils';

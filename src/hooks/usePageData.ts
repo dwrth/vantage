@@ -70,23 +70,36 @@ export function usePageData<T extends string = string>(
     loadData();
   }, [pageId, storage, options?.initialData]);
 
-  // Manual save function
+  // Manual save function (optimistic - updates UI immediately, syncs to server)
   const save = useCallback(
     async (data?: PageData<T>) => {
       const dataToSave = data || pageData;
-      await Promise.resolve(storage.save(pageId, dataToSave));
+      
+      // Optimistic update - callback fires immediately
       onSaveRef.current?.(dataToSave);
+      
+      // Save to server in background (non-blocking)
+      Promise.resolve(storage.save(pageId, dataToSave)).catch((error) => {
+        console.error('Failed to save to server:', error);
+        // Could trigger error callback or retry logic here
+      });
     },
     [pageId, storage, pageData]
   );
 
-  // Auto-save effect
+  // Auto-save effect (optimistic updates)
   useEffect(() => {
     if (autoSaveDelay <= 0) return; // Disable auto-save if delay is 0 or negative
 
     const timeoutId = setTimeout(() => {
-      storage.save(pageId, pageData);
+      // Optimistic: fire callback immediately
       onSaveRef.current?.(pageData);
+      
+      // Save to server in background (non-blocking)
+      Promise.resolve(storage.save(pageId, pageData)).catch((error) => {
+        console.error('Auto-save failed:', error);
+        // Could implement retry logic or error notification here
+      });
     }, autoSaveDelay);
 
     return () => clearTimeout(timeoutId);

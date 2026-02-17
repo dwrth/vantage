@@ -9,4 +9,5 @@ export const defaultConfig = {
     defaultCanvasHeight: 800,
     autoSaveDelay: 3000,
     maxHistorySize: 50,
+    persistHistory: false,
 };

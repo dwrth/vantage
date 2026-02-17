@@ -31,6 +31,7 @@ export interface PageBuilderConfig<T extends string = string> {
   
   // History settings
   maxHistorySize?: number; // Maximum number of undo/redo steps (default: 50)
+  persistHistory?: boolean; // Persist history to server (default: false)
 }
 
 export const defaultConfig: Required<Omit<PageBuilderConfig, 'storage' | 'components' | 'onSave' | 'onElementSelect' | 'onElementUpdate'>> = {
@@ -43,4 +44,5 @@ export const defaultConfig: Required<Omit<PageBuilderConfig, 'storage' | 'compon
   defaultCanvasHeight: 800,
   autoSaveDelay: 3000,
   maxHistorySize: 50,
+  persistHistory: false,
 };

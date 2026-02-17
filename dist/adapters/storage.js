@@ -1,5 +1,9 @@
 // Storage adapter interface - allows plugging in different storage backends
-// Default localStorage adapter
+// The package NEVER makes network requests - you implement StorageAdapter yourself
+/**
+ * LocalStorage adapter - for development/testing
+ * No network requests, stores data in browser localStorage
+ */
 export class LocalStorageAdapter {
     constructor(keyPrefix = 'page-builder-') {
         this.keyPrefix = keyPrefix;
@@ -33,40 +37,45 @@ export class LocalStorageAdapter {
             if (typeof window === 'undefined')
                 return;
             localStorage.removeItem(`${this.keyPrefix}${pageId}`);
+            localStorage.removeItem(`${this.keyPrefix}${pageId}-history`);
         }
         catch (error) {
             console.error('Failed to delete page data:', error);
         }
     }
-}
-// API adapter example
-export class ApiStorageAdapter {
-    constructor(apiUrl, headers) {
-        this.apiUrl = apiUrl;
-        this.headers = headers;
+    // LocalStorage history support (for development/testing)
+    saveHistory(pageId, history) {
+        try {
+            if (typeof window === 'undefined')
+                return;
+            localStorage.setItem(`${this.keyPrefix}${pageId}-history`, JSON.stringify(history));
+        }
+        catch (error) {
+            console.error('Failed to save history:', error);
+        }
     }
-    async save(pageId, data) {
-        await fetch(`${this.apiUrl}/pages/${pageId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                ...this.headers,
-            },
-            body: JSON.stringify(data),
-        });
-    }
-    async load(pageId) {
-        const response = await fetch(`${this.apiUrl}/pages/${pageId}`, {
-            headers: this.headers,
-        });
-        if (!response.ok)
+    loadHistory(pageId) {
+        try {
+            if (typeof window === 'undefined')
+                return null;
+            const stored = localStorage.getItem(`${this.keyPrefix}${pageId}-history`);
+            if (!stored)
+                return null;
+            return JSON.parse(stored);
+        }
+        catch (error) {
+            console.error('Failed to load history:', error);
             return null;
-        return response.json();
+        }
     }
-    async delete(pageId) {
-        await fetch(`${this.apiUrl}/pages/${pageId}`, {
-            method: 'DELETE',
-            headers: this.headers,
-        });
+    clearHistory(pageId) {
+        try {
+            if (typeof window === 'undefined')
+                return;
+            localStorage.removeItem(`${this.keyPrefix}${pageId}-history`);
+        }
+        catch (error) {
+            console.error('Failed to clear history:', error);
+        }
     }
 }

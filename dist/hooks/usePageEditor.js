@@ -27,8 +27,13 @@ export function usePageEditor(pageId, config) {
     // Track if we're updating from history (to avoid adding to history)
     const isHistoryUpdateRef = useRef(false);
     const prevPageDataRef = useRef(pageData);
-    // History management for undo/redo
-    const { present: historyPresent, canUndo, canRedo, updateHistory, undo: historyUndo, redo: historyRedo, } = useHistory(pageData, config?.maxHistorySize ?? 50);
+    // History management for undo/redo with server persistence
+    const persistHistory = config?.persistHistory ?? false;
+    const { present: historyPresent, canUndo, canRedo, isLoading: historyLoading, updateHistory, undo: historyUndo, redo: historyRedo, } = useHistory(pageData, config?.maxHistorySize ?? 50, {
+        storage: config?.storage,
+        pageId,
+        persistToServer: persistHistory,
+    });
     // Update history when pageData changes (but not from undo/redo)
     useEffect(() => {
         if (isHistoryUpdateRef.current) {
@@ -118,6 +123,7 @@ export function usePageEditor(pageId, config) {
         redo,
         canUndo,
         canRedo,
+        historyLoading, // Loading state for server-side history
         // Config
         gridSize,
         breakpoints,

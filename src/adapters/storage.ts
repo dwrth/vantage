@@ -2,77 +2,99 @@
 
 import { PageData } from '../core/types';
 
+export interface HistorySnapshot {
+ data: PageData;
+ timestamp: number;
+ version?: number;
+}
+
+/**
+ * Storage adapter interface
+ * Implement this interface to provide your own storage backend
+ * (axios, fetch, server actions, GraphQL, etc.)
+ */
 export interface StorageAdapter {
-  save(pageId: string, data: PageData): Promise<void> | void;
-  load(pageId: string): Promise<PageData | null> | PageData | null;
-  delete?(pageId: string): Promise<void> | void;
+ save(pageId: string, data: PageData): Promise<void> | void;
+ load(pageId: string): Promise<PageData | null> | PageData | null;
+ delete?(pageId: string): Promise<void> | void;
+
+ // History operations (optional - implement for server-side history)
+ saveHistory?(pageId: string, history: HistorySnapshot[]): Promise<void> | void;
+ loadHistory?(
+  pageId: string,
+ ): Promise<HistorySnapshot[] | null> | HistorySnapshot[] | null;
+ clearHistory?(pageId: string): Promise<void> | void;
 }
 
-// Default localStorage adapter
+/**
+ * LocalStorage adapter - for development/testing
+ * No network requests, stores data in browser localStorage
+ */
 export class LocalStorageAdapter implements StorageAdapter {
-  constructor(private keyPrefix: string = 'page-builder-') {}
+ constructor(private keyPrefix: string = 'page-builder-') {}
 
-  save(pageId: string, data: PageData): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(
-        `${this.keyPrefix}${pageId}`,
-        JSON.stringify(data)
-      );
-    } catch (error) {
-      console.error('Failed to save page data:', error);
-    }
+ save(pageId: string, data: PageData): void {
+  try {
+   if (typeof window === 'undefined') return;
+   localStorage.setItem(`${this.keyPrefix}${pageId}`, JSON.stringify(data));
+  } catch (error) {
+   console.error('Failed to save page data:', error);
   }
+ }
 
-  load(pageId: string): PageData | null {
-    try {
-      if (typeof window === 'undefined') return null;
-      const stored = localStorage.getItem(`${this.keyPrefix}${pageId}`);
-      if (!stored) return null;
-      return JSON.parse(stored) as PageData;
-    } catch (error) {
-      console.error('Failed to load page data:', error);
-      return null;
-    }
+ load(pageId: string): PageData | null {
+  try {
+   if (typeof window === 'undefined') return null;
+   const stored = localStorage.getItem(`${this.keyPrefix}${pageId}`);
+   if (!stored) return null;
+   return JSON.parse(stored) as PageData;
+  } catch (error) {
+   console.error('Failed to load page data:', error);
+   return null;
   }
+ }
 
-  delete(pageId: string): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.removeItem(`${this.keyPrefix}${pageId}`);
-    } catch (error) {
-      console.error('Failed to delete page data:', error);
-    }
+ delete(pageId: string): void {
+  try {
+   if (typeof window === 'undefined') return;
+   localStorage.removeItem(`${this.keyPrefix}${pageId}`);
+   localStorage.removeItem(`${this.keyPrefix}${pageId}-history`);
+  } catch (error) {
+   console.error('Failed to delete page data:', error);
   }
-}
+ }
 
-// API adapter example
-export class ApiStorageAdapter implements StorageAdapter {
-  constructor(private apiUrl: string, private headers?: Record<string, string>) {}
-
-  async save(pageId: string, data: PageData): Promise<void> {
-    await fetch(`${this.apiUrl}/pages/${pageId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.headers,
-      },
-      body: JSON.stringify(data),
-    });
+ // LocalStorage history support (for development/testing)
+ saveHistory(pageId: string, history: HistorySnapshot[]): void {
+  try {
+   if (typeof window === 'undefined') return;
+   localStorage.setItem(
+    `${this.keyPrefix}${pageId}-history`,
+    JSON.stringify(history),
+   );
+  } catch (error) {
+   console.error('Failed to save history:', error);
   }
+ }
 
-  async load(pageId: string): Promise<PageData | null> {
-    const response = await fetch(`${this.apiUrl}/pages/${pageId}`, {
-      headers: this.headers,
-    });
-    if (!response.ok) return null;
-    return response.json();
+ loadHistory(pageId: string): HistorySnapshot[] | null {
+  try {
+   if (typeof window === 'undefined') return null;
+   const stored = localStorage.getItem(`${this.keyPrefix}${pageId}-history`);
+   if (!stored) return null;
+   return JSON.parse(stored) as HistorySnapshot[];
+  } catch (error) {
+   console.error('Failed to load history:', error);
+   return null;
   }
+ }
 
-  async delete(pageId: string): Promise<void> {
-    await fetch(`${this.apiUrl}/pages/${pageId}`, {
-      method: 'DELETE',
-      headers: this.headers,
-    });
+ clearHistory(pageId: string): void {
+  try {
+   if (typeof window === 'undefined') return;
+   localStorage.removeItem(`${this.keyPrefix}${pageId}-history`);
+  } catch (error) {
+   console.error('Failed to clear history:', error);
   }
+ }
 }

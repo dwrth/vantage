@@ -25,9 +25,9 @@ export type {
 export type { PageBuilderConfig } from './core/config';
 
 // Adapters
-export type { StorageAdapter } from './adapters/storage';
+export type { StorageAdapter, HistorySnapshot } from './adapters/storage';
 export type { ComponentRegistry } from './adapters/components';
-export { LocalStorageAdapter, ApiStorageAdapter } from './adapters/storage';
+export { LocalStorageAdapter } from './adapters/storage';
 export { defaultComponents } from './adapters/components';
 
 // Utils

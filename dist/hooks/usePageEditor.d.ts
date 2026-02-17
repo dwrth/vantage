@@ -19,6 +19,7 @@ export declare function usePageEditor<T extends string = string>(pageId: string,
     redo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    historyLoading: boolean;
     gridSize: number;
     breakpoints: Record<Breakpoint, number>;
     canvasHeight: number;

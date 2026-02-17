@@ -131,9 +131,8 @@ Keep localStorage but also sync to your server:
 Use API storage instead of localStorage:
 
 ```tsx
-import { ApiStorageAdapter } from '@vantage/page-builder';
-
-const storage = new ApiStorageAdapter('https://api.example.com');
+// Implement your own storage adapter (see main README.md for examples)
+// The package never makes network requests - you provide your own implementation
 
 <PageEditor pageId="demo" config={{ storage }} />
 ```

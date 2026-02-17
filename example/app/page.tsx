@@ -1,6 +1,6 @@
 'use client';
 
-import { PageEditor } from '@vantage/page-builder';
+import { LocalStorageAdapter, PageEditor } from '@vantage/page-builder';
 import { customComponents } from '../components/CustomComponents';
 
 /**
@@ -19,7 +19,8 @@ export default function Home() {
     <h1 className="m-0 text-2xl font-semibold">🎨 Page Builder Demo</h1>
     <p className="mt-2 text-sm text-slate-600">
      Demonstrates <strong>any React component</strong> can be resizable.
-     Auto-saves to localStorage (default). See code comments for server-side saving examples.
+     Auto-saves to localStorage (default). See code comments for server-side
+     saving examples.
     </p>
    </div>
    <div className="flex-1">
@@ -27,23 +28,9 @@ export default function Home() {
      pageId="demo"
      config={{
       components: customComponents,
-      // Uses localStorage by default (LocalStorageAdapter)
-      // Auto-saves every 2 seconds
-      autoSaveDelay: 2000,
-      
-      // Optional: Add server-side saving alongside localStorage
-      // onSave: async (data) => {
-      //   // Sync to your API while still using localStorage
-      //   await fetch('/api/pages/demo', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify(data),
-      //   });
-      // },
-      
-      // Alternative: Use API storage instead of localStorage
-      // import { ApiStorageAdapter } from '@vantage/page-builder';
-      // storage: new ApiStorageAdapter('https://api.example.com'),
+      autoSaveDelay: 0,
+      storage: new LocalStorageAdapter(),
+      persistHistory: true,
      }}
     />
    </div>

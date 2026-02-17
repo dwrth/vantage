@@ -13,6 +13,7 @@ export interface PageBuilderConfig<T extends string = string> {
     onElementUpdate?: (elementId: string, updates: any) => void;
     autoSaveDelay?: number;
     maxHistorySize?: number;
+    persistHistory?: boolean;
 }
 export declare const defaultConfig: Required<Omit<PageBuilderConfig, 'storage' | 'components' | 'onSave' | 'onElementSelect' | 'onElementUpdate'>>;
 //# sourceMappingURL=config.d.ts.map

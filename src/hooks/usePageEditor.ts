@@ -42,15 +42,21 @@ export function usePageEditor<T extends string = string>(
   const isHistoryUpdateRef = useRef(false);
   const prevPageDataRef = useRef<PageData<T>>(pageData);
 
-  // History management for undo/redo
+  // History management for undo/redo with server persistence
+  const persistHistory = config?.persistHistory ?? false;
   const {
     present: historyPresent,
     canUndo,
     canRedo,
+    isLoading: historyLoading,
     updateHistory,
     undo: historyUndo,
     redo: historyRedo,
-  } = useHistory<T>(pageData, config?.maxHistorySize ?? 50);
+  } = useHistory<T>(pageData, config?.maxHistorySize ?? 50, {
+    storage: config?.storage,
+    pageId,
+    persistToServer: persistHistory,
+  });
 
   // Update history when pageData changes (but not from undo/redo)
   useEffect(() => {
@@ -184,6 +190,7 @@ export function usePageEditor<T extends string = string>(
     redo,
     canUndo,
     canRedo,
+    historyLoading, // Loading state for server-side history
 
     // Config
     gridSize,
