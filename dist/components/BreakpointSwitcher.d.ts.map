@@ -1,0 +1,1 @@
+{"version":3,"file":"BreakpointSwitcher.d.ts","sourceRoot":"","sources":["../../src/components/BreakpointSwitcher.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,eAAe,CAAC;AAE3C,UAAU,uBAAuB;IAChC,iBAAiB,EAAE,UAAU,CAAC;IAC9B,kBAAkB,EAAE,CAAC,UAAU,EAAE,UAAU,KAAK,IAAI,CAAC;CACrD;AAED,MAAM,CAAC,OAAO,UAAU,kBAAkB,CAAC,EAC1C,iBAAiB,EACjB,kBAAkB,GAClB,EAAE,uBAAuB,2CAiDzB"}

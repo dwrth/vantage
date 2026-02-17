@@ -42,4 +42,5 @@ export const defaultConfig: Required<Omit<PageBuilderConfig, 'storage' | 'compon
   },
   defaultCanvasHeight: 800,
   autoSaveDelay: 3000,
+  maxHistorySize: 50,
 };

@@ -1,0 +1,1 @@
+{"version":3,"file":"components.d.ts","sourceRoot":"","sources":["../../src/adapters/components.tsx"],"names":[],"mappings":"AAEA,OAAO,EAAE,aAAa,EAAE,MAAM,OAAO,CAAC;AAEtC,MAAM,MAAM,iBAAiB,CAAC,CAAC,SAAS,MAAM,GAAG,MAAM,IAAI;KACxD,CAAC,IAAI,CAAC,GAAG,aAAa,CAAC,GAAG,CAAC;CAC7B,CAAA;AAGD,eAAO,MAAM,iBAAiB,EAAE,iBAAiB,CAAC,OAAO,GAAG,MAAM,GAAG,OAAO,CAwB3E,CAAC"}

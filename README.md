@@ -15,9 +15,21 @@ A responsive, headless page builder with drag-and-drop functionality for React a
 
 ## Installation
 
+### From npm (when published)
 ```bash
 npm install @vantage/page-builder react-rnd
 ```
+
+### From GitHub
+```bash
+npm install github:dwrth/vantage react-rnd
+# or
+npm install git+https://github.com/dwrth/vantage.git react-rnd
+# or with specific branch/tag
+npm install github:dwrth/vantage#main react-rnd
+```
+
+**Note:** The package will automatically build on install via the `prepare` script.
 
 ## Basic Usage
 
@@ -210,11 +222,23 @@ import { LiveView } from '@vantage/page-builder';
 npm run build
 ```
 
+**Note:** The `prepare` script will automatically build the package on install. However, committing `dist/` is recommended for:
+- **Faster installs** - No build step needed
+- **More reliable** - No risk of build failures or missing TypeScript
+- **Better CI/CD** - Consuming projects don't need TypeScript installed
+
 ### Run Example App
 
 ```bash
 npm run example:dev
 ```
+
+### Publishing to GitHub
+
+1. Build the package: `npm run build`
+2. Commit the `dist/` folder (recommended for faster installs)
+3. Push to GitHub
+4. Install via: `npm install github:dwrth/vantage`
 
 ## Project Structure
 

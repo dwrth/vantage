@@ -4,6 +4,14 @@
   "description": "A responsive page builder with drag-and-drop",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "src",
@@ -13,8 +21,13 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build",
+    "prepare": "npm run build",
     "example:dev": "cd example && npm run dev",
     "example:build": "cd example && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dwrth/vantage.git"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
@@ -33,6 +46,6 @@
     "react",
     "editor"
   ],
-  "author": "",
+  "author": "David Werth <@dwrth>",
   "license": "MIT"
 }
