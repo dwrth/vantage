@@ -1,36 +1,261 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# @vantage/page-builder
 
-## Getting Started
+A responsive, headless page builder with drag-and-drop functionality for React applications.
 
-First, run the development server:
+## Features
+
+- 🎨 Drag and drop page builder
+- 📱 Responsive breakpoints (desktop, tablet, mobile)
+- 🎯 Grid-based snapping
+- 💾 Pluggable storage adapters (localStorage, API, etc.)
+- 🔧 **Any React component works** - Just register it and it becomes resizable!
+- 📐 Percentage-based responsive layouts
+- 🎛️ Fully configurable
+- 🧩 **Headless hooks** - Build your own UI with exposed hooks
+
+## Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install @vantage/page-builder react-rnd
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Basic Usage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```tsx
+import { PageEditor } from '@vantage/page-builder';
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+function App() {
+  return <PageEditor pageId="home" />;
+}
+```
 
-## Learn More
+## Headless Usage (Custom UI)
 
-To learn more about Next.js, take a look at the following resources:
+Build your own UI using the headless hooks:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```tsx
+import { usePageData, usePageActions, ApiStorageAdapter } from '@vantage/page-builder';
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+function CustomEditor() {
+  const storage = new ApiStorageAdapter('https://api.example.com');
+  
+  const { pageData, setPageData, save } = usePageData('page-1', {
+    storage,
+    autoSaveDelay: 5000, // 5 seconds
+    onSave: async (data) => {
+      // Custom save logic
+      await fetch('/api/pages', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+  });
 
-## Deploy on Vercel
+  const { addElement, updateLayout, deleteElement } = usePageActions(
+    pageData,
+    setPageData
+  );
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  // Build your custom UI using pageData and actions
+  return (
+    <div>
+      <button onClick={() => addElement('button')}>Add Button</button>
+      <button onClick={() => save()}>Save Now</button>
+      {/* Your custom canvas UI */}
+    </div>
+  );
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Custom Storage
+
+```tsx
+import { PageEditor, ApiStorageAdapter } from '@vantage/page-builder';
+
+const storage = new ApiStorageAdapter('https://api.example.com');
+
+<PageEditor
+  pageId="home"
+  config={{
+    storage,
+  }}
+/>
+```
+
+## Custom Components
+
+**Any React component works!** Just register it and it instantly becomes draggable and resizable.
+
+```tsx
+import { PageEditor, ComponentRegistry } from '@vantage/page-builder';
+
+const components: ComponentRegistry<'button' | 'card'> = {
+  button: ({ label, onClick }) => (
+    <button onClick={onClick}>{label}</button>
+  ),
+  card: ({ title, children }) => (
+    <div className="card">
+      <h3>{title}</h3>
+      {children}
+    </div>
+  ),
+};
+
+<PageEditor
+  pageId="home"
+  config={{ components }}
+/>
+```
+
+## Custom Configuration
+
+```tsx
+<PageEditor
+  pageId="home"
+  config={{
+    gridSize: 50,
+    breakpoints: {
+      desktop: 1440,
+      tablet: 1024,
+      mobile: 375,
+    },
+    onSave: (data) => {
+      console.log('Page saved:', data);
+    },
+  }}
+/>
+```
+
+## Headless Hooks API
+
+### `usePageData`
+
+Manages page data and saving:
+
+```tsx
+const { pageData, setPageData, save } = usePageData(pageId, {
+  storage?: StorageAdapter,
+  autoSaveDelay?: number,
+  onSave?: (data: PageData) => void,
+  initialData?: PageData,
+});
+```
+
+### `usePageActions`
+
+Provides actions for manipulating elements:
+
+```tsx
+const {
+  addElement,
+  updateLayout,
+  updateElement,
+  deleteElement,
+  updateZIndex,
+  ensureBreakpointLayout,
+} = usePageActions(pageData, setPageData, {
+  gridSize?: number,
+  breakpoints?: Record<Breakpoint, number>,
+  canvasHeight?: number,
+});
+```
+
+## Server-Side Saving Example
+
+```tsx
+import { usePageData, usePageActions } from '@vantage/page-builder';
+
+class ServerStorageAdapter implements StorageAdapter {
+  async save(pageId: string, data: PageData) {
+    await fetch(`/api/pages/${pageId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async load(pageId: string): Promise<PageData | null> {
+    const res = await fetch(`/api/pages/${pageId}`);
+    return res.json();
+  }
+}
+
+function MyEditor() {
+  const storage = new ServerStorageAdapter();
+  
+  const { pageData, setPageData, save } = usePageData('page-1', {
+    storage,
+    autoSaveDelay: 2000, // Auto-save every 2 seconds
+  });
+
+  const { addElement, updateLayout } = usePageActions(pageData, setPageData);
+
+  // Your custom UI here
+}
+```
+
+## Live View
+
+```tsx
+import { LiveView } from '@vantage/page-builder';
+
+<LiveView pageData={pageData} components={components} />
+```
+
+## Development
+
+### Build Package
+
+```bash
+npm run build
+```
+
+### Run Example App
+
+```bash
+npm run example:dev
+```
+
+## Project Structure
+
+```
+.
+├── src/                    # Package source code
+│   ├── core/              # Core types and config
+│   ├── hooks/             # React hooks
+│   │   ├── usePageEditor.ts  # Full editor hook
+│   │   ├── usePageData.ts    # Headless data management
+│   │   └── usePageActions.ts # Headless element actions
+│   ├── components/        # React components
+│   ├── utils/             # Utility functions
+│   └── adapters/          # Storage and component adapters
+├── example/               # Example Next.js app
+│   └── app/               # Example app pages
+└── dist/                  # Built package (generated)
+```
+
+## API Reference
+
+### Components
+
+- `PageEditor` - Main editor component
+- `LiveView` - Preview/published view component
+- `BreakpointSwitcher` - Breakpoint selector
+- `GridOverlay` - Visual grid overlay
+
+### Hooks
+
+- `usePageEditor` - Full editor logic hook (with UI state)
+- `usePageData` - Headless data management hook
+- `usePageActions` - Headless element manipulation hook
+
+### Adapters
+
+- `StorageAdapter` - Storage interface
+- `LocalStorageAdapter` - Browser localStorage implementation
+- `ApiStorageAdapter` - API-based storage
+- `ComponentRegistry` - Component registry interface
+
+## License
+
+MIT
