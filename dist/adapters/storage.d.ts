@@ -1,4 +1,4 @@
-import { PageData } from '../core/types';
+import { PageData } from "../core/types";
 export interface HistorySnapshot {
     data: PageData;
     timestamp: number;

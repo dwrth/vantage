@@ -1,4 +1,4 @@
-export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
+export type Breakpoint = "desktop" | "tablet" | "mobile";
 export interface LayoutRect {
     x: number;
     y: number;

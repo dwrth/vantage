@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { PageData } from '../core/types';
-import { ComponentRegistry, defaultComponents } from '../adapters/components';
-import { pixelsToResponsive, getCanvasWidth } from '../utils/layout';
-import { defaultConfig } from '../core/config';
+import React from "react";
+import { PageData } from "../core/types";
+import { ComponentRegistry, defaultComponents } from "../adapters/components";
+import { pixelsToResponsive, getCanvasWidth } from "../utils/layout";
+import { defaultConfig } from "../core/config";
 
 interface LiveViewProps<T extends string = string> {
- pageData: PageData<T>;
- components?: ComponentRegistry<T>;
- breakpoints?: Record<string, number>;
+  pageData: PageData<T>;
+  components?: ComponentRegistry<T>;
+  breakpoints?: Record<string, number>;
 }
 
 export function LiveView<T extends string = string>({
- pageData,
- components = defaultComponents as ComponentRegistry<T>,
- breakpoints = defaultConfig.breakpoints!,
+  pageData,
+  components = defaultComponents as ComponentRegistry<T>,
+  breakpoints = defaultConfig.breakpoints!,
 }: LiveViewProps<T>) {
- const generateStyles = () => {
-  let css = `
+  const generateStyles = () => {
+    let css = `
       .page-container {
         position: relative;
         width: 100%;
@@ -41,18 +41,18 @@ export function LiveView<T extends string = string>({
       }
     `;
 
-  pageData.elements.forEach((element) => {
-   // Use responsive layout if available, otherwise calculate from desktop
-   const responsive =
-    element.layout.responsive ||
-    pixelsToResponsive(
-     element.layout.desktop,
-     getCanvasWidth('desktop', breakpoints),
-     defaultConfig.defaultCanvasHeight!,
-    );
+    pageData.elements.forEach((element) => {
+      // Use responsive layout if available, otherwise calculate from desktop
+      const responsive =
+        element.layout.responsive ||
+        pixelsToResponsive(
+          element.layout.desktop,
+          getCanvasWidth("desktop", breakpoints),
+          defaultConfig.defaultCanvasHeight!,
+        );
 
-   // Base styles using percentages for fluid responsiveness
-   css += `
+      // Base styles using percentages for fluid responsiveness
+      css += `
         .element-${element.id} {
           position: absolute;
           left: ${responsive.left}%;
@@ -64,15 +64,15 @@ export function LiveView<T extends string = string>({
         }
       `;
 
-   // Tablet breakpoint - uses percentage-based positioning
-   const tablet = element.layout.tablet;
-   const tabletResponsive = pixelsToResponsive(
-    tablet,
-    getCanvasWidth('tablet', breakpoints),
-    defaultConfig.defaultCanvasHeight!,
-   );
+      // Tablet breakpoint - uses percentage-based positioning
+      const tablet = element.layout.tablet;
+      const tabletResponsive = pixelsToResponsive(
+        tablet,
+        getCanvasWidth("tablet", breakpoints),
+        defaultConfig.defaultCanvasHeight!,
+      );
 
-   css += `
+      css += `
         @media (max-width: ${breakpoints.tablet}px) {
           .element-${element.id} {
             left: ${tabletResponsive.left}%;
@@ -83,15 +83,15 @@ export function LiveView<T extends string = string>({
         }
       `;
 
-   // Mobile breakpoint - uses percentage-based positioning
-   const mobile = element.layout.mobile;
-   const mobileResponsive = pixelsToResponsive(
-    mobile,
-    getCanvasWidth('mobile', breakpoints),
-    defaultConfig.defaultCanvasHeight!,
-   );
+      // Mobile breakpoint - uses percentage-based positioning
+      const mobile = element.layout.mobile;
+      const mobileResponsive = pixelsToResponsive(
+        mobile,
+        getCanvasWidth("mobile", breakpoints),
+        defaultConfig.defaultCanvasHeight!,
+      );
 
-   css += `
+      css += `
         @media (max-width: ${breakpoints.mobile * 1.28}px) {
           .element-${element.id} {
             left: ${mobileResponsive.left}%;
@@ -101,25 +101,25 @@ export function LiveView<T extends string = string>({
           }
         }
       `;
-  });
-  return css;
- };
+    });
+    return css;
+  };
 
- return (
-  <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
-   <style dangerouslySetInnerHTML={{ __html: generateStyles() }} />
-   <div className="page-container">
-    {pageData.elements.map((element) => {
-     const Component = components[element.type as T];
-     if (!Component) return null;
+  return (
+    <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
+      <style dangerouslySetInnerHTML={{ __html: generateStyles() }} />
+      <div className="page-container">
+        {pageData.elements.map((element) => {
+          const Component = components[element.type as T];
+          if (!Component) return null;
 
-     return (
-      <div key={element.id} className={`element-${element.id}`}>
-       <Component {...(element.content as any)} />
+          return (
+            <div key={element.id} className={`element-${element.id}`}>
+              <Component {...(element.content as any)} />
+            </div>
+          );
+        })}
       </div>
-     );
-    })}
-   </div>
-  </div>
- );
+    </div>
+  );
 }

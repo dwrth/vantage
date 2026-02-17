@@ -1,19 +1,19 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { PageData, Breakpoint, LayoutRect } from '../core/types';
-import { PageBuilderConfig, defaultConfig } from '../core/config';
-import { usePageData } from './usePageData';
-import { usePageActions } from './usePageActions';
-import { useHistory } from './useHistory';
-import { snapToGrid } from '../utils/layout';
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { PageData, Breakpoint, LayoutRect } from "../core/types";
+import { PageBuilderConfig, defaultConfig } from "../core/config";
+import { usePageData } from "./usePageData";
+import { usePageActions } from "./usePageActions";
+import { useHistory } from "./useHistory";
+import { snapToGrid } from "../utils/layout";
 
 export function usePageEditor<T extends string = string>(
   pageId: string,
-  config?: PageBuilderConfig<T>
+  config?: PageBuilderConfig<T>,
 ) {
   // Stabilize config callbacks to prevent infinite loops
   const onElementSelectRef = useRef(config?.onElementSelect);
   const onElementUpdateRef = useRef(config?.onElementUpdate);
-  
+
   useEffect(() => {
     onElementSelectRef.current = config?.onElementSelect;
     onElementUpdateRef.current = config?.onElementUpdate;
@@ -23,11 +23,12 @@ export function usePageEditor<T extends string = string>(
   // Memoize breakpoints to prevent recreating callbacks
   const breakpoints = useMemo(
     () => config?.breakpoints ?? defaultConfig.breakpoints,
-    [config?.breakpoints]
+    [config?.breakpoints],
   );
-  const canvasHeight = config?.defaultCanvasHeight ?? defaultConfig.defaultCanvasHeight;
+  const canvasHeight =
+    config?.defaultCanvasHeight ?? defaultConfig.defaultCanvasHeight;
 
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState<boolean>(true);
 
@@ -67,7 +68,7 @@ export function usePageEditor<T extends string = string>(
 
     const prevStr = JSON.stringify(prevPageDataRef.current);
     const currentStr = JSON.stringify(pageData);
-    
+
     if (prevStr !== currentStr) {
       updateHistory(pageData, true);
       prevPageDataRef.current = pageData;
@@ -78,11 +79,11 @@ export function usePageEditor<T extends string = string>(
   const setPageDataWithHistory = useCallback(
     (updater: React.SetStateAction<PageData<T>>) => {
       setPageData((prev) => {
-        const next = typeof updater === 'function' ? updater(prev) : updater;
+        const next = typeof updater === "function" ? updater(prev) : updater;
         return next;
       });
     },
-    []
+    [],
   );
 
   // Memoize options to prevent usePageActions from recreating callbacks
@@ -92,7 +93,7 @@ export function usePageEditor<T extends string = string>(
       breakpoints,
       canvasHeight,
     }),
-    [gridSize, breakpoints, canvasHeight]
+    [gridSize, breakpoints, canvasHeight],
   );
 
   // Use headless page actions hook (use history-aware setter)
@@ -128,21 +129,21 @@ export function usePageEditor<T extends string = string>(
       updateLayoutAction(id, breakpoint, newRect);
       onElementUpdateRef.current?.(id, newRect);
     },
-    [breakpoint, updateLayoutAction]
+    [breakpoint, updateLayoutAction],
   );
 
   const addElement = useCallback(
     (type: T, defaultContent?: Record<string, any>) => {
       addElementAction(type, defaultContent);
     },
-    [addElementAction]
+    [addElementAction],
   );
 
   const updateZIndex = useCallback(
-    (id: string, direction: 'up' | 'down') => {
+    (id: string, direction: "up" | "down") => {
       updateZIndexAction(id, direction);
     },
-    [updateZIndexAction]
+    [updateZIndexAction],
   );
 
   const deleteElement = useCallback(
@@ -153,16 +154,13 @@ export function usePageEditor<T extends string = string>(
         onElementSelectRef.current?.(null);
       }
     },
-    [selectedId, deleteElementAction]
+    [selectedId, deleteElementAction],
   );
 
-  const handleElementSelect = useCallback(
-    (id: string | null) => {
-      setSelectedId(id);
-      onElementSelectRef.current?.(id);
-    },
-    []
-  );
+  const handleElementSelect = useCallback((id: string | null) => {
+    setSelectedId(id);
+    onElementSelectRef.current?.(id);
+  }, []);
 
   return {
     // State

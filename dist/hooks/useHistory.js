@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 /**
  * Hook for managing undo/redo history with optional server-side persistence
  */
@@ -27,7 +27,7 @@ export function useHistory(initialData, maxHistorySize = 50, options) {
                 const loaded = await Promise.resolve(storage.loadHistory(pageId));
                 if (loaded && loaded.length > 0) {
                     // Restore history from server
-                    const past = loaded.slice(0, -1).map(snap => snap.data);
+                    const past = loaded.slice(0, -1).map((snap) => snap.data);
                     const present = loaded[loaded.length - 1].data;
                     setHistory({
                         past: past,
@@ -37,7 +37,7 @@ export function useHistory(initialData, maxHistorySize = 50, options) {
                 }
             }
             catch (error) {
-                console.error('Failed to load history from server:', error);
+                console.error("Failed to load history from server:", error);
             }
             finally {
                 setIsLoading(false);
@@ -58,14 +58,14 @@ export function useHistory(initialData, maxHistorySize = 50, options) {
             // Get current history state
             setHistory((current) => {
                 const snapshots = [
-                    ...current.past.map(data => ({ data, timestamp: Date.now() })),
+                    ...current.past.map((data) => ({ data, timestamp: Date.now() })),
                     { data: current.present, timestamp: Date.now() },
                 ];
                 // Only persist recent history (last maxHistorySize)
                 const recentSnapshots = snapshots.slice(-maxHistorySize);
                 if (storage.saveHistory) {
                     Promise.resolve(storage.saveHistory(pageId, recentSnapshots)).catch((error) => {
-                        console.error('Failed to persist history to server:', error);
+                        console.error("Failed to persist history to server:", error);
                     });
                 }
                 return current; // Don't modify state
@@ -166,7 +166,7 @@ export function useHistory(initialData, maxHistorySize = 50, options) {
         // Clear server history
         if (persistToServer && storage?.clearHistory && pageId) {
             Promise.resolve(storage.clearHistory(pageId)).catch((error) => {
-                console.error('Failed to clear history on server:', error);
+                console.error("Failed to clear history on server:", error);
             });
         }
     }, [history.present, persistToServer, storage, pageId]);

@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import { snapToGrid, snapToCenteredGrid, pixelsToResponsive, getCanvasWidth, scaleLayoutToBreakpoint } from '../utils/layout';
-import { defaultConfig } from '../core/config';
+import { useCallback, useMemo } from "react";
+import { snapToGrid, snapToCenteredGrid, pixelsToResponsive, getCanvasWidth, scaleLayoutToBreakpoint, } from "../utils/layout";
+import { defaultConfig } from "../core/config";
 /**
  * Headless hook for page element actions
  * Provides actions for manipulating page elements without UI
@@ -11,11 +11,11 @@ export function usePageActions(pageData, setPageData, options) {
     const breakpoints = useMemo(() => options?.breakpoints ?? defaultConfig.breakpoints, [options?.breakpoints]);
     const canvasHeight = options?.canvasHeight ?? defaultConfig.defaultCanvasHeight;
     const ensureBreakpointLayout = useCallback((element, targetBreakpoint) => {
-        const bp = targetBreakpoint || 'desktop';
+        const bp = targetBreakpoint || "desktop";
         if (element.layout[bp]) {
             return element.layout[bp];
         }
-        return scaleLayoutToBreakpoint(element.layout.desktop, 'desktop', bp, breakpoints);
+        return scaleLayoutToBreakpoint(element.layout.desktop, "desktop", bp, breakpoints);
     }, [breakpoints]);
     const findNonOverlappingPosition = useCallback((breakpoint, width, height, currentElements) => {
         const existingRects = currentElements.map((el) => {
@@ -64,9 +64,9 @@ export function usePageActions(pageData, setPageData, options) {
                 w: snapToGrid(200, gridSize),
                 h: snapToGrid(100, gridSize),
             };
-            const desktopPos = findNonOverlappingPosition('desktop', defaultSize.w, defaultSize.h, prev.elements);
-            const tabletPos = findNonOverlappingPosition('tablet', defaultSize.w, defaultSize.h, prev.elements);
-            const mobilePos = findNonOverlappingPosition('mobile', defaultSize.w, defaultSize.h, prev.elements);
+            const desktopPos = findNonOverlappingPosition("desktop", defaultSize.w, defaultSize.h, prev.elements);
+            const tabletPos = findNonOverlappingPosition("tablet", defaultSize.w, defaultSize.h, prev.elements);
+            const mobilePos = findNonOverlappingPosition("mobile", defaultSize.w, defaultSize.h, prev.elements);
             const newElement = {
                 id: `el-${Date.now()}`,
                 type,
@@ -75,7 +75,7 @@ export function usePageActions(pageData, setPageData, options) {
                     desktop: desktopPos,
                     tablet: tabletPos,
                     mobile: mobilePos,
-                    responsive: pixelsToResponsive(desktopPos, getCanvasWidth('desktop', breakpoints), canvasHeight),
+                    responsive: pixelsToResponsive(desktopPos, getCanvasWidth("desktop", breakpoints), canvasHeight),
                 },
                 zIndex: prev.elements.length,
             };
@@ -93,11 +93,11 @@ export function usePageActions(pageData, setPageData, options) {
                     if (el.id !== id)
                         return el;
                     const updatedLayout = { ...el.layout, [breakpoint]: newRect };
-                    if (breakpoint === 'desktop') {
-                        updatedLayout.responsive = pixelsToResponsive(newRect, getCanvasWidth('desktop', breakpoints), canvasHeight);
+                    if (breakpoint === "desktop") {
+                        updatedLayout.responsive = pixelsToResponsive(newRect, getCanvasWidth("desktop", breakpoints), canvasHeight);
                     }
                     else if (!updatedLayout.responsive) {
-                        updatedLayout.responsive = pixelsToResponsive(el.layout.desktop, getCanvasWidth('desktop', breakpoints), canvasHeight);
+                        updatedLayout.responsive = pixelsToResponsive(el.layout.desktop, getCanvasWidth("desktop", breakpoints), canvasHeight);
                     }
                     return { ...el, layout: updatedLayout };
                 }),
@@ -125,7 +125,7 @@ export function usePageActions(pageData, setPageData, options) {
                 return prev;
             const maxZ = Math.max(...elements.map((el) => el.zIndex));
             const minZ = Math.min(...elements.map((el) => el.zIndex));
-            if (direction === 'up') {
+            if (direction === "up") {
                 elements[index].zIndex = maxZ + 1;
             }
             else {

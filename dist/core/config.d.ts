@@ -1,7 +1,7 @@
-import { Breakpoint } from './types';
-import { StorageAdapter } from '../adapters/storage';
-import { ComponentRegistry } from '../adapters/components';
-import { PageData } from './types';
+import { Breakpoint } from "./types";
+import { StorageAdapter } from "../adapters/storage";
+import { ComponentRegistry } from "../adapters/components";
+import { PageData } from "./types";
 export interface PageBuilderConfig<T extends string = string> {
     gridSize?: number;
     breakpoints?: Record<Breakpoint, number>;
@@ -15,5 +15,5 @@ export interface PageBuilderConfig<T extends string = string> {
     maxHistorySize?: number;
     persistHistory?: boolean;
 }
-export declare const defaultConfig: Required<Omit<PageBuilderConfig, 'storage' | 'components' | 'onSave' | 'onElementSelect' | 'onElementUpdate'>>;
+export declare const defaultConfig: Required<Omit<PageBuilderConfig, "storage" | "components" | "onSave" | "onElementSelect" | "onElementUpdate">>;
 //# sourceMappingURL=config.d.ts.map

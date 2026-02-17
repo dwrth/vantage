@@ -1,5 +1,5 @@
-import { PageData } from '../core/types';
-import { ComponentRegistry } from '../adapters/components';
+import { PageData } from "../core/types";
+import { ComponentRegistry } from "../adapters/components";
 interface LiveViewProps<T extends string = string> {
     pageData: PageData<T>;
     components?: ComponentRegistry<T>;

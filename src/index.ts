@@ -1,16 +1,16 @@
 // Main package exports
 
 // Components
-export { PageEditor } from './components/PageEditor';
-export { LiveView } from './components/LiveView';
-export { default as BreakpointSwitcher } from './components/BreakpointSwitcher';
-export { default as GridOverlay } from './components/GridOverlay';
+export { PageEditor } from "./components/PageEditor";
+export { LiveView } from "./components/LiveView";
+export { default as BreakpointSwitcher } from "./components/BreakpointSwitcher";
+export { default as GridOverlay } from "./components/GridOverlay";
 
 // Hooks
-export { usePageEditor } from './hooks/usePageEditor';
-export { usePageData } from './hooks/usePageData';
-export { usePageActions } from './hooks/usePageActions';
-export { useHistory } from './hooks/useHistory';
+export { usePageEditor } from "./hooks/usePageEditor";
+export { usePageData } from "./hooks/usePageData";
+export { usePageActions } from "./hooks/usePageActions";
+export { useHistory } from "./hooks/useHistory";
 
 // Types
 export type {
@@ -20,15 +20,15 @@ export type {
   ResponsiveRect,
   ElementLayout,
   Breakpoint,
-} from './core/types';
+} from "./core/types";
 
-export type { PageBuilderConfig } from './core/config';
+export type { PageBuilderConfig } from "./core/config";
 
 // Adapters
-export type { StorageAdapter, HistorySnapshot } from './adapters/storage';
-export type { ComponentRegistry } from './adapters/components';
-export { LocalStorageAdapter } from './adapters/storage';
-export { defaultComponents } from './adapters/components';
+export type { StorageAdapter, HistorySnapshot } from "./adapters/storage";
+export type { ComponentRegistry } from "./adapters/components";
+export { LocalStorageAdapter } from "./adapters/storage";
+export { defaultComponents } from "./adapters/components";
 
 // Utils
 export {
@@ -40,4 +40,4 @@ export {
   snapToCenteredGrid,
   snapSizeToGrid,
   getGridOffset,
-} from './utils';
+} from "./utils";

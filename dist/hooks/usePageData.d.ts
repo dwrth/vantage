@@ -1,6 +1,6 @@
-import React from 'react';
-import { PageData } from '../core/types';
-import { StorageAdapter } from '../adapters/storage';
+import React from "react";
+import { PageData } from "../core/types";
+import { StorageAdapter } from "../adapters/storage";
 /**
  * Headless hook for managing page data
  * Exposes pageData and save function for custom implementations

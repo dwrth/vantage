@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { LocalStorageAdapter, PageEditor } from '@vantage/page-builder';
-import { customComponents } from '../components/CustomComponents';
+import { LocalStorageAdapter, PageEditor } from "@vantage/page-builder";
+import { customComponents } from "../components/CustomComponents";
 
 /**
  * This page demonstrates:
@@ -13,27 +13,27 @@ import { customComponents } from '../components/CustomComponents';
  * that instantly become draggable and resizable!
  */
 export default function Home() {
- return (
-  <div className="h-screen flex flex-col">
-   <div className="p-4 bg-blue-50 border-b border-blue-200">
-    <h1 className="m-0 text-2xl font-semibold">🎨 Page Builder Demo</h1>
-    <p className="mt-2 text-sm text-slate-600">
-     Demonstrates <strong>any React component</strong> can be resizable.
-     Auto-saves to localStorage (default). See code comments for server-side
-     saving examples.
-    </p>
-   </div>
-   <div className="flex-1">
-    <PageEditor
-     pageId="demo"
-     config={{
-      components: customComponents,
-      autoSaveDelay: 0,
-      storage: new LocalStorageAdapter(),
-      persistHistory: true,
-     }}
-    />
-   </div>
-  </div>
- );
+  return (
+    <div className="h-screen flex flex-col">
+      <div className="p-4 bg-blue-50 border-b border-blue-200">
+        <h1 className="m-0 text-2xl font-semibold">🎨 Page Builder Demo</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Demonstrates <strong>any React component</strong> can be resizable.
+          Auto-saves to localStorage (default). See code comments for
+          server-side saving examples.
+        </p>
+      </div>
+      <div className="flex-1">
+        <PageEditor
+          pageId="demo"
+          config={{
+            components: customComponents,
+            autoSaveDelay: 0,
+            storage: new LocalStorageAdapter(),
+            persistHistory: true,
+          }}
+        />
+      </div>
+    </div>
+  );
 }

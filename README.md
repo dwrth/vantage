@@ -16,11 +16,13 @@ A responsive, headless page builder with drag-and-drop functionality for React a
 ## Installation
 
 ### From npm (when published)
+
 ```bash
 npm install @vantage/page-builder react-rnd
 ```
 
 ### From GitHub
+
 ```bash
 npm install github:dwrth/vantage react-rnd
 # or
@@ -34,7 +36,7 @@ npm install github:dwrth/vantage#main react-rnd
 ## Basic Usage
 
 ```tsx
-import { PageEditor } from '@vantage/page-builder';
+import { PageEditor } from "@vantage/page-builder";
 
 function App() {
   return <PageEditor pageId="home" />;
@@ -46,23 +48,31 @@ function App() {
 Build your own UI using the headless hooks:
 
 ```tsx
-import { usePageData, usePageActions, StorageAdapter } from '@vantage/page-builder';
+import {
+  usePageData,
+  usePageActions,
+  StorageAdapter,
+} from "@vantage/page-builder";
 
 class MyStorageAdapter implements StorageAdapter {
-  async save(pageId: string, data: PageData) { /* ... */ }
-  async load(pageId: string) { /* ... */ }
+  async save(pageId: string, data: PageData) {
+    /* ... */
+  }
+  async load(pageId: string) {
+    /* ... */
+  }
 }
 
 function CustomEditor() {
   const storage = new MyStorageAdapter();
-  
-  const { pageData, setPageData, save } = usePageData('page-1', {
+
+  const { pageData, setPageData, save } = usePageData("page-1", {
     storage,
     autoSaveDelay: 5000, // 5 seconds
     onSave: async (data) => {
       // Custom save logic
-      await fetch('/api/pages', {
-        method: 'POST',
+      await fetch("/api/pages", {
+        method: "POST",
         body: JSON.stringify(data),
       });
     },
@@ -70,13 +80,13 @@ function CustomEditor() {
 
   const { addElement, updateLayout, deleteElement } = usePageActions(
     pageData,
-    setPageData
+    setPageData,
   );
 
   // Build your custom UI using pageData and actions
   return (
     <div>
-      <button onClick={() => addElement('button')}>Add Button</button>
+      <button onClick={() => addElement("button")}>Add Button</button>
       <button onClick={() => save()}>Save Now</button>
       {/* Your custom canvas UI */}
     </div>
@@ -91,23 +101,27 @@ The package **never makes network requests**. You provide your own storage imple
 ### Using localStorage (Default)
 
 ```tsx
-import { PageEditor, LocalStorageAdapter } from '@vantage/page-builder';
+import { PageEditor, LocalStorageAdapter } from "@vantage/page-builder";
 
 const storage = new LocalStorageAdapter();
 
-<PageEditor pageId="home" config={{ storage }} />
+<PageEditor pageId="home" config={{ storage }} />;
 ```
 
 ### Custom Storage with Axios
 
 ```tsx
-import { PageEditor, StorageAdapter, HistorySnapshot } from '@vantage/page-builder';
-import axios from 'axios';
+import {
+  PageEditor,
+  StorageAdapter,
+  HistorySnapshot,
+} from "@vantage/page-builder";
+import axios from "axios";
 
 class AxiosStorageAdapter implements StorageAdapter {
   async save(pageId: string, data: PageData): Promise<void> {
     await axios.put(`/api/pages/${pageId}`, data, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 
@@ -127,14 +141,19 @@ class AxiosStorageAdapter implements StorageAdapter {
 }
 
 const storage = new AxiosStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />
+<PageEditor pageId="home" config={{ storage }} />;
 ```
 
 ### Custom Storage with Next.js Server Actions
 
 ```tsx
-import { PageEditor, StorageAdapter } from '@vantage/page-builder';
-import { savePage, loadPage, savePageHistory, loadPageHistory } from './actions';
+import { PageEditor, StorageAdapter } from "@vantage/page-builder";
+import {
+  savePage,
+  loadPage,
+  savePageHistory,
+  loadPageHistory,
+} from "./actions";
 
 class ServerActionStorageAdapter implements StorageAdapter {
   async save(pageId: string, data: PageData): Promise<void> {
@@ -155,19 +174,19 @@ class ServerActionStorageAdapter implements StorageAdapter {
 }
 
 const storage = new ServerActionStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />
+<PageEditor pageId="home" config={{ storage }} />;
 ```
 
 ### Custom Storage with Fetch
 
 ```tsx
-import { PageEditor, StorageAdapter } from '@vantage/page-builder';
+import { PageEditor, StorageAdapter } from "@vantage/page-builder";
 
 class FetchStorageAdapter implements StorageAdapter {
   async save(pageId: string, data: PageData): Promise<void> {
     await fetch(`/api/pages/${pageId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
   }
@@ -181,8 +200,8 @@ class FetchStorageAdapter implements StorageAdapter {
   // History methods are optional
   async saveHistory(pageId: string, history: HistorySnapshot[]): Promise<void> {
     await fetch(`/api/pages/${pageId}/history`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ history }),
     });
   }
@@ -196,7 +215,7 @@ class FetchStorageAdapter implements StorageAdapter {
 }
 
 const storage = new FetchStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />
+<PageEditor pageId="home" config={{ storage }} />;
 ```
 
 ## Custom Components
@@ -204,12 +223,10 @@ const storage = new FetchStorageAdapter();
 **Any React component works!** Just register it and it instantly becomes draggable and resizable.
 
 ```tsx
-import { PageEditor, ComponentRegistry } from '@vantage/page-builder';
+import { PageEditor, ComponentRegistry } from "@vantage/page-builder";
 
-const components: ComponentRegistry<'button' | 'card'> = {
-  button: ({ label, onClick }) => (
-    <button onClick={onClick}>{label}</button>
-  ),
+const components: ComponentRegistry<"button" | "card"> = {
+  button: ({ label, onClick }) => <button onClick={onClick}>{label}</button>,
   card: ({ title, children }) => (
     <div className="card">
       <h3>{title}</h3>
@@ -218,10 +235,7 @@ const components: ComponentRegistry<'button' | 'card'> = {
   ),
 };
 
-<PageEditor
-  pageId="home"
-  config={{ components }}
-/>
+<PageEditor pageId="home" config={{ components }} />;
 ```
 
 ## Custom Configuration
@@ -237,7 +251,7 @@ const components: ComponentRegistry<'button' | 'card'> = {
       mobile: 375,
     },
     onSave: (data) => {
-      console.log('Page saved:', data);
+      console.log("Page saved:", data);
     },
   }}
 />
@@ -280,8 +294,12 @@ const {
 ## Server-Side Saving Example
 
 ```tsx
-import { usePageData, usePageActions, StorageAdapter } from '@vantage/page-builder';
-import axios from 'axios';
+import {
+  usePageData,
+  usePageActions,
+  StorageAdapter,
+} from "@vantage/page-builder";
+import axios from "axios";
 
 // Implement your own storage adapter
 class MyStorageAdapter implements StorageAdapter {
@@ -297,8 +315,8 @@ class MyStorageAdapter implements StorageAdapter {
 
 function MyEditor() {
   const storage = new MyStorageAdapter();
-  
-  const { pageData, setPageData, save } = usePageData('page-1', {
+
+  const { pageData, setPageData, save } = usePageData("page-1", {
     storage,
     autoSaveDelay: 2000, // Auto-save every 2 seconds (optimistic updates)
   });
@@ -314,8 +332,12 @@ function MyEditor() {
 Enable persistent history that survives page refreshes:
 
 ```tsx
-import { PageEditor, StorageAdapter, HistorySnapshot } from '@vantage/page-builder';
-import axios from 'axios';
+import {
+  PageEditor,
+  StorageAdapter,
+  HistorySnapshot,
+} from "@vantage/page-builder";
+import axios from "axios";
 
 class MyStorageAdapter implements StorageAdapter {
   async save(pageId: string, data: PageData): Promise<void> {
@@ -351,10 +373,11 @@ const storage = new MyStorageAdapter();
     persistHistory: true, // Enable server-side history
     maxHistorySize: 100, // Store up to 100 undo steps
   }}
-/>
+/>;
 ```
 
 **How it works:**
+
 - **Optimistic Updates**: UI updates immediately, server syncs in background
 - **History Persistence**: Undo/redo history is saved via your storage adapter
 - **Auto-Load**: History loads automatically when page opens
@@ -365,9 +388,9 @@ const storage = new MyStorageAdapter();
 ## Live View
 
 ```tsx
-import { LiveView } from '@vantage/page-builder';
+import { LiveView } from "@vantage/page-builder";
 
-<LiveView pageData={pageData} components={components} />
+<LiveView pageData={pageData} components={components} />;
 ```
 
 ## Development
@@ -379,6 +402,7 @@ npm run build
 ```
 
 **Note:** The `prepare` script will automatically build the package on install. However, committing `dist/` is recommended for:
+
 - **Faster installs** - No build step needed
 - **More reliable** - No risk of build failures or missing TypeScript
 - **Better CI/CD** - Consuming projects don't need TypeScript installed

@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { PageData } from '../core/types';
-import { StorageAdapter, HistorySnapshot } from '../adapters/storage';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { PageData } from "../core/types";
+import { StorageAdapter, HistorySnapshot } from "../adapters/storage";
 
 interface HistoryState<T extends string = string> {
   past: PageData<T>[];
@@ -18,7 +18,7 @@ export function useHistory<T extends string = string>(
     storage?: StorageAdapter;
     pageId?: string;
     persistToServer?: boolean;
-  }
+  },
 ) {
   const [history, setHistory] = useState<HistoryState<T>>({
     past: [],
@@ -46,9 +46,9 @@ export function useHistory<T extends string = string>(
         const loaded = await Promise.resolve(storage.loadHistory(pageId));
         if (loaded && loaded.length > 0) {
           // Restore history from server
-          const past = loaded.slice(0, -1).map(snap => snap.data);
+          const past = loaded.slice(0, -1).map((snap) => snap.data);
           const present = loaded[loaded.length - 1].data;
-          
+
           setHistory({
             past: past as PageData<T>[],
             present: present as PageData<T>,
@@ -56,7 +56,7 @@ export function useHistory<T extends string = string>(
           });
         }
       } catch (error) {
-        console.error('Failed to load history from server:', error);
+        console.error("Failed to load history from server:", error);
       } finally {
         setIsLoading(false);
       }
@@ -79,21 +79,21 @@ export function useHistory<T extends string = string>(
       // Get current history state
       setHistory((current) => {
         const snapshots: HistorySnapshot[] = [
-          ...current.past.map(data => ({ data, timestamp: Date.now() })),
+          ...current.past.map((data) => ({ data, timestamp: Date.now() })),
           { data: current.present, timestamp: Date.now() },
         ];
-        
+
         // Only persist recent history (last maxHistorySize)
         const recentSnapshots = snapshots.slice(-maxHistorySize);
-        
+
         if (storage.saveHistory) {
           Promise.resolve(storage.saveHistory(pageId, recentSnapshots)).catch(
             (error) => {
-              console.error('Failed to persist history to server:', error);
-            }
+              console.error("Failed to persist history to server:", error);
+            },
           );
         }
-        
+
         return current; // Don't modify state
       });
     }, 1000); // 1 second debounce
@@ -115,12 +115,12 @@ export function useHistory<T extends string = string>(
             present: newPresent,
             future: [], // Clear future when new action is performed
           };
-          
+
           // Persist to server after state update
           setTimeout(() => {
             persistHistory();
           }, 0);
-          
+
           return newState;
         });
       } else {
@@ -131,7 +131,7 @@ export function useHistory<T extends string = string>(
         }));
       }
     },
-    [maxHistorySize, persistHistory]
+    [maxHistorySize, persistHistory],
   );
 
   const undo = useCallback((): PageData<T> | null => {
@@ -148,12 +148,12 @@ export function useHistory<T extends string = string>(
         present: previous,
         future: [prev.present, ...prev.future],
       };
-      
+
       // Persist undo to server
       setTimeout(() => {
         persistHistory();
       }, 0);
-      
+
       return newState;
     });
 
@@ -174,12 +174,12 @@ export function useHistory<T extends string = string>(
         present: next,
         future: newFuture,
       };
-      
+
       // Persist redo to server
       setTimeout(() => {
         persistHistory();
       }, 0);
-      
+
       return newState;
     });
 
@@ -208,11 +208,11 @@ export function useHistory<T extends string = string>(
       present: history.present,
       future: [],
     });
-    
+
     // Clear server history
     if (persistToServer && storage?.clearHistory && pageId) {
       Promise.resolve(storage.clearHistory(pageId)).catch((error) => {
-        console.error('Failed to clear history on server:', error);
+        console.error("Failed to clear history on server:", error);
       });
     }
   }, [history.present, persistToServer, storage, pageId]);

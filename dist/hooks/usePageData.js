@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { LocalStorageAdapter } from '../adapters/storage';
-import { pixelsToResponsive, getCanvasWidth } from '../utils/layout';
-import { defaultConfig } from '../core/config';
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { LocalStorageAdapter } from "../adapters/storage";
+import { pixelsToResponsive, getCanvasWidth } from "../utils/layout";
+import { defaultConfig } from "../core/config";
 /**
  * Headless hook for managing page data
  * Exposes pageData and save function for custom implementations
@@ -33,7 +33,7 @@ export function usePageData(pageId, options) {
                                 ...el,
                                 layout: {
                                     ...el.layout,
-                                    responsive: pixelsToResponsive(el.layout.desktop, getCanvasWidth('desktop', defaultConfig.breakpoints), defaultConfig.defaultCanvasHeight),
+                                    responsive: pixelsToResponsive(el.layout.desktop, getCanvasWidth("desktop", defaultConfig.breakpoints), defaultConfig.defaultCanvasHeight),
                                 },
                             };
                         }
@@ -52,7 +52,7 @@ export function usePageData(pageId, options) {
         onSaveRef.current?.(dataToSave);
         // Save to server in background (non-blocking)
         Promise.resolve(storage.save(pageId, dataToSave)).catch((error) => {
-            console.error('Failed to save to server:', error);
+            console.error("Failed to save to server:", error);
             // Could trigger error callback or retry logic here
         });
     }, [pageId, storage, pageData]);
@@ -65,7 +65,7 @@ export function usePageData(pageId, options) {
             onSaveRef.current?.(pageData);
             // Save to server in background (non-blocking)
             Promise.resolve(storage.save(pageId, pageData)).catch((error) => {
-                console.error('Auto-save failed:', error);
+                console.error("Auto-save failed:", error);
                 // Could implement retry logic or error notification here
             });
         }, autoSaveDelay);

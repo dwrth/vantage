@@ -1,4 +1,4 @@
-import { Breakpoint } from '../core/types';
+import { Breakpoint } from "../core/types";
 interface BreakpointSwitcherProps {
     currentBreakpoint: Breakpoint;
     onBreakpointChange: (breakpoint: Breakpoint) => void;

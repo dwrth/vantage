@@ -1,6 +1,6 @@
 // Core types - framework agnostic
 
-export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
+export type Breakpoint = "desktop" | "tablet" | "mobile";
 
 // Editor uses pixels (for react-rnd compatibility)
 export interface LayoutRect {

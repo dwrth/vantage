@@ -4,7 +4,11 @@ interface GridOverlayProps {
   gridSize?: number;
 }
 
-export default function GridOverlay({ width, height, gridSize = 50 }: GridOverlayProps) {
+export default function GridOverlay({
+  width,
+  height,
+  gridSize = 50,
+}: GridOverlayProps) {
   // Calculate offset to center the grid (equal cutoff on both sides)
   const offsetX = (width % gridSize) / 2;
   const offsetY = (height % gridSize) / 2;
@@ -17,19 +21,21 @@ export default function GridOverlay({ width, height, gridSize = 50 }: GridOverla
   return (
     <div
       style={{
-        position: 'absolute',
+        position: "absolute",
         inset: 0,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-      }}>
+        pointerEvents: "none",
+        overflow: "hidden",
+      }}
+    >
       <svg
         style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
+          position: "absolute",
+          width: "100%",
+          height: "100%",
           top: 0,
           left: 0,
-        }}>
+        }}
+      >
         <defs>
           <pattern
             id={patternId}
@@ -37,7 +43,8 @@ export default function GridOverlay({ width, height, gridSize = 50 }: GridOverla
             y={offsetY}
             width={gridSize}
             height={gridSize}
-            patternUnits="userSpaceOnUse">
+            patternUnits="userSpaceOnUse"
+          >
             <rect
               x={gap / 2}
               y={gap / 2}

@@ -1,4 +1,4 @@
-import { LayoutRect, Breakpoint, ResponsiveRect } from '../core/types';
+import { LayoutRect, Breakpoint, ResponsiveRect } from "../core/types";
 export declare const getCanvasWidth: (breakpoint: Breakpoint, breakpoints: Record<Breakpoint, number>) => number;
 export declare const scaleLayoutToBreakpoint: (sourceRect: LayoutRect, sourceBreakpoint: Breakpoint, targetBreakpoint: Breakpoint, breakpoints: Record<Breakpoint, number>) => LayoutRect;
 export declare const pixelsToResponsive: (rect: LayoutRect, canvasWidth: number, canvasHeight?: number) => ResponsiveRect;

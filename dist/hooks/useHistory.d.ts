@@ -1,5 +1,5 @@
-import { PageData } from '../core/types';
-import { StorageAdapter } from '../adapters/storage';
+import { PageData } from "../core/types";
+import { StorageAdapter } from "../adapters/storage";
 /**
  * Hook for managing undo/redo history with optional server-side persistence
  */

@@ -1,5 +1,5 @@
-import { PageData, Breakpoint, LayoutRect } from '../core/types';
-import { PageBuilderConfig } from '../core/config';
+import { PageData, Breakpoint, LayoutRect } from "../core/types";
+import { PageBuilderConfig } from "../core/config";
 export declare function usePageEditor<T extends string = string>(pageId: string, config?: PageBuilderConfig<T>): {
     pageData: PageData<T>;
     breakpoint: Breakpoint;

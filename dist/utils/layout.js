@@ -17,7 +17,7 @@ export const scaleLayoutToBreakpoint = (sourceRect, sourceBreakpoint, targetBrea
 export const pixelsToResponsive = (rect, canvasWidth, canvasHeight = 800) => {
     return {
         left: (rect.x / canvasWidth) * 100, // percentage of container width
-        top: (rect.y / canvasHeight) * 100, // percentage of container height  
+        top: (rect.y / canvasHeight) * 100, // percentage of container height
         width: (rect.w / canvasWidth) * 100, // percentage of container width
         height: (rect.h / canvasHeight) * 100, // percentage of container height
     };

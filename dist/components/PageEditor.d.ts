@@ -1,4 +1,4 @@
-import { PageBuilderConfig } from '../core/config';
+import { PageBuilderConfig } from "../core/config";
 interface PageEditorProps<T extends string = string> {
     pageId: string;
     config?: PageBuilderConfig<T>;

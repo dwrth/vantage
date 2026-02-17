@@ -1,5 +1,5 @@
-import React from 'react';
-import { PageData, PageElement, Breakpoint, LayoutRect } from '../core/types';
+import React from "react";
+import { PageData, PageElement, Breakpoint, LayoutRect } from "../core/types";
 /**
  * Headless hook for page element actions
  * Provides actions for manipulating page elements without UI

@@ -32,6 +32,7 @@ This example includes several custom components to demonstrate the flexibility:
 ### `/` - Main Editor
 
 Full-featured editor with drag & drop, demonstrates:
+
 - Custom components
 - Auto-saving to localStorage (default)
 - Optional server-side saving examples (commented)
@@ -56,8 +57,8 @@ Full-featured editor with drag & drop, demonstrates:
 Shows how to load and render saved pages:
 
 ```tsx
-const { pageData } = usePageData('demo', { storage: apiStorage });
-<LiveView pageData={pageData} components={customComponents} />
+const { pageData } = usePageData("demo", { storage: apiStorage });
+<LiveView pageData={pageData} components={customComponents} />;
 ```
 
 ### `/headless` - Headless Example
@@ -66,7 +67,7 @@ Demonstrates building a custom UI using headless hooks:
 
 ```tsx
 // Uses localStorage by default
-const { pageData, setPageData, save } = usePageData('demo', {
+const { pageData, setPageData, save } = usePageData("demo", {
   autoSaveDelay: 3000,
   // Optional: Add server sync alongside localStorage
   // onSave: async (data) => {
@@ -76,7 +77,7 @@ const { pageData, setPageData, save } = usePageData('demo', {
 
 const { addElement, updateLayout, deleteElement } = usePageActions(
   pageData,
-  setPageData
+  setPageData,
 );
 
 // Build your custom UI
@@ -89,6 +90,7 @@ npm run dev
 ```
 
 Visit:
+
 - `/` - Main editor with custom components and server-side saving
 - `/live` - Live preview of saved pages
 - `/headless` - Custom UI built with headless hooks
@@ -116,9 +118,9 @@ Keep localStorage but also sync to your server:
     autoSaveDelay: 2000,
     // Also syncs to server
     onSave: async (data) => {
-      await fetch('/api/pages/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/pages/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
     },
@@ -140,7 +142,7 @@ Use API storage instead of localStorage:
 ### Option 3: Headless Hooks with Custom Save
 
 ```tsx
-const { pageData, save } = usePageData('demo', {
+const { pageData, save } = usePageData("demo", {
   // Uses localStorage by default
   autoSaveDelay: 2000,
   // Optional: Add server sync

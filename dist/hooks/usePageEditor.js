@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { defaultConfig } from '../core/config';
-import { usePageData } from './usePageData';
-import { usePageActions } from './usePageActions';
-import { useHistory } from './useHistory';
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { defaultConfig } from "../core/config";
+import { usePageData } from "./usePageData";
+import { usePageActions } from "./usePageActions";
+import { useHistory } from "./useHistory";
 export function usePageEditor(pageId, config) {
     // Stabilize config callbacks to prevent infinite loops
     const onElementSelectRef = useRef(config?.onElementSelect);
@@ -15,7 +15,7 @@ export function usePageEditor(pageId, config) {
     // Memoize breakpoints to prevent recreating callbacks
     const breakpoints = useMemo(() => config?.breakpoints ?? defaultConfig.breakpoints, [config?.breakpoints]);
     const canvasHeight = config?.defaultCanvasHeight ?? defaultConfig.defaultCanvasHeight;
-    const [breakpoint, setBreakpoint] = useState('desktop');
+    const [breakpoint, setBreakpoint] = useState("desktop");
     const [selectedId, setSelectedId] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
     // Use headless page data hook
@@ -50,7 +50,7 @@ export function usePageEditor(pageId, config) {
     // Wrapper for setPageData that updates history
     const setPageDataWithHistory = useCallback((updater) => {
         setPageData((prev) => {
-            const next = typeof updater === 'function' ? updater(prev) : updater;
+            const next = typeof updater === "function" ? updater(prev) : updater;
             return next;
         });
     }, []);
