@@ -70,7 +70,7 @@ export function useHistory(initialData, maxHistorySize = 50, options) {
                 }
                 return current; // Don't modify state
             });
-        }, 1000); // 1 second debounce
+        }, 250); // 250ms debounce
     }, [persistToServer, storage, pageId, maxHistorySize]);
     const updateHistory = useCallback((newPresent, addToHistory = true) => {
         if (addToHistory) {

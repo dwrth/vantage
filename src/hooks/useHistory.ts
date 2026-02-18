@@ -96,7 +96,7 @@ export function useHistory<T extends string = string>(
 
         return current; // Don't modify state
       });
-    }, 1000); // 1 second debounce
+    }, 250); // 250ms debounce
   }, [persistToServer, storage, pageId, maxHistorySize]);
 
   const updateHistory = useCallback(
