@@ -8,7 +8,7 @@ import { snapToGrid } from "../utils/layout";
 
 export function usePageEditor<T extends string = string>(
   pageId: string,
-  config?: PageBuilderConfig<T>,
+  config?: PageBuilderConfig<T>
 ) {
   // Stabilize config callbacks to prevent infinite loops
   const onElementSelectRef = useRef(config?.onElementSelect);
@@ -23,7 +23,7 @@ export function usePageEditor<T extends string = string>(
   // Memoize breakpoints to prevent recreating callbacks
   const breakpoints = useMemo(
     () => config?.breakpoints ?? defaultConfig.breakpoints,
-    [config?.breakpoints],
+    [config?.breakpoints]
   );
   const canvasHeight =
     config?.defaultCanvasHeight ?? defaultConfig.defaultCanvasHeight;
@@ -78,12 +78,12 @@ export function usePageEditor<T extends string = string>(
   // Wrapper for setPageData that updates history
   const setPageDataWithHistory = useCallback(
     (updater: React.SetStateAction<PageData<T>>) => {
-      setPageData((prev) => {
+      setPageData(prev => {
         const next = typeof updater === "function" ? updater(prev) : updater;
         return next;
       });
     },
-    [],
+    []
   );
 
   // Memoize options to prevent usePageActions from recreating callbacks
@@ -93,7 +93,7 @@ export function usePageEditor<T extends string = string>(
       breakpoints,
       canvasHeight,
     }),
-    [gridSize, breakpoints, canvasHeight],
+    [gridSize, breakpoints, canvasHeight]
   );
 
   // Use headless page actions hook (use history-aware setter)
@@ -129,21 +129,21 @@ export function usePageEditor<T extends string = string>(
       updateLayoutAction(id, breakpoint, newRect);
       onElementUpdateRef.current?.(id, newRect);
     },
-    [breakpoint, updateLayoutAction],
+    [breakpoint, updateLayoutAction]
   );
 
   const addElement = useCallback(
     (type: T, defaultContent?: Record<string, any>) => {
       addElementAction(type, defaultContent);
     },
-    [addElementAction],
+    [addElementAction]
   );
 
   const updateZIndex = useCallback(
     (id: string, direction: "up" | "down") => {
       updateZIndexAction(id, direction);
     },
-    [updateZIndexAction],
+    [updateZIndexAction]
   );
 
   const deleteElement = useCallback(
@@ -154,7 +154,7 @@ export function usePageEditor<T extends string = string>(
         onElementSelectRef.current?.(null);
       }
     },
-    [selectedId, deleteElementAction],
+    [selectedId, deleteElementAction]
   );
 
   const handleElementSelect = useCallback((id: string | null) => {

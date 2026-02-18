@@ -13,7 +13,7 @@ import { customComponents } from "../components/CustomComponents";
  * that instantly become draggable and resizable!
  */
 export default function Home() {
-const storage = new LocalStorageAdapter();
+  const storage = new LocalStorageAdapter();
   return (
     <div className="h-screen flex flex-col">
       <div className="p-4 bg-blue-50 border-b border-blue-200">

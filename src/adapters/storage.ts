@@ -21,10 +21,10 @@ export interface StorageAdapter {
   // History operations (optional - implement for server-side history)
   saveHistory?(
     pageId: string,
-    history: HistorySnapshot[],
+    history: HistorySnapshot[]
   ): Promise<void> | void;
   loadHistory?(
-    pageId: string,
+    pageId: string
   ): Promise<HistorySnapshot[] | null> | HistorySnapshot[] | null;
   clearHistory?(pageId: string): Promise<void> | void;
 }
@@ -73,7 +73,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       if (typeof window === "undefined") return;
       localStorage.setItem(
         `${this.keyPrefix}${pageId}-history`,
-        JSON.stringify(history),
+        JSON.stringify(history)
       );
     } catch (error) {
       console.error("Failed to save history:", error);

@@ -1,6 +1,7 @@
 # @vantage/page-builder
 
-A responsive, headless page builder with drag-and-drop functionality for React applications.
+A responsive, headless page builder with drag-and-drop functionality for React
+applications.
 
 ## Features
 
@@ -31,7 +32,8 @@ npm install git+https://github.com/dwrth/vantage.git react-rnd
 npm install github:dwrth/vantage#main react-rnd
 ```
 
-**Note:** The package will automatically build on install via the `prepare` script.
+**Note:** The package will automatically build on install via the `prepare`
+script.
 
 ## Basic Usage
 
@@ -69,7 +71,7 @@ function CustomEditor() {
   const { pageData, setPageData, save } = usePageData("page-1", {
     storage,
     autoSaveDelay: 5000, // 5 seconds
-    onSave: async (data) => {
+    onSave: async data => {
       // Custom save logic
       await fetch("/api/pages", {
         method: "POST",
@@ -80,7 +82,7 @@ function CustomEditor() {
 
   const { addElement, updateLayout, deleteElement } = usePageActions(
     pageData,
-    setPageData,
+    setPageData
   );
 
   // Build your custom UI using pageData and actions
@@ -96,7 +98,9 @@ function CustomEditor() {
 
 ## Custom Storage
 
-The package **never makes network requests**. You provide your own storage implementation using any HTTP client you prefer (axios, fetch, server actions, etc.).
+The package **never makes network requests**. You provide your own storage
+implementation using any HTTP client you prefer (axios, fetch, server actions,
+etc.).
 
 ### Using localStorage (Default)
 
@@ -220,7 +224,8 @@ const storage = new FetchStorageAdapter();
 
 ## Custom Components
 
-**Any React component works!** Just register it and it instantly becomes draggable and resizable.
+**Any React component works!** Just register it and it instantly becomes
+draggable and resizable.
 
 ```tsx
 import { PageEditor, ComponentRegistry } from "@vantage/page-builder";
@@ -250,7 +255,7 @@ const components: ComponentRegistry<"button" | "card"> = {
       tablet: 1024,
       mobile: 375,
     },
-    onSave: (data) => {
+    onSave: data => {
       console.log("Page saved:", data);
     },
   }}
@@ -383,7 +388,8 @@ const storage = new MyStorageAdapter();
 - **Auto-Load**: History loads automatically when page opens
 - **Debounced**: History saves are debounced (1 second) to reduce server calls
 
-**Note:** The package never makes network requests. You implement `saveHistory`, `loadHistory`, and `clearHistory` methods using your preferred HTTP client.
+**Note:** The package never makes network requests. You implement `saveHistory`,
+`loadHistory`, and `clearHistory` methods using your preferred HTTP client.
 
 ## Live View
 
@@ -401,7 +407,8 @@ import { LiveView } from "@vantage/page-builder";
 npm run build
 ```
 
-**Note:** The `prepare` script will automatically build the package on install. However, committing `dist/` is recommended for:
+**Note:** The `prepare` script will automatically build the package on install.
+However, committing `dist/` is recommended for:
 
 - **Faster installs** - No build step needed
 - **More reliable** - No risk of build failures or missing TypeScript

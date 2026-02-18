@@ -41,14 +41,14 @@ export function LiveView<T extends string = string>({
       }
     `;
 
-    pageData.elements.forEach((element) => {
+    pageData.elements.forEach(element => {
       // Use responsive layout if available, otherwise calculate from desktop
       const responsive =
         element.layout.responsive ||
         pixelsToResponsive(
           element.layout.desktop,
           getCanvasWidth("desktop", breakpoints),
-          defaultConfig.defaultCanvasHeight!,
+          defaultConfig.defaultCanvasHeight!
         );
 
       // Base styles using percentages for fluid responsiveness
@@ -69,7 +69,7 @@ export function LiveView<T extends string = string>({
       const tabletResponsive = pixelsToResponsive(
         tablet,
         getCanvasWidth("tablet", breakpoints),
-        defaultConfig.defaultCanvasHeight!,
+        defaultConfig.defaultCanvasHeight!
       );
 
       css += `
@@ -88,7 +88,7 @@ export function LiveView<T extends string = string>({
       const mobileResponsive = pixelsToResponsive(
         mobile,
         getCanvasWidth("mobile", breakpoints),
-        defaultConfig.defaultCanvasHeight!,
+        defaultConfig.defaultCanvasHeight!
       );
 
       css += `
@@ -109,7 +109,7 @@ export function LiveView<T extends string = string>({
     <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <style dangerouslySetInnerHTML={{ __html: generateStyles() }} />
       <div className="page-container">
-        {pageData.elements.map((element) => {
+        {pageData.elements.map(element => {
           const Component = components[element.type as T];
           if (!Component) return null;
 

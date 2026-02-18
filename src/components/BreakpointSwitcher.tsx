@@ -26,7 +26,7 @@ export default function BreakpointSwitcher({
         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       }}
     >
-      {breakpoints.map((bp) => (
+      {breakpoints.map(bp => (
         <button
           key={bp.key}
           onClick={() => onBreakpointChange(bp.key)}
@@ -42,12 +42,12 @@ export default function BreakpointSwitcher({
               ? { background: "#2563eb", color: "white" }
               : { background: "#f3f4f6", color: "#374151" }),
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={e => {
             if (currentBreakpoint !== bp.key) {
               e.currentTarget.style.background = "#e5e7eb";
             }
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={e => {
             if (currentBreakpoint !== bp.key) {
               e.currentTarget.style.background = "#f3f4f6";
             }

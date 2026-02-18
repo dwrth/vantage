@@ -1,20 +1,24 @@
 # Page Builder Example
 
-This example demonstrates how to use `@vantage/page-builder` with custom React components and headless hooks.
+This example demonstrates how to use `@vantage/page-builder` with custom React
+components and headless hooks.
 
 ## Key Features
 
 ### 1. Any React Component Works!
 
-The page builder accepts **any React component** via the component registry. Simply register your component and it instantly becomes draggable and resizable!
+The page builder accepts **any React component** via the component registry.
+Simply register your component and it instantly becomes draggable and resizable!
 
 ### 2. Headless Hooks for Custom UIs
 
-Build your own UI using `usePageData` and `usePageActions` hooks - perfect for server-side saving and custom implementations.
+Build your own UI using `usePageData` and `usePageActions` hooks - perfect for
+server-side saving and custom implementations.
 
 ### 3. Server-Side Saving
 
-Use `onSave` callbacks or custom `StorageAdapter` implementations to save to your API.
+Use `onSave` callbacks or custom `StorageAdapter` implementations to save to
+your API.
 
 ## Example Components
 
@@ -77,7 +81,7 @@ const { pageData, setPageData, save } = usePageData("demo", {
 
 const { addElement, updateLayout, deleteElement } = usePageActions(
   pageData,
-  setPageData,
+  setPageData
 );
 
 // Build your custom UI
@@ -99,7 +103,8 @@ Visit:
 
 ### Default: localStorage
 
-By default, the page builder uses `LocalStorageAdapter` to save to browser localStorage:
+By default, the page builder uses `LocalStorageAdapter` to save to browser
+localStorage:
 
 ```tsx
 <PageEditor pageId="demo" config={{ autoSaveDelay: 2000 }} />
@@ -117,7 +122,7 @@ Keep localStorage but also sync to your server:
     // Still uses localStorage
     autoSaveDelay: 2000,
     // Also syncs to server
-    onSave: async (data) => {
+    onSave: async data => {
       await fetch("/api/pages/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

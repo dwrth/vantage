@@ -18,7 +18,7 @@ export function useHistory<T extends string = string>(
     storage?: StorageAdapter;
     pageId?: string;
     persistToServer?: boolean;
-  },
+  }
 ) {
   const [history, setHistory] = useState<HistoryState<T>>({
     past: [],
@@ -46,7 +46,7 @@ export function useHistory<T extends string = string>(
         const loaded = await Promise.resolve(storage.loadHistory(pageId));
         if (loaded && loaded.length > 0) {
           // Restore history from server
-          const past = loaded.slice(0, -1).map((snap) => snap.data);
+          const past = loaded.slice(0, -1).map(snap => snap.data);
           const present = loaded[loaded.length - 1].data;
 
           setHistory({
@@ -77,9 +77,9 @@ export function useHistory<T extends string = string>(
 
     persistHistoryRef.current = setTimeout(() => {
       // Get current history state
-      setHistory((current) => {
+      setHistory(current => {
         const snapshots: HistorySnapshot[] = [
-          ...current.past.map((data) => ({ data, timestamp: Date.now() })),
+          ...current.past.map(data => ({ data, timestamp: Date.now() })),
           { data: current.present, timestamp: Date.now() },
         ];
 
@@ -88,9 +88,9 @@ export function useHistory<T extends string = string>(
 
         if (storage.saveHistory) {
           Promise.resolve(storage.saveHistory(pageId, recentSnapshots)).catch(
-            (error) => {
+            error => {
               console.error("Failed to persist history to server:", error);
-            },
+            }
           );
         }
 
@@ -102,7 +102,7 @@ export function useHistory<T extends string = string>(
   const updateHistory = useCallback(
     (newPresent: PageData<T>, addToHistory: boolean = true) => {
       if (addToHistory) {
-        setHistory((prev) => {
+        setHistory(prev => {
           const newPast = [...prev.past, prev.present];
           // Limit history size
           const trimmedPast =
@@ -125,20 +125,20 @@ export function useHistory<T extends string = string>(
         });
       } else {
         // Silent update (for undo/redo - handled separately)
-        setHistory((prev) => ({
+        setHistory(prev => ({
           ...prev,
           present: newPresent,
         }));
       }
     },
-    [maxHistorySize, persistHistory],
+    [maxHistorySize, persistHistory]
   );
 
   const undo = useCallback((): PageData<T> | null => {
     if (!canUndo) return null;
 
     let previousState: PageData<T> | null = null;
-    setHistory((prev) => {
+    setHistory(prev => {
       const previous = prev.past[prev.past.length - 1];
       previousState = previous;
       const newPast = prev.past.slice(0, -1);
@@ -164,7 +164,7 @@ export function useHistory<T extends string = string>(
     if (!canRedo) return null;
 
     let nextState: PageData<T> | null = null;
-    setHistory((prev) => {
+    setHistory(prev => {
       const next = prev.future[0];
       nextState = next;
       const newFuture = prev.future.slice(1);
@@ -211,7 +211,7 @@ export function useHistory<T extends string = string>(
 
     // Clear server history
     if (persistToServer && storage?.clearHistory && pageId) {
-      Promise.resolve(storage.clearHistory(pageId)).catch((error) => {
+      Promise.resolve(storage.clearHistory(pageId)).catch(error => {
         console.error("Failed to clear history on server:", error);
       });
     }

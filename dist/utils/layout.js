@@ -1,54 +1,59 @@
 // Layout utility functions
 export const getCanvasWidth = (breakpoint, breakpoints) => {
-    return breakpoints[breakpoint];
+  return breakpoints[breakpoint];
 };
-export const scaleLayoutToBreakpoint = (sourceRect, sourceBreakpoint, targetBreakpoint, breakpoints) => {
-    const sourceWidth = breakpoints[sourceBreakpoint];
-    const targetWidth = breakpoints[targetBreakpoint];
-    const scale = targetWidth / sourceWidth;
-    return {
-        x: sourceRect.x * scale,
-        y: sourceRect.y * scale,
-        w: sourceRect.w * scale,
-        h: sourceRect.h * scale,
-    };
+export const scaleLayoutToBreakpoint = (
+  sourceRect,
+  sourceBreakpoint,
+  targetBreakpoint,
+  breakpoints
+) => {
+  const sourceWidth = breakpoints[sourceBreakpoint];
+  const targetWidth = breakpoints[targetBreakpoint];
+  const scale = targetWidth / sourceWidth;
+  return {
+    x: sourceRect.x * scale,
+    y: sourceRect.y * scale,
+    w: sourceRect.w * scale,
+    h: sourceRect.h * scale,
+  };
 };
 // Convert pixel-based layout to responsive units
 export const pixelsToResponsive = (rect, canvasWidth, canvasHeight = 800) => {
-    return {
-        left: (rect.x / canvasWidth) * 100, // percentage of container width
-        top: (rect.y / canvasHeight) * 100, // percentage of container height
-        width: (rect.w / canvasWidth) * 100, // percentage of container width
-        height: (rect.h / canvasHeight) * 100, // percentage of container height
-    };
+  return {
+    left: (rect.x / canvasWidth) * 100, // percentage of container width
+    top: (rect.y / canvasHeight) * 100, // percentage of container height
+    width: (rect.w / canvasWidth) * 100, // percentage of container width
+    height: (rect.h / canvasHeight) * 100, // percentage of container height
+  };
 };
 // Convert responsive units back to pixels (for editor display)
 export const responsiveToPixels = (rect, canvasWidth, canvasHeight = 800) => {
-    return {
-        x: (rect.left / 100) * canvasWidth,
-        y: (rect.top / 100) * canvasHeight,
-        w: (rect.width / 100) * canvasWidth,
-        h: (rect.height / 100) * canvasHeight,
-    };
+  return {
+    x: (rect.left / 100) * canvasWidth,
+    y: (rect.top / 100) * canvasHeight,
+    w: (rect.width / 100) * canvasWidth,
+    h: (rect.height / 100) * canvasHeight,
+  };
 };
 // Grid snapping utility
 export const snapToGrid = (value, gridSize) => {
-    return Math.round(value / gridSize) * gridSize;
+  return Math.round(value / gridSize) * gridSize;
 };
 // Calculate grid offset to center the grid (equal cutoff on both sides)
 export const getGridOffset = (containerSize, gridSize) => {
-    return (containerSize % gridSize) / 2;
+  return (containerSize % gridSize) / 2;
 };
 // Snap to centered grid (accounts for grid offset)
 export const snapToCenteredGrid = (value, gridSize, containerSize) => {
-    const offset = getGridOffset(containerSize, gridSize);
-    // Adjust value by offset, snap to grid, then adjust back
-    const snapped = snapToGrid(value - offset, gridSize) + offset;
-    // Ensure snapped value doesn't exceed container bounds
-    return Math.max(offset, Math.min(snapped, containerSize - offset));
+  const offset = getGridOffset(containerSize, gridSize);
+  // Adjust value by offset, snap to grid, then adjust back
+  const snapped = snapToGrid(value - offset, gridSize) + offset;
+  // Ensure snapped value doesn't exceed container bounds
+  return Math.max(offset, Math.min(snapped, containerSize - offset));
 };
 // Snap size to grid (ensures size is a multiple of gridSize)
 export const snapSizeToGrid = (value, gridSize) => {
-    // Round to nearest multiple of gridSize, with minimum of gridSize
-    return Math.max(gridSize, Math.round(value / gridSize) * gridSize);
+  // Round to nearest multiple of gridSize, with minimum of gridSize
+  return Math.max(gridSize, Math.round(value / gridSize) * gridSize);
 };

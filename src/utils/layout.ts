@@ -4,7 +4,7 @@ import { LayoutRect, Breakpoint, ResponsiveRect } from "../core/types";
 
 export const getCanvasWidth = (
   breakpoint: Breakpoint,
-  breakpoints: Record<Breakpoint, number>,
+  breakpoints: Record<Breakpoint, number>
 ): number => {
   return breakpoints[breakpoint];
 };
@@ -13,7 +13,7 @@ export const scaleLayoutToBreakpoint = (
   sourceRect: LayoutRect,
   sourceBreakpoint: Breakpoint,
   targetBreakpoint: Breakpoint,
-  breakpoints: Record<Breakpoint, number>,
+  breakpoints: Record<Breakpoint, number>
 ): LayoutRect => {
   const sourceWidth = breakpoints[sourceBreakpoint];
   const targetWidth = breakpoints[targetBreakpoint];
@@ -31,7 +31,7 @@ export const scaleLayoutToBreakpoint = (
 export const pixelsToResponsive = (
   rect: LayoutRect,
   canvasWidth: number,
-  canvasHeight: number = 800,
+  canvasHeight: number = 800
 ): ResponsiveRect => {
   return {
     left: (rect.x / canvasWidth) * 100, // percentage of container width
@@ -45,7 +45,7 @@ export const pixelsToResponsive = (
 export const responsiveToPixels = (
   rect: ResponsiveRect,
   canvasWidth: number,
-  canvasHeight: number = 800,
+  canvasHeight: number = 800
 ): LayoutRect => {
   return {
     x: (rect.left / 100) * canvasWidth,
@@ -63,7 +63,7 @@ export const snapToGrid = (value: number, gridSize: number): number => {
 // Calculate grid offset to center the grid (equal cutoff on both sides)
 export const getGridOffset = (
   containerSize: number,
-  gridSize: number,
+  gridSize: number
 ): number => {
   return (containerSize % gridSize) / 2;
 };
@@ -72,7 +72,7 @@ export const getGridOffset = (
 export const snapToCenteredGrid = (
   value: number,
   gridSize: number,
-  containerSize: number,
+  containerSize: number
 ): number => {
   const offset = getGridOffset(containerSize, gridSize);
   // Adjust value by offset, snap to grid, then adjust back

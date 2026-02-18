@@ -109,7 +109,7 @@ export function PageEditor<T extends string = string>({
               <input
                 type="checkbox"
                 checked={showGrid}
-                onChange={(e) => setShowGrid(e.target.checked)}
+                onChange={e => setShowGrid(e.target.checked)}
               />
               <span style={{ fontSize: "14px" }}>Show Grid</span>
             </label>
@@ -172,7 +172,7 @@ export function PageEditor<T extends string = string>({
               marginBottom: "16px",
             }}
           >
-            {Object.keys(components).map((type) => (
+            {Object.keys(components).map(type => (
               <button
                 key={type}
                 onClick={() => addElement(type as T)}
@@ -187,10 +187,10 @@ export function PageEditor<T extends string = string>({
                   fontSize: "14px",
                   fontWeight: 500,
                 }}
-                onMouseEnter={(e) => {
+                onMouseEnter={e => {
                   e.currentTarget.style.background = "#1d4ed8";
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={e => {
                   e.currentTarget.style.background = "#2563eb";
                 }}
               >
@@ -294,7 +294,7 @@ export function PageEditor<T extends string = string>({
               />
             )}
 
-            {pageData.elements.map((element) => {
+            {pageData.elements.map(element => {
               const Component = components[element.type as T];
               if (!Component) return null;
 
@@ -321,19 +321,19 @@ export function PageEditor<T extends string = string>({
                     const snappedWidth = snapSizeToGrid(actualWidth, gridSize);
                     const snappedHeight = snapSizeToGrid(
                       actualHeight,
-                      gridSize,
+                      gridSize
                     );
 
                     // Snap position to centered grid
                     const snappedX = snapToCenteredGrid(
                       position.x,
                       gridSize,
-                      canvasWidth,
+                      canvasWidth
                     );
                     const snappedY = snapToCenteredGrid(
                       position.y,
                       gridSize,
-                      gridHeight,
+                      gridHeight
                     );
 
                     // Ensure element doesn't go outside canvas bounds
@@ -343,11 +343,11 @@ export function PageEditor<T extends string = string>({
                     const maxY = gridHeight - snappedHeight - gridOffsetY;
                     const finalX = Math.max(
                       gridOffsetX,
-                      Math.min(snappedX, maxX),
+                      Math.min(snappedX, maxX)
                     );
                     const finalY = Math.max(
                       gridOffsetY,
-                      Math.min(snappedY, maxY),
+                      Math.min(snappedY, maxY)
                     );
 
                     updateLayout(element.id, {

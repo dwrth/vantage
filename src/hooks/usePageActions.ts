@@ -21,13 +21,13 @@ export function usePageActions<T extends string = string>(
     gridSize?: number;
     breakpoints?: Record<Breakpoint, number>;
     canvasHeight?: number;
-  },
+  }
 ) {
   // Memoize options to prevent unnecessary recreations
   const gridSize = options?.gridSize ?? defaultConfig.gridSize;
   const breakpoints = useMemo(
     () => options?.breakpoints ?? defaultConfig.breakpoints,
-    [options?.breakpoints],
+    [options?.breakpoints]
   );
   const canvasHeight =
     options?.canvasHeight ?? defaultConfig.defaultCanvasHeight;
@@ -42,10 +42,10 @@ export function usePageActions<T extends string = string>(
         element.layout.desktop,
         "desktop",
         bp,
-        breakpoints,
+        breakpoints
       );
     },
-    [breakpoints],
+    [breakpoints]
   );
 
   const findNonOverlappingPosition = useCallback(
@@ -53,9 +53,9 @@ export function usePageActions<T extends string = string>(
       breakpoint: Breakpoint,
       width: number,
       height: number,
-      currentElements: PageElement<T>[],
+      currentElements: PageElement<T>[]
     ): LayoutRect => {
-      const existingRects = currentElements.map((el) => {
+      const existingRects = currentElements.map(el => {
         const layout = ensureBreakpointLayout(el, breakpoint);
         return {
           x: layout.x,
@@ -76,7 +76,7 @@ export function usePageActions<T extends string = string>(
       let y = gridOffsetY + gridSize;
 
       for (let attempt = 0; attempt < 100; attempt++) {
-        const overlaps = existingRects.some((rect) => {
+        const overlaps = existingRects.some(rect => {
           return !(
             x + width < rect.x ||
             x > rect.right ||
@@ -103,12 +103,12 @@ export function usePageActions<T extends string = string>(
         h: height,
       };
     },
-    [ensureBreakpointLayout, gridSize, breakpoints, canvasHeight],
+    [ensureBreakpointLayout, gridSize, breakpoints, canvasHeight]
   );
 
   const addElement = useCallback(
     (type: T, defaultContent?: Record<string, any>) => {
-      setPageData((prev) => {
+      setPageData(prev => {
         const defaultSize = {
           w: snapToGrid(200, gridSize),
           h: snapToGrid(100, gridSize),
@@ -118,19 +118,19 @@ export function usePageActions<T extends string = string>(
           "desktop",
           defaultSize.w,
           defaultSize.h,
-          prev.elements,
+          prev.elements
         );
         const tabletPos = findNonOverlappingPosition(
           "tablet",
           defaultSize.w,
           defaultSize.h,
-          prev.elements,
+          prev.elements
         );
         const mobilePos = findNonOverlappingPosition(
           "mobile",
           defaultSize.w,
           defaultSize.h,
-          prev.elements,
+          prev.elements
         );
 
         const newElement: PageElement<T> = {
@@ -144,7 +144,7 @@ export function usePageActions<T extends string = string>(
             responsive: pixelsToResponsive(
               desktopPos,
               getCanvasWidth("desktop", breakpoints),
-              canvasHeight,
+              canvasHeight
             ),
           },
           zIndex: prev.elements.length,
@@ -156,15 +156,15 @@ export function usePageActions<T extends string = string>(
         };
       });
     },
-    [findNonOverlappingPosition, gridSize, breakpoints, canvasHeight],
+    [findNonOverlappingPosition, gridSize, breakpoints, canvasHeight]
   );
 
   const updateLayout = useCallback(
     (id: string, breakpoint: Breakpoint, newRect: LayoutRect) => {
-      setPageData((prev) => {
+      setPageData(prev => {
         const updated: PageData<T> = {
           ...prev,
-          elements: prev.elements.map((el) => {
+          elements: prev.elements.map(el => {
             if (el.id !== id) return el;
 
             const updatedLayout = { ...el.layout, [breakpoint]: newRect };
@@ -173,13 +173,13 @@ export function usePageActions<T extends string = string>(
               updatedLayout.responsive = pixelsToResponsive(
                 newRect,
                 getCanvasWidth("desktop", breakpoints),
-                canvasHeight,
+                canvasHeight
               );
             } else if (!updatedLayout.responsive) {
               updatedLayout.responsive = pixelsToResponsive(
                 el.layout.desktop,
                 getCanvasWidth("desktop", breakpoints),
-                canvasHeight,
+                canvasHeight
               );
             }
 
@@ -190,36 +190,36 @@ export function usePageActions<T extends string = string>(
         return updated;
       });
     },
-    [breakpoints, canvasHeight],
+    [breakpoints, canvasHeight]
   );
 
   const updateElement = useCallback(
     (id: string, updates: Partial<PageElement<T>>) => {
-      setPageData((prev) => ({
+      setPageData(prev => ({
         ...prev,
-        elements: prev.elements.map((el) =>
-          el.id === id ? { ...el, ...updates } : el,
+        elements: prev.elements.map(el =>
+          el.id === id ? { ...el, ...updates } : el
         ),
       }));
     },
-    [],
+    []
   );
 
   const deleteElement = useCallback((id: string) => {
-    setPageData((prev) => ({
+    setPageData(prev => ({
       ...prev,
-      elements: prev.elements.filter((el) => el.id !== id),
+      elements: prev.elements.filter(el => el.id !== id),
     }));
   }, []);
 
   const updateZIndex = useCallback((id: string, direction: "up" | "down") => {
-    setPageData((prev) => {
+    setPageData(prev => {
       const elements = [...prev.elements];
-      const index = elements.findIndex((el) => el.id === id);
+      const index = elements.findIndex(el => el.id === id);
       if (index === -1) return prev;
 
-      const maxZ = Math.max(...elements.map((el) => el.zIndex));
-      const minZ = Math.min(...elements.map((el) => el.zIndex));
+      const maxZ = Math.max(...elements.map(el => el.zIndex));
+      const minZ = Math.min(...elements.map(el => el.zIndex));
 
       if (direction === "up") {
         elements[index].zIndex = maxZ + 1;

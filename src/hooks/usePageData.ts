@@ -16,12 +16,12 @@ export function usePageData<T extends string = string>(
     autoSaveDelay?: number;
     onSave?: (data: PageData<T>) => void;
     initialData?: PageData<T>;
-  },
+  }
 ) {
   // Memoize storage to prevent recreating adapter on every render
   const storage: StorageAdapter = useMemo(
     () => options?.storage || new LocalStorageAdapter(),
-    [options?.storage],
+    [options?.storage]
   );
   const autoSaveDelay = options?.autoSaveDelay ?? defaultConfig.autoSaveDelay;
   const onSaveRef = useRef(options?.onSave);
@@ -31,7 +31,7 @@ export function usePageData<T extends string = string>(
   }, [options?.onSave]);
 
   const [pageData, setPageData] = useState<PageData<T>>(
-    options?.initialData || { pageId, elements: [] },
+    options?.initialData || { pageId, elements: [] }
   );
 
   // Load initial data
@@ -47,7 +47,7 @@ export function usePageData<T extends string = string>(
         // Ensure all elements have responsive layouts calculated
         const updated: PageData<T> = {
           ...loaded,
-          elements: loaded.elements.map((el) => {
+          elements: loaded.elements.map(el => {
             if (!el.layout.responsive) {
               return {
                 ...el,
@@ -56,7 +56,7 @@ export function usePageData<T extends string = string>(
                   responsive: pixelsToResponsive(
                     el.layout.desktop,
                     getCanvasWidth("desktop", defaultConfig.breakpoints!),
-                    defaultConfig.defaultCanvasHeight!,
+                    defaultConfig.defaultCanvasHeight!
                   ),
                 },
               } as PageElement<T>;
@@ -79,12 +79,12 @@ export function usePageData<T extends string = string>(
       onSaveRef.current?.(dataToSave);
 
       // Save to server in background (non-blocking)
-      Promise.resolve(storage.save(pageId, dataToSave)).catch((error) => {
+      Promise.resolve(storage.save(pageId, dataToSave)).catch(error => {
         console.error("Failed to save to server:", error);
         // Could trigger error callback or retry logic here
       });
     },
-    [pageId, storage, pageData],
+    [pageId, storage, pageData]
   );
 
   // Auto-save effect (optimistic updates)
@@ -96,7 +96,7 @@ export function usePageData<T extends string = string>(
       onSaveRef.current?.(pageData);
 
       // Save to server in background (non-blocking)
-      Promise.resolve(storage.save(pageId, pageData)).catch((error) => {
+      Promise.resolve(storage.save(pageId, pageData)).catch(error => {
         console.error("Auto-save failed:", error);
         // Could implement retry logic or error notification here
       });

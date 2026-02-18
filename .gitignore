@@ -40,7 +40,3 @@ next-env.d.ts
 example/.next/
 example/out/
 example/node_modules/
-
-# Root level Next.js files (moved to example)
-postcss.config.mjs
-eslint.config.mjs

@@ -187,7 +187,7 @@ export const CustomForm = ({ title }: { title?: string }) => {
           type="text"
           placeholder="Name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
           style={{
             padding: "12px",
             border: "1px solid #d1d5db",
@@ -199,7 +199,7 @@ export const CustomForm = ({ title }: { title?: string }) => {
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           style={{
             padding: "12px",
             border: "1px solid #d1d5db",
@@ -302,8 +302,8 @@ export const TodoList = ({ title }: { title?: string }) => {
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && addTodo()}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyPress={e => e.key === "Enter" && addTodo()}
           placeholder="Add a todo..."
           style={{
             flex: 1,
