@@ -351,10 +351,6 @@ export function PageEditor<T extends string = string>({
                     minHeight: section.height,
                     marginBottom: "24px",
                     position: "relative",
-                    border: isSelected
-                      ? "2px solid #3b82f6"
-                      : "1px solid #e5e7eb",
-                    boxSizing: "border-box",
                   }}
                   onMouseDown={() => setSelectedSectionId(section.id)}
                 >
@@ -663,6 +659,17 @@ export function PageEditor<T extends string = string>({
                         </Rnd>
                       );
                     })}
+                    {/* Border as overlay so it doesn't affect layout or cause grid jump */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        border: `2px solid ${isSelected ? "#3b82f6" : "#e5e7eb"}`,
+                        borderRadius: "inherit",
+                        pointerEvents: "none",
+                        zIndex: 1,
+                      }}
+                    />
                   </div>
                   {/* Section height resize handle */}
                   <div
