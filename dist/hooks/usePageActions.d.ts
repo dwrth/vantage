@@ -13,6 +13,10 @@ export declare function usePageActions<T extends string = string>(pageData: Page
 }): {
     addElement: (type: T, defaultContent?: Record<string, any>, sectionId?: string) => void;
     updateLayout: (id: string, breakpoint: Breakpoint, newRect: LayoutRect) => void;
+    updateLayoutBulk: (updates: {
+        id: string;
+        rect: LayoutRect;
+    }[], breakpoint: Breakpoint) => void;
     updateElement: (id: string, updates: Partial<PageElement<T>>) => void;
     deleteElement: (id: string) => void;
     updateZIndex: (id: string, direction: "up" | "down") => void;
@@ -21,7 +25,5 @@ export declare function usePageActions<T extends string = string>(pageData: Page
     deleteSection: (sectionId: string) => void;
     updateSectionHeight: (sectionId: string, height: number) => void;
     updateSectionFullWidth: (sectionId: string, fullWidth: boolean) => void;
-    updateSectionWidth: (sectionId: string, width: number) => void;
-    updateSectionMaxWidth: (sectionId: string, maxWidth: number | undefined) => void;
 };
 //# sourceMappingURL=usePageActions.d.ts.map

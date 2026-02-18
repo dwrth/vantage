@@ -18,8 +18,8 @@ export declare const gridPercentY: (gridSize: number, canvasHeight: number) => n
 export declare const snapToGridPercent: (value: number, gridPercent: number) => number;
 export declare const snapToCenteredGridPercent: (value: number, gridPercent: number, containerPercent?: number) => number;
 export declare const snapSizeToGridPercent: (value: number, gridPercent: number) => number;
-/** Total page height in px. If no sections, returns defaultSingleSectionHeight. */
+/** Total page height in px. Uses defaultSingleSectionHeight when no sections. */
 export declare function getPageTotalHeight(sections: Section[] | undefined, defaultSingleSectionHeight: number): number;
-/** Migrate legacy pageData (no sections) to one section; assign sectionId to all elements. Idempotent if sections already present. */
+/** Ensure pageData has sections; if none, create one and assign sectionId to all elements. Idempotent when sections already present. */
 export declare function normalizePageData<T extends string = string>(data: PageData<T>, defaultSectionHeight: number): PageData<T>;
 //# sourceMappingURL=layout.d.ts.map

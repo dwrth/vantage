@@ -28,7 +28,7 @@ export function usePageData(pageId, options) {
         const loadData = async () => {
             const loaded = await Promise.resolve(storage.load(pageId));
             if (loaded) {
-                // Ensure all elements have responsive layouts; migrate legacy to single section
+                // Ensure responsive layouts and sections
                 const withResponsive = {
                     ...loaded,
                     elements: (loaded.elements || []).map(el => {

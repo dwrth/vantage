@@ -1,8 +1,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { defaultConfig } from "../core/config";
+import { defaultComponents } from "../adapters/components";
 import { usePageData } from "./usePageData";
 import { usePageActions } from "./usePageActions";
 import { useHistory } from "./useHistory";
+export function useVantageEditor(options) {
+    const { pageId, ...config } = options;
+    return usePageEditor(pageId, config);
+}
 export function usePageEditor(pageId, config) {
     // Stabilize config callbacks to prevent infinite loops
     const onElementSelectRef = useRef(config?.onElementSelect);
@@ -67,7 +72,7 @@ export function usePageEditor(pageId, config) {
         maxSectionWidth,
     }), [gridSize, breakpoints, canvasHeight, defaultSectionHeight, maxSectionWidth]);
     // Use headless page actions hook (use history-aware setter)
-    const { addElement: addElementAction, updateLayout: updateLayoutAction, updateElement: updateElementAction, deleteElement: deleteElementAction, updateZIndex: updateZIndexAction, ensureBreakpointLayout, addSection, deleteSection, updateSectionHeight, updateSectionFullWidth, updateSectionWidth, updateSectionMaxWidth, } = usePageActions(pageData, setPageDataWithHistory, actionsOptions);
+    const { addElement: addElementAction, updateLayout: updateLayoutAction, updateLayoutBulk: updateLayoutBulkAction, updateElement: updateElementAction, deleteElement: deleteElementAction, updateZIndex: updateZIndexAction, ensureBreakpointLayout, addSection, deleteSection, updateSectionHeight, updateSectionFullWidth, } = usePageActions(pageData, setPageDataWithHistory, actionsOptions);
     // Undo/Redo handlers
     const undo = useCallback(() => {
         const previous = historyUndo();
@@ -89,6 +94,10 @@ export function usePageEditor(pageId, config) {
         updateLayoutAction(id, breakpoint, newRect);
         onElementUpdateRef.current?.(id, newRect);
     }, [breakpoint, updateLayoutAction]);
+    const updateLayoutBulk = useCallback((updates) => {
+        updateLayoutBulkAction(updates, breakpoint);
+        updates.forEach(({ id, rect }) => onElementUpdateRef.current?.(id, rect));
+    }, [breakpoint, updateLayoutBulkAction]);
     const addElement = useCallback((type, defaultContent, sectionId) => {
         addElementAction(type, defaultContent, sectionId);
     }, [addElementAction]);
@@ -100,46 +109,48 @@ export function usePageEditor(pageId, config) {
         setSelectedIds(prev => prev.filter(i => i !== id));
         onElementSelectRef.current?.(null);
     }, [deleteElementAction]);
-    const handleElementSelect = useCallback((ids) => {
+    const selectElements = useCallback((ids) => {
         setSelectedIds(ids ?? []);
         onElementSelectRef.current?.(ids?.[0] ?? null);
     }, []);
+    const components = useMemo(() => (config?.components ?? defaultComponents), [config?.components]);
     return {
         // State
         pageData,
         breakpoint,
         selectedIds,
         showGrid,
+        canUndo,
+        canRedo,
+        historyLoading,
+        gridSize,
+        breakpoints,
+        canvasHeight,
+        defaultSectionHeight,
         // Setters
         setBreakpoint,
         setSelectedIds,
         setShowGrid,
-        setPageData, // Expose for manual updates
+        setPageData,
+        selectElements,
         // Actions
         updateLayout,
+        updateLayoutBulk,
         addElement,
         updateElement: updateElementAction,
         deleteElement,
         updateZIndex,
         ensureBreakpointLayout,
-        save, // Expose save function for manual saves
+        save,
         // History
         undo,
         redo,
-        canUndo,
-        canRedo,
-        historyLoading, // Loading state for server-side history
-        // Config
-        gridSize,
-        breakpoints,
-        canvasHeight,
-        defaultSectionHeight,
         // Sections
         addSection,
         deleteSection,
         updateSectionHeight,
         updateSectionFullWidth,
-        updateSectionWidth,
-        updateSectionMaxWidth,
+        // Config for rendering
+        components,
     };
 }

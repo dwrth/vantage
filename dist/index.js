@@ -5,7 +5,7 @@ export { LiveView } from "./components/LiveView";
 export { default as BreakpointSwitcher } from "./components/BreakpointSwitcher";
 export { default as GridOverlay } from "./components/GridOverlay";
 // Hooks
-export { usePageEditor } from "./hooks/usePageEditor";
+export { useVantageEditor, usePageEditor } from "./hooks/usePageEditor";
 export { usePageData } from "./hooks/usePageData";
 export { usePageActions } from "./hooks/usePageActions";
 export { useHistory } from "./hooks/useHistory";

@@ -1,35 +1,8 @@
-import { PageData, Breakpoint, LayoutRect } from "../core/types";
 import { PageBuilderConfig } from "../core/config";
-export declare function usePageEditor<T extends string = string>(pageId: string, config?: PageBuilderConfig<T>): {
-    pageData: PageData<T>;
-    breakpoint: Breakpoint;
-    selectedIds: string[];
-    showGrid: boolean;
-    setBreakpoint: import("react").Dispatch<import("react").SetStateAction<Breakpoint>>;
-    setSelectedIds: import("react").Dispatch<import("react").SetStateAction<string[]>>;
-    setShowGrid: import("react").Dispatch<import("react").SetStateAction<boolean>>;
-    setPageData: import("react").Dispatch<import("react").SetStateAction<PageData<T>>>;
-    updateLayout: (id: string, newRect: LayoutRect) => void;
-    addElement: (type: T, defaultContent?: Record<string, any>, sectionId?: string) => void;
-    updateElement: (id: string, updates: Partial<import("..").PageElement<T>>) => void;
-    deleteElement: (id: string) => void;
-    updateZIndex: (id: string, direction: "up" | "down") => void;
-    ensureBreakpointLayout: (element: import("..").PageElement<T>, targetBreakpoint?: Breakpoint) => LayoutRect;
-    save: (data?: PageData<T> | undefined) => Promise<void>;
-    undo: () => void;
-    redo: () => void;
-    canUndo: boolean;
-    canRedo: boolean;
-    historyLoading: boolean;
-    gridSize: number;
-    breakpoints: Record<Breakpoint, number>;
-    canvasHeight: number;
-    defaultSectionHeight: number;
-    addSection: (fullWidth?: boolean) => void;
-    deleteSection: (sectionId: string) => void;
-    updateSectionHeight: (sectionId: string, height: number) => void;
-    updateSectionFullWidth: (sectionId: string, fullWidth: boolean) => void;
-    updateSectionWidth: (sectionId: string, width: number) => void;
-    updateSectionMaxWidth: (sectionId: string, maxWidth: number | undefined) => void;
-};
+import type { VantageEditorInstance } from "../core/editor-instance";
+export type UseVantageEditorOptions<T extends string = string> = {
+    pageId: string;
+} & PageBuilderConfig<T>;
+export declare function useVantageEditor<T extends string = string>(options: UseVantageEditorOptions<T>): VantageEditorInstance<T>;
+export declare function usePageEditor<T extends string = string>(pageId: string, config?: PageBuilderConfig<T>): VantageEditorInstance<T>;
 //# sourceMappingURL=usePageEditor.d.ts.map

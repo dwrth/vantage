@@ -118,6 +118,27 @@ export function usePageActions(pageData, setPageData, options) {
             return updated;
         });
     }, [breakpoints, canvasHeight]);
+    const updateLayoutBulk = useCallback((updates, breakpoint) => {
+        if (updates.length === 0)
+            return;
+        setPageData(prev => {
+            const byId = new Map(updates.map(u => [u.id, u.rect]));
+            const elements = prev.elements.map(el => {
+                const newRect = byId.get(el.id);
+                if (newRect == null)
+                    return el;
+                const updatedLayout = { ...el.layout, [breakpoint]: newRect };
+                if (breakpoint === "desktop") {
+                    updatedLayout.responsive = pixelsToResponsive(newRect);
+                }
+                else if (!updatedLayout.responsive) {
+                    updatedLayout.responsive = pixelsToResponsive(el.layout.desktop);
+                }
+                return { ...el, layout: updatedLayout };
+            });
+            return { ...prev, elements };
+        });
+    }, []);
     const updateElement = useCallback((id, updates) => {
         setPageData(prev => ({
             ...prev,
@@ -176,11 +197,53 @@ export function usePageActions(pageData, setPageData, options) {
         });
     }, []);
     const updateSectionHeight = useCallback((sectionId, height) => {
-        setPageData(prev => ({
-            ...prev,
-            sections: (prev.sections || []).map(s => s.id === sectionId ? { ...s, height: Math.max(100, height) } : s),
-        }));
-    }, []);
+        setPageData(prev => {
+            const section = prev.sections?.find(s => s.id === sectionId);
+            const oldHeight = section?.height ?? 600;
+            const sectionElements = (prev.elements || []).filter((el) => el.sectionId === sectionId);
+            const maxBottomPercent = sectionElements.length > 0
+                ? Math.max(...sectionElements.map(el => el.layout.desktop.y + el.layout.desktop.h))
+                : 0;
+            const minHeightPx = maxBottomPercent > 0
+                ? (maxBottomPercent / 100) * oldHeight
+                : 0;
+            const minHeightSnapped = minHeightPx <= 0
+                ? 0
+                : Math.ceil(minHeightPx / gridSize) * gridSize;
+            const clamped = Math.max(100, Math.max(minHeightSnapped, height));
+            const newHeight = Math.max(minHeightSnapped, snapSizeToGrid(clamped, gridSize));
+            const scale = oldHeight / newHeight;
+            const scaleRectYH = (rect) => {
+                const scaledY = rect.y * scale;
+                const scaledH = rect.h * scale;
+                const h = Math.max(0.1, Math.min(100, scaledH));
+                const y = Math.max(0, Math.min(100 - h, scaledY));
+                return { ...rect, y, h };
+            };
+            const elements = (prev.elements || []).map(el => {
+                const pe = el;
+                if (pe.sectionId !== sectionId)
+                    return el;
+                const desktop = scaleRectYH(el.layout.desktop);
+                const tablet = scaleRectYH(el.layout.tablet);
+                const mobile = scaleRectYH(el.layout.mobile);
+                return {
+                    ...el,
+                    layout: {
+                        desktop,
+                        tablet,
+                        mobile,
+                        responsive: pixelsToResponsive(desktop),
+                    },
+                };
+            });
+            return {
+                ...prev,
+                sections: (prev.sections || []).map(s => s.id === sectionId ? { ...s, height: newHeight } : s),
+                elements,
+            };
+        });
+    }, [gridSize]);
     const updateSectionFullWidth = useCallback((sectionId, fullWidth) => {
         setPageData(prev => {
             const desktopWidth = getCanvasWidth("desktop", breakpoints);
@@ -196,39 +259,10 @@ export function usePageActions(pageData, setPageData, options) {
             };
         });
     }, [breakpoints]);
-    const updateSectionWidth = useCallback((sectionId, width) => {
-        const gridSize = options?.gridSize ?? defaultConfig.gridSize;
-        const minWidth = Math.max(200, gridSize * 4);
-        setPageData(prev => {
-            const section = prev.sections?.find(s => s.id === sectionId);
-            const cap = section?.maxWidth ?? maxSectionWidth;
-            const clamped = Math.max(minWidth, Math.min(cap, width));
-            const snapped = snapSizeToGrid(clamped, gridSize);
-            return {
-                ...prev,
-                sections: (prev.sections || []).map(s => s.id === sectionId ? { ...s, width: snapped } : s),
-            };
-        });
-    }, [maxSectionWidth]);
-    const updateSectionMaxWidth = useCallback((sectionId, maxWidth) => {
-        setPageData(prev => ({
-            ...prev,
-            sections: (prev.sections || []).map(s => {
-                if (s.id !== sectionId)
-                    return s;
-                const next = { ...s, maxWidth };
-                if (maxWidth != null &&
-                    s.width != null &&
-                    s.width > maxWidth) {
-                    next.width = maxWidth;
-                }
-                return next;
-            }),
-        }));
-    }, []);
     return {
         addElement,
         updateLayout,
+        updateLayoutBulk,
         updateElement,
         deleteElement,
         updateZIndex,
@@ -237,7 +271,5 @@ export function usePageActions(pageData, setPageData, options) {
         deleteSection,
         updateSectionHeight,
         updateSectionFullWidth,
-        updateSectionWidth,
-        updateSectionMaxWidth,
     };
 }

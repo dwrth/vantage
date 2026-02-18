@@ -37,64 +37,78 @@ script.
 
 ## Basic Usage
 
+The editor is driven by a **vantageEditor instance** (like React Hook Form's `useForm`). Create the instance with `useVantageEditor`, then pass it to `PageEditor`:
+
 ```tsx
-import { PageEditor } from "@vantage/page-builder";
+import { PageEditor, useVantageEditor } from "@vantage/page-builder";
 
 function App() {
-  return <PageEditor pageId="home" />;
+  const editor = useVantageEditor({ pageId: "home" });
+  return <PageEditor editor={editor} />;
 }
 ```
 
-## Headless Usage (Custom UI)
+## Custom UI (Wire the instance to your own UI)
 
-Build your own UI using the headless hooks:
+The same `editor` instance exposes all state and actions so you can build your own toolbar, sidebar, or headless canvas:
 
 ```tsx
 import {
-  usePageData,
-  usePageActions,
-  StorageAdapter,
+  useVantageEditor,
+  PageEditor,
+  LiveView,
+  type VantageEditorInstance,
 } from "@vantage/page-builder";
 
-class MyStorageAdapter implements StorageAdapter {
-  async save(pageId: string, data: PageData) {
-    /* ... */
-  }
-  async load(pageId: string) {
-    /* ... */
-  }
-}
-
 function CustomEditor() {
-  const storage = new MyStorageAdapter();
-
-  const { pageData, setPageData, save } = usePageData("page-1", {
-    storage,
-    autoSaveDelay: 5000, // 5 seconds
-    onSave: async data => {
-      // Custom save logic
-      await fetch("/api/pages", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
+  const editor = useVantageEditor({
+    pageId: "page-1",
+    components: myComponents,
+    storage: myStorage,
   });
 
-  const { addElement, updateLayout, deleteElement } = usePageActions(
-    pageData,
-    setPageData
-  );
+  // Use the built-in PageEditor (default UI)
+  return <PageEditor editor={editor} />;
+}
 
-  // Build your custom UI using pageData and actions
+// Or build your own UI with the same instance:
+function MyCustomUI() {
+  const editor = useVantageEditor({ pageId: "page-1", components: myComponents });
+
   return (
     <div>
-      <button onClick={() => addElement("button")}>Add Button</button>
-      <button onClick={() => save()}>Save Now</button>
-      {/* Your custom canvas UI */}
+      <button onClick={editor.undo} disabled={!editor.canUndo}>Undo</button>
+      <button onClick={editor.redo} disabled={!editor.canRedo}>Redo</button>
+      <button onClick={() => editor.addSection(false)}>Add section</button>
+      <button onClick={() => editor.addElement("text")}>Add text</button>
+      <select
+        value={editor.breakpoint}
+        onChange={e => editor.setBreakpoint(e.target.value as any)}
+      >
+        <option value="desktop">Desktop</option>
+        <option value="tablet">Tablet</option>
+        <option value="mobile">Mobile</option>
+      </select>
+      {/* Read-only preview using editor data */}
+      <LiveView
+        pageData={editor.pageData}
+        components={editor.components}
+        breakpoints={editor.breakpoints}
+        currentBreakpoint={editor.breakpoint}
+      />
     </div>
   );
 }
 ```
+
+**Instance API (VantageEditorInstance):**
+
+- **State:** `pageData`, `breakpoint`, `selectedIds`, `showGrid`, `canUndo`, `canRedo`, `historyLoading`, `gridSize`, `breakpoints`, `canvasHeight`, `defaultSectionHeight`
+- **Setters:** `setBreakpoint`, `setSelectedIds`, `setShowGrid`, `setPageData`, `selectElements`
+- **Element actions:** `addElement`, `updateElement`, `updateLayout`, `updateLayoutBulk`, `deleteElement`, `updateZIndex`, `ensureBreakpointLayout`
+- **Section actions:** `addSection`, `deleteSection`, `updateSectionHeight`, `updateSectionFullWidth`
+- **History:** `undo`, `redo`, `save`
+- **Rendering:** `components` (for use with `LiveView` or a custom canvas)
 
 ## Custom Storage
 
@@ -105,11 +119,13 @@ etc.).
 ### Using localStorage (Default)
 
 ```tsx
-import { PageEditor, LocalStorageAdapter } from "@vantage/page-builder";
+import { PageEditor, useVantageEditor, LocalStorageAdapter } from "@vantage/page-builder";
 
-const storage = new LocalStorageAdapter();
-
-<PageEditor pageId="home" config={{ storage }} />;
+function App() {
+  const storage = new LocalStorageAdapter();
+  const editor = useVantageEditor({ pageId: "home", storage });
+  return <PageEditor editor={editor} />;
+}
 ```
 
 ### Custom Storage with Axios
@@ -145,7 +161,8 @@ class AxiosStorageAdapter implements StorageAdapter {
 }
 
 const storage = new AxiosStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />;
+const editor = useVantageEditor({ pageId: "home", storage });
+<PageEditor editor={editor} />;
 ```
 
 ### Custom Storage with Next.js Server Actions
@@ -178,7 +195,8 @@ class ServerActionStorageAdapter implements StorageAdapter {
 }
 
 const storage = new ServerActionStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />;
+const editor = useVantageEditor({ pageId: "home", storage });
+<PageEditor editor={editor} />;
 ```
 
 ### Custom Storage with Fetch
@@ -219,7 +237,8 @@ class FetchStorageAdapter implements StorageAdapter {
 }
 
 const storage = new FetchStorageAdapter();
-<PageEditor pageId="home" config={{ storage }} />;
+const editor = useVantageEditor({ pageId: "home", storage });
+<PageEditor editor={editor} />;
 ```
 
 ## Custom Components
@@ -228,7 +247,7 @@ const storage = new FetchStorageAdapter();
 draggable and resizable.
 
 ```tsx
-import { PageEditor, ComponentRegistry } from "@vantage/page-builder";
+import { PageEditor, useVantageEditor, ComponentRegistry } from "@vantage/page-builder";
 
 const components: ComponentRegistry<"button" | "card"> = {
   button: ({ label, onClick }) => <button onClick={onClick}>{label}</button>,
@@ -240,26 +259,26 @@ const components: ComponentRegistry<"button" | "card"> = {
   ),
 };
 
-<PageEditor pageId="home" config={{ components }} />;
+const editor = useVantageEditor({ pageId: "home", components });
+<PageEditor editor={editor} />;
 ```
 
 ## Custom Configuration
 
 ```tsx
-<PageEditor
-  pageId="home"
-  config={{
-    gridSize: 50,
-    breakpoints: {
-      desktop: 1440,
-      tablet: 1024,
-      mobile: 375,
-    },
-    onSave: data => {
-      console.log("Page saved:", data);
-    },
-  }}
-/>
+const editor = useVantageEditor({
+  pageId: "home",
+  gridSize: 50,
+  breakpoints: {
+    desktop: 1440,
+    tablet: 1024,
+    mobile: 375,
+  },
+  onSave: data => {
+    console.log("Page saved:", data);
+  },
+});
+<PageEditor editor={editor} />;
 ```
 
 ## Headless Hooks API
@@ -370,15 +389,13 @@ class MyStorageAdapter implements StorageAdapter {
 }
 
 const storage = new MyStorageAdapter();
-
-<PageEditor
-  pageId="home"
-  config={{
-    storage,
-    persistHistory: true, // Enable server-side history
-    maxHistorySize: 100, // Store up to 100 undo steps
-  }}
-/>;
+const editor = useVantageEditor({
+  pageId: "home",
+  storage,
+  persistHistory: true, // Enable server-side history
+  maxHistorySize: 100, // Store up to 100 undo steps
+});
+<PageEditor editor={editor} />;
 ```
 
 **How it works:**
@@ -456,9 +473,14 @@ npm run example:dev
 
 ### Hooks
 
-- `usePageEditor` - Full editor logic hook (with UI state)
+- `useVantageEditor` - Creates the editor instance (recommended). Pass options `{ pageId, ...config }`; returns `VantageEditorInstance`.
+- `usePageEditor` - Lower-level editor hook (same return shape as useVantageEditor; useVantageEditor is the public API).
 - `usePageData` - Headless data management hook
 - `usePageActions` - Headless element manipulation hook
+
+### Types
+
+- `VantageEditorInstance<T>` - The editor instance type. Use it to type props or custom UI that receives the instance.
 
 ### Adapters
 

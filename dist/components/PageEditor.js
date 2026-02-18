@@ -2,8 +2,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Rnd } from "react-rnd";
-import { defaultComponents } from "../adapters/components";
-import { usePageEditor } from "../hooks/usePageEditor";
 import { snapToCenteredGridPercent, snapSizeToGridPercent, snapSizeToGrid, gridPercentX, gridPercentY, getPageTotalHeight, } from "../utils/layout";
 import BreakpointSwitcher from "./BreakpointSwitcher";
 import GridOverlay from "./GridOverlay";
@@ -26,14 +24,11 @@ const useKeyboardShortcuts = (undo, redo) => {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [undo, redo]);
 };
-export function PageEditor({ pageId, config, }) {
-    const components = (config?.components ||
-        defaultComponents);
-    const { pageData, breakpoint, selectedIds, showGrid, updateLayout, addElement, deleteElement, updateZIndex, ensureBreakpointLayout, setBreakpoint, setSelectedIds, setShowGrid, undo, redo, canUndo, canRedo, gridSize, breakpoints, canvasHeight, defaultSectionHeight, addSection, deleteSection, updateSectionHeight, updateSectionFullWidth, updateSectionWidth, updateSectionMaxWidth, updateElement, } = usePageEditor(pageId, config);
+export function PageEditor({ editor, }) {
+    const { pageData, breakpoint, selectedIds, showGrid, updateLayout, updateLayoutBulk, addElement, deleteElement, updateZIndex, ensureBreakpointLayout, setBreakpoint, setShowGrid, selectElements, undo, redo, canUndo, canRedo, gridSize, breakpoints, canvasHeight, defaultSectionHeight, addSection, deleteSection, updateSectionHeight, updateSectionFullWidth, updateElement, components, } = editor;
     const canvasWidth = breakpoints[breakpoint];
     const gridHeight = 600;
     const sections = pageData.sections ?? [];
-    const useSections = sections.length > 0;
     const pageTotalHeight = getPageTotalHeight(pageData.sections, defaultSectionHeight ?? 600);
     const [showSidebar, setShowSidebar] = useState(true);
     const [showPreview, setShowPreview] = useState(false);
@@ -41,15 +36,15 @@ export function PageEditor({ pageId, config, }) {
     const [resizingSectionId, setResizingSectionId] = useState(null);
     const [resizeStartY, setResizeStartY] = useState(0);
     const [resizeStartHeight, setResizeStartHeight] = useState(0);
-    const [resizingSectionWidthId, setResizingSectionWidthId] = useState(null);
-    const [resizeStartX, setResizeStartX] = useState(0);
-    const [resizeStartWidth, setResizeStartWidth] = useState(0);
     // Marquee selection (client coords + container rect for drawing)
     const [marquee, setMarquee] = useState(null);
     const marqueeContainerRef = useRef(null);
     const marqueeElementsRef = useRef([]);
     const marqueeValueRef = useRef(null);
     marqueeValueRef.current = marquee;
+    // During group drag: show other selected elements offset by this delta (updated in onDrag)
+    const [groupDrag, setGroupDrag] = useState(null);
+    const groupDragDraggedIdRef = useRef(null);
     // Keyboard shortcuts
     useKeyboardShortcuts(undo, redo);
     // Sync selected section when sections load or change
@@ -90,31 +85,6 @@ export function PageEditor({ pageId, config, }) {
         gridSize,
         updateSectionHeight,
     ]);
-    // Section width resize (content-width only), snapped to grid
-    useEffect(() => {
-        if (!resizingSectionWidthId)
-            return;
-        const onMove = (e) => {
-            const delta = e.clientX - resizeStartX;
-            const sec = sections.find(s => s.id === resizingSectionWidthId);
-            if (sec) {
-                updateSectionWidth(resizingSectionWidthId, resizeStartWidth + delta);
-            }
-        };
-        const onUp = () => setResizingSectionWidthId(null);
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-        return () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-        };
-    }, [
-        resizingSectionWidthId,
-        resizeStartX,
-        resizeStartWidth,
-        sections,
-        updateSectionWidth,
-    ]);
     const targetSectionId = selectedSectionId ?? sections[0]?.id;
     // Marquee: mousemove and mouseup to update/end selection
     useEffect(() => {
@@ -146,7 +116,7 @@ export function PageEditor({ pageId, config, }) {
                     const b = el.layout.y + el.layout.h;
                     return !(marqueeR < l || r < marqueeL || marqueeB < t || b < marqueeT);
                 });
-                setSelectedIds(selected.map(el => el.id));
+                selectElements(selected.map(el => el.id));
             }
             setMarquee(null);
             marqueeContainerRef.current = null;
@@ -158,7 +128,7 @@ export function PageEditor({ pageId, config, }) {
             window.removeEventListener("mousemove", onMove);
             window.removeEventListener("mouseup", onUp);
         };
-    }, [marquee]);
+    }, [marquee, selectElements]);
     const handleCanvasMouseDown = useCallback((e, sectionElements, breakpointKey, sectionId) => {
         if (e.target !== e.currentTarget)
             return;
@@ -209,12 +179,12 @@ export function PageEditor({ pageId, config, }) {
                         }, title: showSidebar ? "Hide elements panel" : "Show elements panel", children: [_jsx("span", { style: { fontSize: "16px" }, children: "\u2630" }), "Elements"] }), _jsx(BreakpointSwitcher, { currentBreakpoint: breakpoint, onBreakpointChange: setBreakpoint })] }), _jsx("div", { style: {
                     flex: 1,
                     overflow: "auto",
-                    padding: useSections && !showPreview ? 0 : "32px",
+                    padding: !showPreview ? 0 : "32px",
                     display: "flex",
                     justifyContent: "center",
                 }, children: showPreview ? (_jsxs("div", { style: {
-                        width: useSections ? "100%" : canvasWidth,
-                        maxWidth: useSections ? "100%" : undefined,
+                        width: "100%",
+                        maxWidth: "100%",
                         background: "#f9fafb",
                     }, children: [_jsxs("div", { style: {
                                 marginBottom: "8px",
@@ -223,7 +193,7 @@ export function PageEditor({ pageId, config, }) {
                                 color: "#1f2937",
                                 textTransform: "uppercase",
                                 letterSpacing: "0.05em",
-                            }, children: ["Preview \u2014", " ", breakpoint.charAt(0).toUpperCase() + breakpoint.slice(1)] }), _jsx(LiveView, { pageData: pageData, components: components, breakpoints: breakpoints, canvasHeight: gridHeight, currentBreakpoint: breakpoint })] })) : useSections ? (_jsx("div", { style: {
+                            }, children: ["Preview \u2014", " ", breakpoint.charAt(0).toUpperCase() + breakpoint.slice(1)] }), _jsx(LiveView, { pageData: pageData, components: components, breakpoints: breakpoints, canvasHeight: gridHeight, currentBreakpoint: breakpoint })] })) : (_jsx("div", { style: {
                         display: "flex",
                         flexDirection: "column",
                         width: "100%",
@@ -279,7 +249,42 @@ export function PageEditor({ pageId, config, }) {
                                             return (_jsx(Rnd, { positionUnit: "%", size: {
                                                     width: `${layout.w}%`,
                                                     height: `${layout.h}%`,
-                                                }, position: { x: layout.x, y: layout.y }, onDragStop: (e, d) => {
+                                                }, position: groupDrag &&
+                                                    groupDrag.draggedId !== element.id &&
+                                                    selectedIds.includes(element.id)
+                                                    ? {
+                                                        x: Math.max(0, Math.min(100 - layout.w, layout.x + groupDrag.deltaX)),
+                                                        y: Math.max(0, Math.min(100 - layout.h, layout.y + groupDrag.deltaY)),
+                                                    }
+                                                    : { x: layout.x, y: layout.y }, onDragStart: () => {
+                                                    if (selectedIds.includes(element.id) &&
+                                                        selectedIds.length > 1) {
+                                                        groupDragDraggedIdRef.current = element.id;
+                                                        setGroupDrag({
+                                                            draggedId: element.id,
+                                                            deltaX: 0,
+                                                            deltaY: 0,
+                                                        });
+                                                    }
+                                                }, onDrag: (e, d) => {
+                                                    if (groupDragDraggedIdRef.current === element.id) {
+                                                        setGroupDrag(prev => prev
+                                                            ? {
+                                                                ...prev,
+                                                                deltaX: d.x - layout.x,
+                                                                deltaY: d.y - layout.y,
+                                                            }
+                                                            : {
+                                                                draggedId: element.id,
+                                                                deltaX: d.x - layout.x,
+                                                                deltaY: d.y - layout.y,
+                                                            });
+                                                    }
+                                                }, onDragStop: (e, d) => {
+                                                    if (groupDragDraggedIdRef.current === element.id) {
+                                                        groupDragDraggedIdRef.current = null;
+                                                        setGroupDrag(null);
+                                                    }
                                                     const snap = element.snapToGrid !== false;
                                                     const finalX = snap
                                                         ? snapToCenteredGridPercent(d.x, gx, 100)
@@ -289,25 +294,35 @@ export function PageEditor({ pageId, config, }) {
                                                         : Math.max(0, Math.min(100 - layout.h, d.y));
                                                     const deltaX = finalX - layout.x;
                                                     const deltaY = finalY - layout.y;
-                                                    updateLayout(element.id, {
-                                                        ...layout,
-                                                        x: finalX,
-                                                        y: finalY,
-                                                    });
                                                     if (selectedIds.includes(element.id) &&
                                                         selectedIds.length > 1) {
                                                         const others = (pageData.elements ?? []).filter((el) => selectedIds.includes(el.id) &&
                                                             el.id !== element.id &&
                                                             el.sectionId === section.id);
+                                                        const updates = [
+                                                            {
+                                                                id: element.id,
+                                                                rect: { ...layout, x: finalX, y: finalY },
+                                                            },
+                                                        ];
                                                         others.forEach((other) => {
                                                             const otherLayout = ensureBreakpointLayout(other, breakpoint);
-                                                            const newX = Math.max(0, Math.min(100 - otherLayout.w, otherLayout.x + deltaX));
-                                                            const newY = Math.max(0, Math.min(100 - otherLayout.h, otherLayout.y + deltaY));
-                                                            updateLayout(other.id, {
-                                                                ...otherLayout,
-                                                                x: newX,
-                                                                y: newY,
+                                                            updates.push({
+                                                                id: other.id,
+                                                                rect: {
+                                                                    ...otherLayout,
+                                                                    x: Math.max(0, Math.min(100 - otherLayout.w, otherLayout.x + deltaX)),
+                                                                    y: Math.max(0, Math.min(100 - otherLayout.h, otherLayout.y + deltaY)),
+                                                                },
                                                             });
+                                                        });
+                                                        updateLayoutBulk(updates);
+                                                    }
+                                                    else {
+                                                        updateLayout(element.id, {
+                                                            ...layout,
+                                                            x: finalX,
+                                                            y: finalY,
                                                         });
                                                     }
                                                 }, onResizeStop: (e, direction, ref, delta, position) => {
@@ -354,11 +369,14 @@ export function PageEditor({ pageId, config, }) {
                                                 }, bounds: "parent", style: { zIndex: element.zIndex }, onMouseDown: e => {
                                                     e.stopPropagation();
                                                     const meta = e.metaKey || e.ctrlKey;
-                                                    setSelectedIds(prev => meta
-                                                        ? prev.includes(element.id)
-                                                            ? prev.filter(id => id !== element.id)
-                                                            : [...prev, element.id]
-                                                        : [element.id]);
+                                                    const nextIds = meta
+                                                        ? selectedIds.includes(element.id)
+                                                            ? selectedIds.filter(id => id !== element.id)
+                                                            : [...selectedIds, element.id]
+                                                        : selectedIds.includes(element.id)
+                                                            ? selectedIds
+                                                            : [element.id];
+                                                    selectElements(nextIds);
                                                 }, children: _jsx("div", { style: {
                                                         width: "100%",
                                                         height: "100%",
@@ -381,135 +399,8 @@ export function PageEditor({ pageId, config, }) {
                                         setResizingSectionId(section.id);
                                         setResizeStartY(e.clientY);
                                         setResizeStartHeight(section.height);
-                                    } }), !section.fullWidth && (_jsx("div", { role: "button", tabIndex: 0, style: {
-                                        position: "absolute",
-                                        top: 0,
-                                        bottom: 0,
-                                        right: 0,
-                                        width: "8px",
-                                        cursor: "ew-resize",
-                                        background: resizingSectionWidthId === section.id
-                                            ? "#3b82f6"
-                                            : "rgba(0,0,0,0.06)",
-                                    }, onMouseDown: e => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setResizingSectionWidthId(section.id);
-                                        setResizeStartX(e.clientX);
-                                        setResizeStartWidth(section.width ?? canvasWidth);
-                                    } }))] }, section.id));
-                    }) })) : (_jsxs("div", { style: {
-                        position: "relative",
-                        background: "white",
-                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                        width: canvasWidth,
-                        height: gridHeight,
-                        minHeight: gridHeight,
-                    }, onMouseDown: e => {
-                        if (e.target === e.currentTarget) {
-                            handleCanvasMouseDown(e, pageData.elements ?? [], breakpoint, null);
-                        }
-                    }, children: [showGrid && (_jsx(GridOverlay, { width: canvasWidth, height: gridHeight, gridSize: gridSize })), marquee && marquee.sectionId === null && marquee.containerRect && (_jsx("div", { style: {
-                                position: "absolute",
-                                left: Math.min(marquee.startX, marquee.endX) -
-                                    marquee.containerRect.left,
-                                top: Math.min(marquee.startY, marquee.endY) -
-                                    marquee.containerRect.top,
-                                width: Math.abs(marquee.endX - marquee.startX),
-                                height: Math.abs(marquee.endY - marquee.startY),
-                                background: "rgba(59, 130, 246, 0.15)",
-                                border: "1px solid #3b82f6",
-                                pointerEvents: "none",
-                                zIndex: 10000,
-                            } })), (pageData.elements ?? []).map(element => {
-                            const Component = components[element.type];
-                            if (!Component)
-                                return null;
-                            const layout = ensureBreakpointLayout(element, breakpoint);
-                            const gx = gridPercentX(gridSize, canvasWidth);
-                            const gy = gridPercentY(gridSize, gridHeight);
-                            return (_jsx(Rnd, { positionUnit: "%", size: { width: `${layout.w}%`, height: `${layout.h}%` }, position: { x: layout.x, y: layout.y }, onDragStop: (e, d) => {
-                                    const snap = element.snapToGrid !== false;
-                                    const finalX = snap
-                                        ? snapToCenteredGridPercent(d.x, gx, 100)
-                                        : Math.max(0, Math.min(100 - layout.w, d.x));
-                                    const finalY = snap
-                                        ? snapToCenteredGridPercent(d.y, gy, 100)
-                                        : Math.max(0, Math.min(100 - layout.h, d.y));
-                                    const deltaX = finalX - layout.x;
-                                    const deltaY = finalY - layout.y;
-                                    updateLayout(element.id, {
-                                        ...layout,
-                                        x: finalX,
-                                        y: finalY,
-                                    });
-                                    if (selectedIds.includes(element.id) &&
-                                        selectedIds.length > 1) {
-                                        const others = (pageData.elements ?? []).filter((el) => selectedIds.includes(el.id) && el.id !== element.id);
-                                        others.forEach((other) => {
-                                            const otherLayout = ensureBreakpointLayout(other, breakpoint);
-                                            const newX = Math.max(0, Math.min(100 - otherLayout.w, otherLayout.x + deltaX));
-                                            const newY = Math.max(0, Math.min(100 - otherLayout.h, otherLayout.y + deltaY));
-                                            updateLayout(other.id, {
-                                                ...otherLayout,
-                                                x: newX,
-                                                y: newY,
-                                            });
-                                        });
-                                    }
-                                }, onResizeStop: (e, direction, ref, delta, position) => {
-                                    const widthPercent = (ref.offsetWidth / canvasWidth) * 100;
-                                    const heightPercent = (ref.offsetHeight / gridHeight) * 100;
-                                    const snap = element.snapToGrid !== false;
-                                    const w = snap
-                                        ? snapSizeToGridPercent(widthPercent, gx)
-                                        : Math.max(0.1, Math.min(100, widthPercent));
-                                    const h = snap
-                                        ? snapSizeToGridPercent(heightPercent, gy)
-                                        : Math.max(0.1, Math.min(100, heightPercent));
-                                    const x = snap
-                                        ? snapToCenteredGridPercent(position.x, gx, 100)
-                                        : position.x;
-                                    const y = snap
-                                        ? snapToCenteredGridPercent(position.y, gy, 100)
-                                        : position.y;
-                                    const gridOffsetX = (100 % gx) / 2;
-                                    const gridOffsetY = (100 % gy) / 2;
-                                    const maxX = 100 - w - gridOffsetX;
-                                    const maxY = 100 - h - gridOffsetY;
-                                    const finalX = Math.max(gridOffsetX, Math.min(x, maxX));
-                                    const finalY = Math.max(gridOffsetY, Math.min(y, maxY));
-                                    updateLayout(element.id, {
-                                        w,
-                                        h,
-                                        x: finalX,
-                                        y: finalY,
-                                    });
-                                }, dragGrid: element.snapToGrid !== false ? [gx, gy] : [0.001, 0.001], resizeGrid: element.snapToGrid !== false ? [gx, gy] : [0.001, 0.001], enableResizing: {
-                                    top: true,
-                                    right: true,
-                                    bottom: true,
-                                    left: true,
-                                    topRight: true,
-                                    bottomRight: true,
-                                    bottomLeft: true,
-                                    topLeft: true,
-                                }, bounds: "parent", style: { zIndex: element.zIndex }, onMouseDown: e => {
-                                    e.stopPropagation();
-                                    const meta = e.metaKey || e.ctrlKey;
-                                    setSelectedIds(prev => meta
-                                        ? prev.includes(element.id)
-                                            ? prev.filter(id => id !== element.id)
-                                            : [...prev, element.id]
-                                        : [element.id]);
-                                }, children: _jsx("div", { style: {
-                                        width: "100%",
-                                        height: "100%",
-                                        border: `2px solid ${selectedIds.includes(element.id)
-                                            ? "#3b82f6"
-                                            : "transparent"}`,
-                                    }, children: _jsx(Component, { ...element.content }) }) }, `${element.id}-${breakpoint}`));
-                        })] })) }), _jsx("button", { type: "button", onClick: () => setShowPreview(p => !p), style: {
+                                    } })] }, section.id));
+                    }) })) }), _jsx("button", { type: "button", onClick: () => setShowPreview(p => !p), style: {
                     position: "fixed",
                     bottom: "24px",
                     right: "24px",
@@ -583,7 +474,7 @@ export function PageEditor({ pageId, config, }) {
                                     fontSize: "14px",
                                     fontWeight: 500,
                                     opacity: canRedo ? 1 : 0.5,
-                                }, title: "Redo (Ctrl+Shift+Z)", children: "\u21B7 Redo" })] }), useSections && (_jsxs("div", { style: {
+                                }, title: "Redo (Ctrl+Shift+Z)", children: "\u21B7 Redo" })] }), _jsxs("div", { style: {
                             display: "flex",
                             flexDirection: "column",
                             gap: "8px",
@@ -642,47 +533,12 @@ export function PageEditor({ pageId, config, }) {
                                             cursor: sections.length <= 1 ? "not-allowed" : "pointer",
                                             fontSize: "12px",
                                             opacity: sections.length <= 1 ? 0.6 : 1,
-                                        }, children: "Delete section" }), (() => {
-                                        const sec = sections.find(s => s.id === targetSectionId);
-                                        if (!sec || sec.fullWidth)
-                                            return null;
-                                        const effectiveMax = sec.maxWidth ?? canvasWidth;
-                                        return (_jsxs("div", { style: {
-                                                marginTop: "8px",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "4px",
-                                            }, children: [_jsx("label", { style: {
-                                                        fontSize: "12px",
-                                                        fontWeight: 500,
-                                                        color: "#374151",
-                                                    }, children: "Max width (px)" }), _jsx("input", { type: "number", min: 200, max: canvasWidth, step: gridSize, value: sec.maxWidth ?? "", placeholder: String(canvasWidth), onChange: e => {
-                                                        const v = e.target.value.trim();
-                                                        if (v === "") {
-                                                            updateSectionMaxWidth(targetSectionId, undefined);
-                                                            return;
-                                                        }
-                                                        const n = parseInt(v, 10);
-                                                        if (!Number.isNaN(n)) {
-                                                            updateSectionMaxWidth(targetSectionId, Math.max(200, Math.min(canvasWidth, n)));
-                                                        }
-                                                    }, style: {
-                                                        width: "100%",
-                                                        padding: "6px 8px",
-                                                        border: "1px solid #d1d5db",
-                                                        borderRadius: "4px",
-                                                        fontSize: "13px",
-                                                        boxSizing: "border-box",
-                                                    } }), effectiveMax !== canvasWidth && (_jsxs("span", { style: {
-                                                        fontSize: "11px",
-                                                        color: "#6b7280",
-                                                    }, children: ["Effective max: ", effectiveMax, "px"] }))] }));
-                                    })()] }))] })), _jsx("div", { style: {
+                                        }, children: "Delete section" })] }))] }), _jsx("div", { style: {
                             display: "flex",
                             flexDirection: "column",
                             gap: "8px",
                             marginBottom: "16px",
-                        }, children: Object.keys(components).map(type => (_jsxs("button", { onClick: () => addElement(type, undefined, useSections ? targetSectionId ?? undefined : undefined), style: {
+                        }, children: Object.keys(components).map(type => (_jsxs("button", { onClick: () => addElement(type, undefined, targetSectionId ?? undefined), style: {
                                 width: "100%",
                                 padding: "8px 16px",
                                 background: "#2563eb",
@@ -742,7 +598,7 @@ export function PageEditor({ pageId, config, }) {
                                             color: "#1f2937",
                                         }, children: "Send to Back" }), _jsx("button", { onClick: () => {
                                             selectedIds.forEach(id => deleteElement(id));
-                                            setSelectedIds([]);
+                                            selectElements([]);
                                         }, style: {
                                             width: "100%",
                                             padding: "4px 12px",

@@ -1,19 +1,35 @@
 "use client";
 
-import { LocalStorageAdapter, PageEditor } from "@vantage/page-builder";
+import { useMemo } from "react";
+import {
+  LocalStorageAdapter,
+  PageEditor,
+  useVantageEditor,
+} from "@vantage/page-builder";
 import { customComponents } from "../components/CustomComponents";
 
 /**
  * This page demonstrates:
- * 1. ANY React component can be made resizable by registering it
- * 2. Auto-saving to localStorage (default behavior)
- * 3. Optional server-side saving via onSave callback (commented example)
+ * 1. useVantageEditor creates the editor instance (like React Hook Form's useForm)
+ * 2. PageEditor receives the instance; you can also use the same instance to build custom UI
+ * 3. Auto-saving to localStorage; optional server-side saving via onSave
  *
  * Try adding components from the sidebar - they're all regular React components
  * that instantly become draggable and resizable!
  */
 export default function Home() {
-  const storage = new LocalStorageAdapter();
+  // Storage must be stable across re-renders or effects in usePageData/useHistory
+  // will re-run on every render and cause an infinite loop.
+  const storage = useMemo(() => new LocalStorageAdapter(), []);
+  const editor = useVantageEditor({
+    pageId: "demo",
+    components: customComponents,
+    autoSaveDelay: 3,
+    persistHistory: true,
+    storage,
+    maxSectionWidth: 1500,
+  });
+
   return (
     <div className="h-screen flex flex-col">
       <div className="p-4 bg-blue-50 border-b border-blue-200">
@@ -25,16 +41,7 @@ export default function Home() {
         </p>
       </div>
       <div className="flex-1">
-        <PageEditor
-          pageId="demo"
-          config={{
-            components: customComponents,
-            autoSaveDelay: 3,
-            persistHistory: true,
-            storage: storage,
-            maxSectionWidth: 1500,
-          }}
-        />
+        <PageEditor editor={editor} />
       </div>
     </div>
   );

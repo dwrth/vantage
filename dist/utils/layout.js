@@ -59,13 +59,13 @@ export const snapSizeToGridPercent = (value, gridPercent) => gridPercent
     ? Math.max(gridPercent, Math.round(value / gridPercent) * gridPercent)
     : value;
 // --- Sections (page height = sum of section heights) ---
-/** Total page height in px. If no sections, returns defaultSingleSectionHeight. */
+/** Total page height in px. Uses defaultSingleSectionHeight when no sections. */
 export function getPageTotalHeight(sections, defaultSingleSectionHeight) {
     if (!sections?.length)
         return defaultSingleSectionHeight;
     return sections.reduce((sum, s) => sum + s.height, 0);
 }
-/** Migrate legacy pageData (no sections) to one section; assign sectionId to all elements. Idempotent if sections already present. */
+/** Ensure pageData has sections; if none, create one and assign sectionId to all elements. Idempotent when sections already present. */
 export function normalizePageData(data, defaultSectionHeight) {
     if (data.sections?.length)
         return data;

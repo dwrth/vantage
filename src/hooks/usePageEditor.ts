@@ -1,15 +1,27 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { PageData, Breakpoint, LayoutRect } from "../core/types";
 import { PageBuilderConfig, defaultConfig } from "../core/config";
+import type { VantageEditorInstance } from "../core/editor-instance";
+import { ComponentRegistry, defaultComponents } from "../adapters/components";
 import { usePageData } from "./usePageData";
 import { usePageActions } from "./usePageActions";
 import { useHistory } from "./useHistory";
-import { snapToGrid } from "../utils/layout";
+
+export type UseVantageEditorOptions<T extends string = string> = {
+  pageId: string;
+} & PageBuilderConfig<T>;
+
+export function useVantageEditor<T extends string = string>(
+  options: UseVantageEditorOptions<T>
+): VantageEditorInstance<T> {
+  const { pageId, ...config } = options;
+  return usePageEditor<T>(pageId, config);
+}
 
 export function usePageEditor<T extends string = string>(
   pageId: string,
   config?: PageBuilderConfig<T>
-) {
+): VantageEditorInstance<T> {
   // Stabilize config callbacks to prevent infinite loops
   const onElementSelectRef = useRef(config?.onElementSelect);
   const onElementUpdateRef = useRef(config?.onElementUpdate);
@@ -179,10 +191,15 @@ export function usePageEditor<T extends string = string>(
     [deleteElementAction]
   );
 
-  const handleElementSelect = useCallback((ids: string[] | null) => {
+  const selectElements = useCallback((ids: string[] | null) => {
     setSelectedIds(ids ?? []);
     onElementSelectRef.current?.(ids?.[0] ?? null);
   }, []);
+
+  const components: ComponentRegistry<T> = useMemo(
+    () => (config?.components ?? defaultComponents) as ComponentRegistry<T>,
+    [config?.components]
+  );
 
   return {
     // State
@@ -190,12 +207,20 @@ export function usePageEditor<T extends string = string>(
     breakpoint,
     selectedIds,
     showGrid,
+    canUndo,
+    canRedo,
+    historyLoading,
+    gridSize,
+    breakpoints,
+    canvasHeight,
+    defaultSectionHeight,
 
     // Setters
     setBreakpoint,
     setSelectedIds,
     setShowGrid,
-    setPageData, // Expose for manual updates
+    setPageData,
+    selectElements,
 
     // Actions
     updateLayout,
@@ -205,25 +230,19 @@ export function usePageEditor<T extends string = string>(
     deleteElement,
     updateZIndex,
     ensureBreakpointLayout,
-    save, // Expose save function for manual saves
+    save,
 
     // History
     undo,
     redo,
-    canUndo,
-    canRedo,
-    historyLoading, // Loading state for server-side history
-
-    // Config
-    gridSize,
-    breakpoints,
-    canvasHeight,
-    defaultSectionHeight,
 
     // Sections
     addSection,
     deleteSection,
     updateSectionHeight,
     updateSectionFullWidth,
+
+    // Config for rendering
+    components,
   };
 }

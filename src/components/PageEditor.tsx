@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Rnd } from "react-rnd";
-import { PageBuilderConfig, defaultConfig } from "../core/config";
-import { ComponentRegistry, defaultComponents } from "../adapters/components";
-import { usePageEditor } from "../hooks/usePageEditor";
+import type { VantageEditorInstance } from "../core/editor-instance";
 import {
   snapToCenteredGridPercent,
   snapSizeToGridPercent,
@@ -40,17 +38,12 @@ const useKeyboardShortcuts = (undo: () => void, redo: () => void) => {
 };
 
 interface PageEditorProps<T extends string = string> {
-  pageId: string;
-  config?: PageBuilderConfig<T>;
+  editor: VantageEditorInstance<T>;
 }
 
 export function PageEditor<T extends string = string>({
-  pageId,
-  config,
+  editor,
 }: PageEditorProps<T>) {
-  const components: ComponentRegistry<T> = (config?.components ||
-    defaultComponents) as ComponentRegistry<T>;
-
   const {
     pageData,
     breakpoint,
@@ -63,8 +56,8 @@ export function PageEditor<T extends string = string>({
     updateZIndex,
     ensureBreakpointLayout,
     setBreakpoint,
-    setSelectedIds,
     setShowGrid,
+    selectElements,
     undo,
     redo,
     canUndo,
@@ -78,7 +71,8 @@ export function PageEditor<T extends string = string>({
     updateSectionHeight,
     updateSectionFullWidth,
     updateElement,
-  } = usePageEditor<T>(pageId, config);
+    components,
+  } = editor;
 
   const canvasWidth = breakpoints[breakpoint];
   const gridHeight = 600;
@@ -198,7 +192,7 @@ export function PageEditor<T extends string = string>({
           const b = el.layout.y + el.layout.h;
           return !(marqueeR < l || r < marqueeL || marqueeB < t || b < marqueeT);
         });
-        setSelectedIds(selected.map(el => el.id));
+        selectElements(selected.map(el => el.id));
       }
       setMarquee(null);
       marqueeContainerRef.current = null;
@@ -210,7 +204,7 @@ export function PageEditor<T extends string = string>({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [marquee]);
+  }, [marquee, selectElements]);
 
   const handleCanvasMouseDown = useCallback(
     (
@@ -643,15 +637,14 @@ export function PageEditor<T extends string = string>({
                           onMouseDown={e => {
                             e.stopPropagation();
                             const meta = e.metaKey || e.ctrlKey;
-                            setSelectedIds(prev =>
-                              meta
-                                ? prev.includes(element.id)
-                                  ? prev.filter(id => id !== element.id)
-                                  : [...prev, element.id]
-                                : prev.includes(element.id)
-                                  ? prev
-                                  : [element.id]
-                            );
+                            const nextIds = meta
+                              ? selectedIds.includes(element.id)
+                                ? selectedIds.filter(id => id !== element.id)
+                                : [...selectedIds, element.id]
+                              : selectedIds.includes(element.id)
+                                ? selectedIds
+                                : [element.id];
+                            selectElements(nextIds);
                           }}
                         >
                           <div
@@ -1096,7 +1089,7 @@ export function PageEditor<T extends string = string>({
                 <button
                   onClick={() => {
                     selectedIds.forEach(id => deleteElement(id));
-                    setSelectedIds([]);
+                    selectElements([]);
                   }}
                   style={{
                     width: "100%",

@@ -7,7 +7,8 @@ export { default as BreakpointSwitcher } from "./components/BreakpointSwitcher";
 export { default as GridOverlay } from "./components/GridOverlay";
 
 // Hooks
-export { usePageEditor } from "./hooks/usePageEditor";
+export { useVantageEditor, usePageEditor } from "./hooks/usePageEditor";
+export type { UseVantageEditorOptions } from "./hooks/usePageEditor";
 export { usePageData } from "./hooks/usePageData";
 export { usePageActions } from "./hooks/usePageActions";
 export { useHistory } from "./hooks/useHistory";
@@ -24,6 +25,7 @@ export type {
 } from "./core/types";
 
 export type { PageBuilderConfig } from "./core/config";
+export type { VantageEditorInstance } from "./core/editor-instance";
 
 // Adapters
 export type { StorageAdapter, HistorySnapshot } from "./adapters/storage";

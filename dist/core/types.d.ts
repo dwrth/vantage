@@ -23,7 +23,7 @@ export interface PageElement<T extends string = string> {
     content: Record<string, any>;
     layout: ElementLayout;
     zIndex: number;
-    /** When present, element belongs to this section. Omitted = legacy single-section. */
+    /** Section this element belongs to. */
     sectionId?: string;
     /** When false, this element does not snap to grid when dragging or resizing. Default true. */
     snapToGrid?: boolean;
@@ -37,13 +37,11 @@ export interface Section {
     height: number;
     /** Width in px when fullWidth is false. Omitted = use canvas/container width. */
     width?: number;
-    /** Maximum width (px) when fullWidth is false. Resize and width are clamped to this. Omitted = use config default. */
-    maxWidth?: number;
 }
 export interface PageData<T extends string = string> {
     pageId: string;
     elements: PageElement<T>[];
-    /** When present, page is built from sections (stacked vertically). Legacy pages have no sections. */
+    /** Sections (stacked vertically). Page is always section-based. */
     sections?: Section[];
 }
 //# sourceMappingURL=types.d.ts.map

@@ -6,7 +6,6 @@ import { defaultConfig } from "../core/config";
 const DEFAULT_CANVAS_HEIGHT = 600;
 export function LiveView({ pageData, components = defaultComponents, breakpoints = defaultConfig.breakpoints, canvasHeight = DEFAULT_CANVAS_HEIGHT, currentBreakpoint, }) {
     const sections = pageData.sections ?? [];
-    const useSections = sections.length > 0;
     const containerWidth = currentBreakpoint
         ? breakpoints[currentBreakpoint]
         : breakpoints.desktop;
@@ -14,180 +13,102 @@ export function LiveView({ pageData, components = defaultComponents, breakpoints
     const pageTotalHeight = getPageTotalHeight(pageData.sections, defaultSectionHeight);
     const generateStyles = () => {
         const bp = currentBreakpoint ?? "desktop";
-        if (useSections) {
-            let css = `
-        .live-view-column {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          min-height: ${pageTotalHeight}px;
-          background: #f9fafb;
+        let css = `
+      .live-view-column {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-height: ${pageTotalHeight}px;
+        background: #f9fafb;
+      }
+      .live-view-section {
+        position: relative;
+        box-sizing: border-box;
+      }
+      .live-view-section.full-width {
+        width: 100%;
+      }
+      .live-view-section.content-width {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .live-view-section-inner {
+        position: relative;
+        max-width: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+    `;
+        sections.forEach(section => {
+            const sectionWidth = section.width ?? containerWidth;
+            css += `
+        .live-view-section-${section.id} {
+          min-height: ${section.height}px;
+          ${!section.fullWidth ? `width: ${sectionWidth}px;` : ""}
         }
-        .live-view-section {
-          position: relative;
-          box-sizing: border-box;
-        }
-        .live-view-section.full-width {
-          width: 100%;
-        }
-        .live-view-section.content-width {
-          max-width: 100%;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .live-view-section-inner {
-          position: relative;
-          max-width: 100%;
-          margin: 0 auto;
-          box-sizing: border-box;
+        .live-view-section-${section.id} .live-view-section-inner {
+          height: ${section.height}px;
+          ${!section.fullWidth ? `width: ${sectionWidth}px;` : `width: ${containerWidth}px;`}
         }
       `;
-            sections.forEach(section => {
-                const sectionWidth = section.width ?? containerWidth;
+            const sectionElements = (pageData.elements ?? []).filter((el) => el.sectionId === section.id);
+            sectionElements.forEach(element => {
+                const layout = element.layout[bp];
+                const responsive = pixelsToResponsive(layout);
                 css += `
-          .live-view-section-${section.id} {
-            min-height: ${section.height}px;
-            ${!section.fullWidth ? `width: ${sectionWidth}px;` : ""}
-          }
-          .live-view-section-${section.id} .live-view-section-inner {
-            height: ${section.height}px;
-            ${!section.fullWidth ? `width: ${sectionWidth}px;` : `width: ${containerWidth}px;`}
+          .live-view-section-${section.id} .element-${element.id} {
+            position: absolute;
+            left: ${responsive.left}%;
+            top: ${responsive.top}%;
+            width: ${responsive.width}%;
+            height: ${responsive.height}%;
+            z-index: ${element.zIndex};
+            box-sizing: border-box;
           }
         `;
-                const sectionElements = (pageData.elements ?? []).filter((el) => el.sectionId === section.id);
-                sectionElements.forEach(element => {
-                    const layout = element.layout[bp];
-                    const responsive = pixelsToResponsive(layout);
+                if (!currentBreakpoint) {
+                    const tablet = element.layout.tablet;
+                    const tabletResponsive = pixelsToResponsive(tablet);
                     css += `
-            .live-view-section-${section.id} .element-${element.id} {
-              position: absolute;
-              left: ${responsive.left}%;
-              top: ${responsive.top}%;
-              width: ${responsive.width}%;
-              height: ${responsive.height}%;
-              z-index: ${element.zIndex};
-              box-sizing: border-box;
+            @media (max-width: ${breakpoints.tablet}px) {
+              .live-view-section-${section.id} .element-${element.id} {
+                left: ${tabletResponsive.left}%;
+                top: ${tabletResponsive.top}%;
+                width: ${tabletResponsive.width}%;
+                height: ${tabletResponsive.height}%;
+              }
             }
           `;
-                    if (!currentBreakpoint) {
-                        const tablet = element.layout.tablet;
-                        const tabletResponsive = pixelsToResponsive(tablet);
-                        css += `
-              @media (max-width: ${breakpoints.tablet}px) {
-                .live-view-section-${section.id} .element-${element.id} {
-                  left: ${tabletResponsive.left}%;
-                  top: ${tabletResponsive.top}%;
-                  width: ${tabletResponsive.width}%;
-                  height: ${tabletResponsive.height}%;
-                }
+                    const mobile = element.layout.mobile;
+                    const mobileResponsive = pixelsToResponsive(mobile);
+                    css += `
+            @media (max-width: ${breakpoints.mobile * 1.28}px) {
+              .live-view-section-${section.id} .element-${element.id} {
+                left: ${mobileResponsive.left}%;
+                top: ${mobileResponsive.top}%;
+                width: ${mobileResponsive.width}%;
+                height: ${mobileResponsive.height}%;
               }
-            `;
-                        const mobile = element.layout.mobile;
-                        const mobileResponsive = pixelsToResponsive(mobile);
-                        css += `
-              @media (max-width: ${breakpoints.mobile * 1.28}px) {
-                .live-view-section-${section.id} .element-${element.id} {
-                  left: ${mobileResponsive.left}%;
-                  top: ${mobileResponsive.top}%;
-                  width: ${mobileResponsive.width}%;
-                  height: ${mobileResponsive.height}%;
+            }
+          `;
                 }
-              }
-            `;
-                    }
-                });
             });
-            css += `
-        .live-view-section > * {
-          box-sizing: border-box;
-        }
-      `;
-            return css;
-        }
-        // Legacy: single container
-        let css = `
-      .page-container {
-        position: relative;
-        width: ${containerWidth}px;
-        max-width: 100%;
-        height: ${canvasHeight}px;
-        margin: 0 auto;
-        background: white;
-        box-sizing: border-box;
-      }
-    `;
-        if (!currentBreakpoint) {
-            css += `
-      @media (max-width: ${breakpoints.desktop}px) {
-        .page-container {
-          max-width: 100%;
-        }
-      }
-      `;
-        }
-        css += `
-      .page-container > * {
-        box-sizing: border-box;
-      }
-    `;
-        (pageData.elements ?? []).forEach(element => {
-            const layout = element.layout[bp];
-            const responsive = pixelsToResponsive(layout);
-            css += `
-        .element-${element.id} {
-          position: absolute;
-          left: ${responsive.left}%;
-          top: ${responsive.top}%;
-          width: ${responsive.width}%;
-          height: ${responsive.height}%;
-          z-index: ${element.zIndex};
-          box-sizing: border-box;
-        }
-      `;
-            if (!currentBreakpoint) {
-                const tablet = element.layout.tablet;
-                const tabletResponsive = pixelsToResponsive(tablet);
-                css += `
-          @media (max-width: ${breakpoints.tablet}px) {
-            .element-${element.id} {
-              left: ${tabletResponsive.left}%;
-              top: ${tabletResponsive.top}%;
-              width: ${tabletResponsive.width}%;
-              height: ${tabletResponsive.height}%;
-            }
-          }
-        `;
-                const mobile = element.layout.mobile;
-                const mobileResponsive = pixelsToResponsive(mobile);
-                css += `
-          @media (max-width: ${breakpoints.mobile * 1.28}px) {
-            .element-${element.id} {
-              left: ${mobileResponsive.left}%;
-              top: ${mobileResponsive.top}%;
-              width: ${mobileResponsive.width}%;
-              height: ${mobileResponsive.height}%;
-            }
-          }
-        `;
-            }
         });
+        css += `
+      .live-view-section > * {
+        box-sizing: border-box;
+      }
+    `;
         return css;
     };
-    if (useSections) {
-        return (_jsxs("div", { style: { minHeight: "100vh", background: "#f9fafb" }, children: [_jsx("style", { dangerouslySetInnerHTML: { __html: generateStyles() } }), _jsx("div", { className: "live-view-column", children: sections.map(section => {
-                        const sectionElements = (pageData.elements ?? []).filter((el) => el.sectionId === section.id);
-                        return (_jsx("div", { className: `live-view-section live-view-section-${section.id} ${section.fullWidth ? "full-width" : "content-width"}`, children: _jsx("div", { className: "live-view-section-inner", children: sectionElements.map(element => {
-                                    const Component = components[element.type];
-                                    if (!Component)
-                                        return null;
-                                    return (_jsx("div", { className: `element-${element.id}`, children: _jsx(Component, { ...element.content }) }, element.id));
-                                }) }) }, section.id));
-                    }) })] }));
-    }
-    return (_jsxs("div", { style: { minHeight: "100vh", background: "#f9fafb" }, children: [_jsx("style", { dangerouslySetInnerHTML: { __html: generateStyles() } }), _jsx("div", { className: "page-container", children: (pageData.elements ?? []).map(element => {
-                    const Component = components[element.type];
-                    if (!Component)
-                        return null;
-                    return (_jsx("div", { className: `element-${element.id}`, children: _jsx(Component, { ...element.content }) }, element.id));
+    return (_jsxs("div", { style: { minHeight: "100vh", background: "#f9fafb" }, children: [_jsx("style", { dangerouslySetInnerHTML: { __html: generateStyles() } }), _jsx("div", { className: "live-view-column", children: sections.map(section => {
+                    const sectionElements = (pageData.elements ?? []).filter((el) => el.sectionId === section.id);
+                    return (_jsx("div", { className: `live-view-section live-view-section-${section.id} ${section.fullWidth ? "full-width" : "content-width"}`, children: _jsx("div", { className: "live-view-section-inner", children: sectionElements.map(element => {
+                                const Component = components[element.type];
+                                if (!Component)
+                                    return null;
+                                return (_jsx("div", { className: `element-${element.id}`, children: _jsx(Component, { ...element.content }) }, element.id));
+                            }) }) }, section.id));
                 }) })] }));
 }
