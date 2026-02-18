@@ -50,8 +50,8 @@ export default function GridOverlay({
               y={gap / 2}
               width={squareSize}
               height={squareSize}
-              fill="rgba(0, 0, 0, 0.05)"
-              stroke="rgba(0, 0, 0, 0.08)"
+              fill="rgba(59, 130, 246, 0.06)"
+              stroke="rgba(59, 130, 246, 0.12)"
               strokeWidth="1"
               rx="4"
               ry="4"
