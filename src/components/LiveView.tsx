@@ -3,7 +3,11 @@
 import React from "react";
 import { PageData, Breakpoint } from "../core/types";
 import { ComponentRegistry, defaultComponents } from "../adapters/components";
-import { pixelsToResponsive, getCanvasWidth } from "../utils/layout";
+import {
+  pixelsToResponsive,
+  getCanvasWidth,
+  getPageTotalHeight,
+} from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
 interface LiveViewProps<T extends string = string> {
@@ -25,101 +29,144 @@ export function LiveView<T extends string = string>({
   canvasHeight = DEFAULT_CANVAS_HEIGHT,
   currentBreakpoint,
 }: LiveViewProps<T>) {
+  const sections = pageData.sections ?? [];
+  const containerWidth = currentBreakpoint
+    ? breakpoints[currentBreakpoint]
+    : breakpoints.desktop;
+  const defaultSectionHeight =
+    defaultConfig.defaultSectionHeight ?? 600;
+  const pageTotalHeight = getPageTotalHeight(
+    pageData.sections,
+    defaultSectionHeight
+  );
+
   const generateStyles = () => {
-    const containerWidth = currentBreakpoint
-      ? breakpoints[currentBreakpoint]
-      : breakpoints.desktop;
-
-    // When currentBreakpoint is set, container is fixed to that width (no media queries)
-    let css = `
-      .page-container {
-        position: relative;
-        width: ${containerWidth}px;
-        max-width: 100%;
-        height: ${canvasHeight}px;
-        margin: 0 auto;
-        background: white;
-        box-sizing: border-box;
-      }
-    `;
-
-    if (!currentBreakpoint) {
-      css += `
-      /* Fluid scaling for screens between breakpoints */
-      @media (max-width: ${breakpoints.desktop}px) {
-        .page-container {
-          max-width: 100%;
-        }
-      }
-      `;
-    }
-
-    css += `
-      .page-container > * {
-        box-sizing: border-box;
-      }
-    `;
-
     const bp: Breakpoint = currentBreakpoint ?? "desktop";
 
-    pageData.elements.forEach(element => {
-      const layout = element.layout[bp];
-      const responsive = pixelsToResponsive(layout);
+    let css = `
+      .live-view-column {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-height: ${pageTotalHeight}px;
+        background: #f9fafb;
+      }
+      .live-view-section {
+        position: relative;
+        box-sizing: border-box;
+      }
+      .live-view-section.full-width {
+        width: 100%;
+      }
+      .live-view-section.content-width {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .live-view-section-inner {
+        position: relative;
+        max-width: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+    `;
 
+    sections.forEach(section => {
+      const sectionWidth = section.width ?? containerWidth;
       css += `
-        .element-${element.id} {
-          position: absolute;
-          left: ${responsive.left}%;
-          top: ${responsive.top}%;
-          width: ${responsive.width}%;
-          height: ${responsive.height}%;
-          z-index: ${element.zIndex};
-          box-sizing: border-box;
+        .live-view-section-${section.id} {
+          min-height: ${section.height}px;
+          ${!section.fullWidth ? `width: ${sectionWidth}px;` : ""}
+        }
+        .live-view-section-${section.id} .live-view-section-inner {
+          height: ${section.height}px;
+          ${!section.fullWidth ? `width: ${sectionWidth}px;` : `width: ${containerWidth}px;`}
         }
       `;
 
-      if (!currentBreakpoint) {
-        const tablet = element.layout.tablet;
-        const tabletResponsive = pixelsToResponsive(tablet);
+      const sectionElements = (pageData.elements ?? []).filter(
+        (el: { sectionId?: string }) => el.sectionId === section.id
+      );
+      sectionElements.forEach(element => {
+        const layout = element.layout[bp];
+        const responsive = pixelsToResponsive(layout);
         css += `
-          @media (max-width: ${breakpoints.tablet}px) {
-            .element-${element.id} {
-              left: ${tabletResponsive.left}%;
-              top: ${tabletResponsive.top}%;
-              width: ${tabletResponsive.width}%;
-              height: ${tabletResponsive.height}%;
-            }
+          .live-view-section-${section.id} .element-${element.id} {
+            position: absolute;
+            left: ${responsive.left}%;
+            top: ${responsive.top}%;
+            width: ${responsive.width}%;
+            height: ${responsive.height}%;
+            z-index: ${element.zIndex};
+            box-sizing: border-box;
           }
         `;
-
-        const mobile = element.layout.mobile;
-        const mobileResponsive = pixelsToResponsive(mobile);
-        css += `
-          @media (max-width: ${breakpoints.mobile * 1.28}px) {
-            .element-${element.id} {
-              left: ${mobileResponsive.left}%;
-              top: ${mobileResponsive.top}%;
-              width: ${mobileResponsive.width}%;
-              height: ${mobileResponsive.height}%;
+        if (!currentBreakpoint) {
+          const tablet = element.layout.tablet;
+          const tabletResponsive = pixelsToResponsive(tablet);
+          css += `
+            @media (max-width: ${breakpoints.tablet}px) {
+              .live-view-section-${section.id} .element-${element.id} {
+                left: ${tabletResponsive.left}%;
+                top: ${tabletResponsive.top}%;
+                width: ${tabletResponsive.width}%;
+                height: ${tabletResponsive.height}%;
+              }
             }
-          }
-        `;
-      }
+          `;
+          const mobile = element.layout.mobile;
+          const mobileResponsive = pixelsToResponsive(mobile);
+          css += `
+            @media (max-width: ${breakpoints.mobile * 1.28}px) {
+              .live-view-section-${section.id} .element-${element.id} {
+                left: ${mobileResponsive.left}%;
+                top: ${mobileResponsive.top}%;
+                width: ${mobileResponsive.width}%;
+                height: ${mobileResponsive.height}%;
+              }
+            }
+          `;
+        }
+      });
     });
+
+    css += `
+      .live-view-section > * {
+        box-sizing: border-box;
+      }
+    `;
     return css;
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <style dangerouslySetInnerHTML={{ __html: generateStyles() }} />
-      <div className="page-container">
-        {pageData.elements.map(element => {
-          const Component = components[element.type as T];
-          if (!Component) return null;
-
+      <div className="live-view-column">
+        {sections.map(section => {
+          const sectionElements = (pageData.elements ?? []).filter(
+            (el: { sectionId?: string }) => el.sectionId === section.id
+          );
           return (
-            <div key={element.id} className={`element-${element.id}`}>
-              <Component {...(element.content as any)} />
+            <div
+              key={section.id}
+              className={`live-view-section live-view-section-${section.id} ${
+                section.fullWidth ? "full-width" : "content-width"
+              }`}
+            >
+              <div className="live-view-section-inner">
+                {sectionElements.map(element => {
+                  const Component = components[element.type as T];
+                  if (!Component) return null;
+                  return (
+                    <div
+                      key={element.id}
+                      className={`element-${element.id}`}
+                    >
+                      <Component {...(element.content as any)} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}

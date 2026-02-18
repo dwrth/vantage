@@ -14,6 +14,10 @@ export interface PageBuilderConfig<T extends string = string> {
 
   // Canvas settings
   defaultCanvasHeight?: number;
+  /** Default height (px) for a new section when using sections. */
+  defaultSectionHeight?: number;
+  /** Maximum width (px) for content-width sections. Defaults to desktop breakpoint. */
+  maxSectionWidth?: number;
 
   // Storage adapter
   storage?: StorageAdapter;
@@ -47,6 +51,8 @@ export const defaultConfig: Required<
     mobile: 375,
   },
   defaultCanvasHeight: 800,
+  defaultSectionHeight: 600,
+  maxSectionWidth: 1200,
   autoSaveDelay: 3000,
   maxHistorySize: 50,
   persistHistory: false,

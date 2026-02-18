@@ -32,6 +32,7 @@ export default function Home() {
             autoSaveDelay: 3,
             persistHistory: true,
             storage: storage,
+            maxSectionWidth: 1500,
           }}
         />
       </div>

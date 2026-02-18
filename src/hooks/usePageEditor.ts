@@ -27,9 +27,15 @@ export function usePageEditor<T extends string = string>(
   );
   const canvasHeight =
     config?.defaultCanvasHeight ?? defaultConfig.defaultCanvasHeight;
+  const defaultSectionHeight =
+    config?.defaultSectionHeight ?? defaultConfig.defaultSectionHeight ?? 600;
+  const maxSectionWidth =
+    config?.maxSectionWidth ??
+    defaultConfig.maxSectionWidth ??
+    breakpoints?.desktop;
 
   const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showGrid, setShowGrid] = useState<boolean>(true);
 
   // Use headless page data hook
@@ -92,17 +98,25 @@ export function usePageEditor<T extends string = string>(
       gridSize,
       breakpoints,
       canvasHeight,
+      defaultSectionHeight,
+      maxSectionWidth,
     }),
-    [gridSize, breakpoints, canvasHeight]
+    [gridSize, breakpoints, canvasHeight, defaultSectionHeight, maxSectionWidth]
   );
 
   // Use headless page actions hook (use history-aware setter)
   const {
     addElement: addElementAction,
     updateLayout: updateLayoutAction,
+    updateLayoutBulk: updateLayoutBulkAction,
+    updateElement: updateElementAction,
     deleteElement: deleteElementAction,
     updateZIndex: updateZIndexAction,
     ensureBreakpointLayout,
+    addSection,
+    deleteSection,
+    updateSectionHeight,
+    updateSectionFullWidth,
   } = usePageActions<T>(pageData, setPageDataWithHistory, actionsOptions);
 
   // Undo/Redo handlers
@@ -132,9 +146,19 @@ export function usePageEditor<T extends string = string>(
     [breakpoint, updateLayoutAction]
   );
 
+  const updateLayoutBulk = useCallback(
+    (updates: { id: string; rect: LayoutRect }[]) => {
+      updateLayoutBulkAction(updates, breakpoint);
+      updates.forEach(({ id, rect }) =>
+        onElementUpdateRef.current?.(id, rect)
+      );
+    },
+    [breakpoint, updateLayoutBulkAction]
+  );
+
   const addElement = useCallback(
-    (type: T, defaultContent?: Record<string, any>) => {
-      addElementAction(type, defaultContent);
+    (type: T, defaultContent?: Record<string, any>, sectionId?: string) => {
+      addElementAction(type, defaultContent, sectionId);
     },
     [addElementAction]
   );
@@ -149,35 +173,35 @@ export function usePageEditor<T extends string = string>(
   const deleteElement = useCallback(
     (id: string) => {
       deleteElementAction(id);
-      if (selectedId === id) {
-        setSelectedId(null);
-        onElementSelectRef.current?.(null);
-      }
+      setSelectedIds(prev => prev.filter(i => i !== id));
+      onElementSelectRef.current?.(null);
     },
-    [selectedId, deleteElementAction]
+    [deleteElementAction]
   );
 
-  const handleElementSelect = useCallback((id: string | null) => {
-    setSelectedId(id);
-    onElementSelectRef.current?.(id);
+  const handleElementSelect = useCallback((ids: string[] | null) => {
+    setSelectedIds(ids ?? []);
+    onElementSelectRef.current?.(ids?.[0] ?? null);
   }, []);
 
   return {
     // State
     pageData,
     breakpoint,
-    selectedId,
+    selectedIds,
     showGrid,
 
     // Setters
     setBreakpoint,
-    setSelectedId,
+    setSelectedIds,
     setShowGrid,
     setPageData, // Expose for manual updates
 
     // Actions
     updateLayout,
+    updateLayoutBulk,
     addElement,
+    updateElement: updateElementAction,
     deleteElement,
     updateZIndex,
     ensureBreakpointLayout,
@@ -194,5 +218,12 @@ export function usePageEditor<T extends string = string>(
     gridSize,
     breakpoints,
     canvasHeight,
+    defaultSectionHeight,
+
+    // Sections
+    addSection,
+    deleteSection,
+    updateSectionHeight,
+    updateSectionFullWidth,
   };
 }

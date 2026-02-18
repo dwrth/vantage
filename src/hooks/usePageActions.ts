@@ -5,6 +5,7 @@ import {
   snapToGridPercent,
   snapToCenteredGridPercent,
   snapSizeToGridPercent,
+  snapSizeToGrid,
   pixelsToResponsive,
   getCanvasWidth,
   scaleLayoutToBreakpoint,
@@ -24,6 +25,8 @@ export function usePageActions<T extends string = string>(
     gridSize?: number;
     breakpoints?: Record<Breakpoint, number>;
     canvasHeight?: number;
+    defaultSectionHeight?: number;
+    maxSectionWidth?: number;
   }
 ) {
   // Memoize options to prevent unnecessary recreations
@@ -34,6 +37,12 @@ export function usePageActions<T extends string = string>(
   );
   const canvasHeight =
     options?.canvasHeight ?? defaultConfig.defaultCanvasHeight;
+  const defaultSectionHeight =
+    options?.defaultSectionHeight ?? defaultConfig.defaultSectionHeight ?? 600;
+  const maxSectionWidth =
+    options?.maxSectionWidth ??
+    defaultConfig.maxSectionWidth ??
+    getCanvasWidth("desktop", breakpoints ?? defaultConfig.breakpoints!);
 
   const ensureBreakpointLayout = useCallback(
     (element: PageElement<T>, targetBreakpoint?: Breakpoint): LayoutRect => {
@@ -56,7 +65,8 @@ export function usePageActions<T extends string = string>(
       breakpoint: Breakpoint,
       widthPercent: number,
       heightPercent: number,
-      currentElements: PageElement<T>[]
+      currentElements: PageElement<T>[],
+      containerHeight: number = canvasHeight
     ): LayoutRect => {
       const existingRects = currentElements.map(el => {
         const layout = ensureBreakpointLayout(el, breakpoint);
@@ -72,7 +82,7 @@ export function usePageActions<T extends string = string>(
 
       const canvasWidth = getCanvasWidth(breakpoint, breakpoints);
       const gx = gridPercentX(gridSize, canvasWidth);
-      const gy = gridPercentY(gridSize, canvasHeight);
+      const gy = gridPercentY(gridSize, containerHeight);
       const gridOffsetX = (100 % gx) / 2;
       const gridOffsetY = (100 % gy) / 2;
 
@@ -111,16 +121,27 @@ export function usePageActions<T extends string = string>(
   );
 
   const addElement = useCallback(
-    (type: T, defaultContent?: Record<string, any>) => {
+    (type: T, defaultContent?: Record<string, any>, sectionId?: string) => {
       setPageData(prev => {
+        const sections = prev.sections;
+        const targetSectionId =
+          sectionId ?? sections?.[0]?.id;
+        const section = sections?.find(s => s.id === targetSectionId);
+        const sectionHeight = section?.height ?? canvasHeight;
+        const elementsInSection = targetSectionId
+          ? (prev.elements || []).filter(
+              el => (el as PageElement<T> & { sectionId?: string }).sectionId === targetSectionId
+            )
+          : prev.elements;
+
         const desktopW = getCanvasWidth("desktop", breakpoints);
         const defaultWPercent = snapSizeToGridPercent(
           (200 / desktopW) * 100,
           gridPercentX(gridSize, desktopW)
         );
         const defaultHPercent = snapSizeToGridPercent(
-          (100 / canvasHeight) * 100,
-          gridPercentY(gridSize, canvasHeight)
+          (100 / sectionHeight) * 100,
+          gridPercentY(gridSize, sectionHeight)
         );
         const defaultSize = { w: defaultWPercent, h: defaultHPercent };
 
@@ -128,19 +149,22 @@ export function usePageActions<T extends string = string>(
           "desktop",
           defaultSize.w,
           defaultSize.h,
-          prev.elements
+          elementsInSection,
+          sectionHeight
         );
         const tabletPos = findNonOverlappingPosition(
           "tablet",
           defaultSize.w,
           defaultSize.h,
-          prev.elements
+          elementsInSection,
+          sectionHeight
         );
         const mobilePos = findNonOverlappingPosition(
           "mobile",
           defaultSize.w,
           defaultSize.h,
-          prev.elements
+          elementsInSection,
+          sectionHeight
         );
 
         const newElement: PageElement<T> = {
@@ -153,12 +177,13 @@ export function usePageActions<T extends string = string>(
             mobile: mobilePos,
             responsive: pixelsToResponsive(desktopPos),
           },
-          zIndex: prev.elements.length,
+          zIndex: (prev.elements?.length ?? 0),
+          ...(targetSectionId ? { sectionId: targetSectionId } : {}),
         };
 
         return {
           ...prev,
-          elements: [...prev.elements, newElement],
+          elements: [...(prev.elements || []), newElement],
         };
       });
     },
@@ -191,6 +216,34 @@ export function usePageActions<T extends string = string>(
     [breakpoints, canvasHeight]
   );
 
+  const updateLayoutBulk = useCallback(
+    (
+      updates: { id: string; rect: LayoutRect }[],
+      breakpoint: Breakpoint
+    ) => {
+      if (updates.length === 0) return;
+      setPageData(prev => {
+        const byId = new Map(updates.map(u => [u.id, u.rect]));
+        const elements = prev.elements.map(el => {
+          const newRect = byId.get(el.id);
+          if (newRect == null) return el;
+
+          const updatedLayout = { ...el.layout, [breakpoint]: newRect };
+
+          if (breakpoint === "desktop") {
+            updatedLayout.responsive = pixelsToResponsive(newRect);
+          } else if (!updatedLayout.responsive) {
+            updatedLayout.responsive = pixelsToResponsive(el.layout.desktop);
+          }
+
+          return { ...el, layout: updatedLayout };
+        });
+        return { ...prev, elements };
+      });
+    },
+    []
+  );
+
   const updateElement = useCallback(
     (id: string, updates: Partial<PageElement<T>>) => {
       setPageData(prev => ({
@@ -212,7 +265,7 @@ export function usePageActions<T extends string = string>(
 
   const updateZIndex = useCallback((id: string, direction: "up" | "down") => {
     setPageData(prev => {
-      const elements = [...prev.elements];
+      const elements = [...(prev.elements || [])];
       const index = elements.findIndex(el => el.id === id);
       if (index === -1) return prev;
 
@@ -229,12 +282,137 @@ export function usePageActions<T extends string = string>(
     });
   }, []);
 
+  const addSection = useCallback(
+    (fullWidth: boolean = false) => {
+      setPageData(prev => {
+        const sections = [...(prev.sections || [])];
+        const desktopWidth = getCanvasWidth("desktop", breakpoints);
+        const initialWidth = Math.min(desktopWidth, maxSectionWidth);
+        sections.push({
+          id: `sec-${Date.now()}`,
+          fullWidth,
+          height: defaultSectionHeight,
+          ...(fullWidth ? {} : { width: initialWidth }),
+        });
+        return { ...prev, sections };
+      });
+    },
+    [defaultSectionHeight, breakpoints, maxSectionWidth]
+  );
+
+  const deleteSection = useCallback((sectionId: string) => {
+    setPageData(prev => {
+      const sections = (prev.sections || []).filter(s => s.id !== sectionId);
+      const elements = (prev.elements || []).map(el => {
+        const pe = el as PageElement<T> & { sectionId?: string };
+        if (pe.sectionId === sectionId) {
+          const { sectionId: _, ...rest } = pe;
+          return { ...rest, sectionId: sections[0]?.id } as PageElement<T>;
+        }
+        return el;
+      });
+      return { ...prev, sections, elements };
+    });
+  }, []);
+
+  const updateSectionHeight = useCallback((sectionId: string, height: number) => {
+    setPageData(prev => {
+      const section = prev.sections?.find(s => s.id === sectionId);
+      const oldHeight = section?.height ?? 600;
+      const sectionElements = (prev.elements || []).filter(
+        (el): el is PageElement<T> & { sectionId: string } =>
+          (el as PageElement<T> & { sectionId?: string }).sectionId === sectionId
+      );
+      const maxBottomPercent =
+        sectionElements.length > 0
+          ? Math.max(
+              ...sectionElements.map(
+                el => el.layout.desktop.y + el.layout.desktop.h
+              )
+            )
+          : 0;
+      const minHeightPx =
+        maxBottomPercent > 0
+          ? (maxBottomPercent / 100) * oldHeight
+          : 0;
+      const minHeightSnapped =
+        minHeightPx <= 0
+          ? 0
+          : Math.ceil(minHeightPx / gridSize) * gridSize;
+      const clamped = Math.max(100, Math.max(minHeightSnapped, height));
+      const newHeight = Math.max(
+        minHeightSnapped,
+        snapSizeToGrid(clamped, gridSize)
+      );
+      const scale = oldHeight / newHeight;
+
+      const scaleRectYH = (rect: LayoutRect): LayoutRect => {
+        const scaledY = rect.y * scale;
+        const scaledH = rect.h * scale;
+        const h = Math.max(0.1, Math.min(100, scaledH));
+        const y = Math.max(0, Math.min(100 - h, scaledY));
+        return { ...rect, y, h };
+      };
+
+      const elements = (prev.elements || []).map(el => {
+        const pe = el as PageElement<T> & { sectionId?: string };
+        if (pe.sectionId !== sectionId) return el;
+        const desktop = scaleRectYH(el.layout.desktop);
+        const tablet = scaleRectYH(el.layout.tablet);
+        const mobile = scaleRectYH(el.layout.mobile);
+        return {
+          ...el,
+          layout: {
+            desktop,
+            tablet,
+            mobile,
+            responsive: pixelsToResponsive(desktop),
+          },
+        };
+      });
+
+      return {
+        ...prev,
+        sections: (prev.sections || []).map(s =>
+          s.id === sectionId ? { ...s, height: newHeight } : s
+        ),
+        elements,
+      };
+    });
+  }, [gridSize]);
+
+  const updateSectionFullWidth = useCallback(
+    (sectionId: string, fullWidth: boolean) => {
+      setPageData(prev => {
+        const desktopWidth = getCanvasWidth("desktop", breakpoints);
+        return {
+          ...prev,
+          sections: (prev.sections || []).map(s =>
+            s.id === sectionId
+              ? {
+                  ...s,
+                  fullWidth,
+                  ...(fullWidth ? {} : { width: s.width ?? desktopWidth }),
+                }
+              : s
+          ),
+        };
+      });
+    },
+    [breakpoints]
+  );
+
   return {
     addElement,
     updateLayout,
+    updateLayoutBulk,
     updateElement,
     deleteElement,
     updateZIndex,
     ensureBreakpointLayout,
+    addSection,
+    deleteSection,
+    updateSectionHeight,
+    updateSectionFullWidth,
   };
 }

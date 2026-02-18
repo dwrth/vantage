@@ -33,9 +33,26 @@ export interface PageElement<T extends string = string> {
   content: Record<string, any>; // Flexible content structure
   layout: ElementLayout;
   zIndex: number;
+  /** Section this element belongs to. */
+  sectionId?: string;
+  /** When false, this element does not snap to grid when dragging or resizing. Default true. */
+  snapToGrid?: boolean;
+}
+
+/** A vertical section of the page. Page height = sum of section heights. */
+export interface Section {
+  id: string;
+  /** If true, section spans 100%; otherwise uses width (px). */
+  fullWidth: boolean;
+  /** Height in px for this section. */
+  height: number;
+  /** Width in px when fullWidth is false. Omitted = use canvas/container width. */
+  width?: number;
 }
 
 export interface PageData<T extends string = string> {
   pageId: string;
   elements: PageElement<T>[];
+  /** Sections (stacked vertically). Page is always section-based. */
+  sections?: Section[];
 }

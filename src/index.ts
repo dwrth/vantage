@@ -16,6 +16,7 @@ export { useHistory } from "./hooks/useHistory";
 export type {
   PageData,
   PageElement,
+  Section,
   LayoutRect,
   ResponsiveRect,
   ElementLayout,
@@ -36,6 +37,8 @@ export {
   responsiveToPixels,
   scaleLayoutToBreakpoint,
   getCanvasWidth,
+  getPageTotalHeight,
+  normalizePageData,
   snapToGrid,
   snapToCenteredGrid,
   snapSizeToGrid,

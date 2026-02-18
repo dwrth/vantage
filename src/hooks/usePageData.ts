@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import React from "react";
 import { PageData, PageElement } from "../core/types";
 import { StorageAdapter, LocalStorageAdapter } from "../adapters/storage";
-import { pixelsToResponsive, getCanvasWidth } from "../utils/layout";
+import {
+  pixelsToResponsive,
+  getCanvasWidth,
+  normalizePageData,
+} from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
 /**
@@ -30,9 +34,15 @@ export function usePageData<T extends string = string>(
     onSaveRef.current = options?.onSave;
   }, [options?.onSave]);
 
-  const [pageData, setPageData] = useState<PageData<T>>(
-    options?.initialData || { pageId, elements: [] }
-  );
+  const defaultSectionHeight =
+    defaultConfig.defaultSectionHeight ?? 600;
+  const [pageData, setPageData] = useState<PageData<T>>(() => {
+    const initial = options?.initialData || { pageId, elements: [] };
+    return normalizePageData(
+      initial as PageData<T>,
+      defaultSectionHeight
+    ) as PageData<T>;
+  });
 
   // Load initial data
   useEffect(() => {
@@ -44,10 +54,10 @@ export function usePageData<T extends string = string>(
     const loadData = async () => {
       const loaded = await Promise.resolve(storage.load(pageId));
       if (loaded) {
-        // Ensure all elements have responsive layouts calculated
-        const updated: PageData<T> = {
+        // Ensure responsive layouts and sections
+        const withResponsive = {
           ...loaded,
-          elements: loaded.elements.map(el => {
+          elements: (loaded.elements || []).map(el => {
             if (!el.layout.responsive) {
               return {
                 ...el,
@@ -63,8 +73,10 @@ export function usePageData<T extends string = string>(
             }
             return el as PageElement<T>;
           }),
-        };
-        setPageData(updated);
+        } as PageData<T>;
+        const defaultSectionHeight =
+          defaultConfig.defaultSectionHeight ?? 600;
+        setPageData(normalizePageData(withResponsive, defaultSectionHeight));
       }
     };
     loadData();

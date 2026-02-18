@@ -1,6 +1,12 @@
 // Layout utility functions
 
-import { LayoutRect, Breakpoint, ResponsiveRect } from "../core/types";
+import {
+  LayoutRect,
+  Breakpoint,
+  ResponsiveRect,
+  PageData,
+  Section,
+} from "../core/types";
 
 export const getCanvasWidth = (
   breakpoint: Breakpoint,
@@ -118,3 +124,37 @@ export const snapSizeToGridPercent = (
   gridPercent
     ? Math.max(gridPercent, Math.round(value / gridPercent) * gridPercent)
     : value;
+
+// --- Sections (page height = sum of section heights) ---
+
+/** Total page height in px. Uses defaultSingleSectionHeight when no sections. */
+export function getPageTotalHeight(
+  sections: Section[] | undefined,
+  defaultSingleSectionHeight: number
+): number {
+  if (!sections?.length) return defaultSingleSectionHeight;
+  return sections.reduce((sum, s) => sum + s.height, 0);
+}
+
+/** Ensure pageData has sections; if none, create one and assign sectionId to all elements. Idempotent when sections already present. */
+export function normalizePageData<T extends string = string>(
+  data: PageData<T>,
+  defaultSectionHeight: number
+): PageData<T> {
+  if (data.sections?.length) return data;
+  const sectionId = `sec-${Date.now()}`;
+  const section: Section = {
+    id: sectionId,
+    fullWidth: false,
+    height: defaultSectionHeight,
+  };
+  const elements = (data.elements || []).map(el => ({
+    ...el,
+    sectionId,
+  }));
+  return {
+    ...data,
+    sections: [section],
+    elements,
+  } as PageData<T>;
+}
