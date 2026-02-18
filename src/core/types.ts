@@ -2,12 +2,12 @@
 
 export type Breakpoint = "desktop" | "tablet" | "mobile";
 
-// Editor uses pixels (for react-rnd compatibility)
+// Editor uses percentages (0–100) for react-rnd positionUnit: '%'
 export interface LayoutRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+  x: number; // 0–100
+  y: number; // 0–100
+  w: number; // 0–100
+  h: number; // 0–100
 }
 
 // Responsive units for live rendering

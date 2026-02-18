@@ -2,11 +2,14 @@ import { useCallback, useMemo } from "react";
 import React from "react";
 import { PageData, PageElement, Breakpoint, LayoutRect } from "../core/types";
 import {
-  snapToGrid,
-  snapToCenteredGrid,
+  snapToGridPercent,
+  snapToCenteredGridPercent,
+  snapSizeToGridPercent,
   pixelsToResponsive,
   getCanvasWidth,
   scaleLayoutToBreakpoint,
+  gridPercentX,
+  gridPercentY,
 } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
@@ -51,8 +54,8 @@ export function usePageActions<T extends string = string>(
   const findNonOverlappingPosition = useCallback(
     (
       breakpoint: Breakpoint,
-      width: number,
-      height: number,
+      widthPercent: number,
+      heightPercent: number,
       currentElements: PageElement<T>[]
     ): LayoutRect => {
       const existingRects = currentElements.map(el => {
@@ -68,19 +71,20 @@ export function usePageActions<T extends string = string>(
       });
 
       const canvasWidth = getCanvasWidth(breakpoint, breakpoints);
-      // Start from first grid position accounting for centered grid
-      const gridOffsetX = (canvasWidth % gridSize) / 2;
-      const gridOffsetY = (canvasHeight % gridSize) / 2;
+      const gx = gridPercentX(gridSize, canvasWidth);
+      const gy = gridPercentY(gridSize, canvasHeight);
+      const gridOffsetX = (100 % gx) / 2;
+      const gridOffsetY = (100 % gy) / 2;
 
-      let x = gridOffsetX + gridSize;
-      let y = gridOffsetY + gridSize;
+      let x = gridOffsetX + gx;
+      let y = gridOffsetY + gy;
 
       for (let attempt = 0; attempt < 100; attempt++) {
         const overlaps = existingRects.some(rect => {
           return !(
-            x + width < rect.x ||
+            x + widthPercent < rect.x ||
             x > rect.right ||
-            y + height < rect.y ||
+            y + heightPercent < rect.y ||
             y > rect.bottom
           );
         });
@@ -89,18 +93,18 @@ export function usePageActions<T extends string = string>(
           break;
         }
 
-        x += gridSize;
-        if (x + width > canvasWidth - gridOffsetX) {
-          x = gridOffsetX + gridSize;
-          y += gridSize;
+        x += gx;
+        if (x + widthPercent > 100 - gridOffsetX) {
+          x = gridOffsetX + gx;
+          y += gy;
         }
       }
 
       return {
-        x: snapToCenteredGrid(x, gridSize, canvasWidth),
-        y: snapToCenteredGrid(y, gridSize, canvasHeight),
-        w: width,
-        h: height,
+        x: snapToCenteredGridPercent(x, gx, 100),
+        y: snapToCenteredGridPercent(y, gy, 100),
+        w: widthPercent,
+        h: heightPercent,
       };
     },
     [ensureBreakpointLayout, gridSize, breakpoints, canvasHeight]
@@ -109,10 +113,16 @@ export function usePageActions<T extends string = string>(
   const addElement = useCallback(
     (type: T, defaultContent?: Record<string, any>) => {
       setPageData(prev => {
-        const defaultSize = {
-          w: snapToGrid(200, gridSize),
-          h: snapToGrid(100, gridSize),
-        };
+        const desktopW = getCanvasWidth("desktop", breakpoints);
+        const defaultWPercent = snapSizeToGridPercent(
+          (200 / desktopW) * 100,
+          gridPercentX(gridSize, desktopW)
+        );
+        const defaultHPercent = snapSizeToGridPercent(
+          (100 / canvasHeight) * 100,
+          gridPercentY(gridSize, canvasHeight)
+        );
+        const defaultSize = { w: defaultWPercent, h: defaultHPercent };
 
         const desktopPos = findNonOverlappingPosition(
           "desktop",
@@ -141,11 +151,7 @@ export function usePageActions<T extends string = string>(
             desktop: desktopPos,
             tablet: tabletPos,
             mobile: mobilePos,
-            responsive: pixelsToResponsive(
-              desktopPos,
-              getCanvasWidth("desktop", breakpoints),
-              canvasHeight
-            ),
+            responsive: pixelsToResponsive(desktopPos),
           },
           zIndex: prev.elements.length,
         };
@@ -170,17 +176,9 @@ export function usePageActions<T extends string = string>(
             const updatedLayout = { ...el.layout, [breakpoint]: newRect };
 
             if (breakpoint === "desktop") {
-              updatedLayout.responsive = pixelsToResponsive(
-                newRect,
-                getCanvasWidth("desktop", breakpoints),
-                canvasHeight
-              );
+              updatedLayout.responsive = pixelsToResponsive(newRect);
             } else if (!updatedLayout.responsive) {
-              updatedLayout.responsive = pixelsToResponsive(
-                el.layout.desktop,
-                getCanvasWidth("desktop", breakpoints),
-                canvasHeight
-              );
+              updatedLayout.responsive = pixelsToResponsive(el.layout.desktop);
             }
 
             return { ...el, layout: updatedLayout };

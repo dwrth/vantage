@@ -1,46 +1,51 @@
 "use client";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { defaultComponents } from "../adapters/components";
-import { pixelsToResponsive, getCanvasWidth } from "../utils/layout";
+import { pixelsToResponsive } from "../utils/layout";
 import { defaultConfig } from "../core/config";
+const DEFAULT_CANVAS_HEIGHT = 600;
 export function LiveView({
   pageData,
   components = defaultComponents,
   breakpoints = defaultConfig.breakpoints,
+  canvasHeight = DEFAULT_CANVAS_HEIGHT,
+  currentBreakpoint,
 }) {
   const generateStyles = () => {
+    const containerWidth = currentBreakpoint
+      ? breakpoints[currentBreakpoint]
+      : breakpoints.desktop;
+    // When currentBreakpoint is set, container is fixed to that width (no media queries)
     let css = `
       .page-container {
         position: relative;
-        width: 100%;
-        max-width: ${breakpoints.desktop}px;
+        width: ${containerWidth}px;
+        max-width: 100%;
+        height: ${canvasHeight}px;
         margin: 0 auto;
-        min-height: 100vh;
         background: white;
+        box-sizing: border-box;
       }
-      
+    `;
+    if (!currentBreakpoint) {
+      css += `
       /* Fluid scaling for screens between breakpoints */
       @media (max-width: ${breakpoints.desktop}px) {
         .page-container {
           max-width: 100%;
         }
       }
-      
-      /* Ensure elements scale smoothly */
+      `;
+    }
+    css += `
       .page-container > * {
         box-sizing: border-box;
       }
     `;
+    const bp = currentBreakpoint ?? "desktop";
     pageData.elements.forEach(element => {
-      // Use responsive layout if available, otherwise calculate from desktop
-      const responsive =
-        element.layout.responsive ||
-        pixelsToResponsive(
-          element.layout.desktop,
-          getCanvasWidth("desktop", breakpoints),
-          defaultConfig.defaultCanvasHeight
-        );
-      // Base styles using percentages for fluid responsiveness
+      const layout = element.layout[bp];
+      const responsive = pixelsToResponsive(layout);
       css += `
         .element-${element.id} {
           position: absolute;
@@ -52,40 +57,32 @@ export function LiveView({
           box-sizing: border-box;
         }
       `;
-      // Tablet breakpoint - uses percentage-based positioning
-      const tablet = element.layout.tablet;
-      const tabletResponsive = pixelsToResponsive(
-        tablet,
-        getCanvasWidth("tablet", breakpoints),
-        defaultConfig.defaultCanvasHeight
-      );
-      css += `
-        @media (max-width: ${breakpoints.tablet}px) {
-          .element-${element.id} {
-            left: ${tabletResponsive.left}%;
-            top: ${tabletResponsive.top}%;
-            width: ${tabletResponsive.width}%;
-            height: ${tabletResponsive.height}%;
+      if (!currentBreakpoint) {
+        const tablet = element.layout.tablet;
+        const tabletResponsive = pixelsToResponsive(tablet);
+        css += `
+          @media (max-width: ${breakpoints.tablet}px) {
+            .element-${element.id} {
+              left: ${tabletResponsive.left}%;
+              top: ${tabletResponsive.top}%;
+              width: ${tabletResponsive.width}%;
+              height: ${tabletResponsive.height}%;
+            }
           }
-        }
-      `;
-      // Mobile breakpoint - uses percentage-based positioning
-      const mobile = element.layout.mobile;
-      const mobileResponsive = pixelsToResponsive(
-        mobile,
-        getCanvasWidth("mobile", breakpoints),
-        defaultConfig.defaultCanvasHeight
-      );
-      css += `
-        @media (max-width: ${breakpoints.mobile * 1.28}px) {
-          .element-${element.id} {
-            left: ${mobileResponsive.left}%;
-            top: ${mobileResponsive.top}%;
-            width: ${mobileResponsive.width}%;
-            height: ${mobileResponsive.height}%;
+        `;
+        const mobile = element.layout.mobile;
+        const mobileResponsive = pixelsToResponsive(mobile);
+        css += `
+          @media (max-width: ${breakpoints.mobile * 1.28}px) {
+            .element-${element.id} {
+              left: ${mobileResponsive.left}%;
+              top: ${mobileResponsive.top}%;
+              width: ${mobileResponsive.width}%;
+              height: ${mobileResponsive.height}%;
+            }
           }
-        }
-      `;
+        `;
+      }
     });
     return css;
   };

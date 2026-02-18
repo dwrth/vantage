@@ -9,44 +9,43 @@ export const getCanvasWidth = (
   return breakpoints[breakpoint];
 };
 
+// LayoutRect is percentage-based (0–100); same values work across breakpoints
 export const scaleLayoutToBreakpoint = (
   sourceRect: LayoutRect,
-  sourceBreakpoint: Breakpoint,
-  targetBreakpoint: Breakpoint,
-  breakpoints: Record<Breakpoint, number>
+  _sourceBreakpoint: Breakpoint,
+  _targetBreakpoint: Breakpoint,
+  _breakpoints: Record<Breakpoint, number>
 ): LayoutRect => {
-  const sourceWidth = breakpoints[sourceBreakpoint];
-  const targetWidth = breakpoints[targetBreakpoint];
-  const scale = targetWidth / sourceWidth;
-
-  return {
-    x: sourceRect.x * scale,
-    y: sourceRect.y * scale,
-    w: sourceRect.w * scale,
-    h: sourceRect.h * scale,
-  };
+  return { ...sourceRect };
 };
 
-// Convert pixel-based layout to responsive units
+// LayoutRect is already in 0–100; map to ResponsiveRect (same units)
 export const pixelsToResponsive = (
   rect: LayoutRect,
-  canvasWidth: number,
-  canvasHeight: number = 800
+  _canvasWidth?: number,
+  _canvasHeight?: number
 ): ResponsiveRect => {
   return {
-    left: (rect.x / canvasWidth) * 100, // percentage of container width
-    top: (rect.y / canvasHeight) * 100, // percentage of container height
-    width: (rect.w / canvasWidth) * 100, // percentage of container width
-    height: (rect.h / canvasHeight) * 100, // percentage of container height
+    left: rect.x,
+    top: rect.y,
+    width: rect.w,
+    height: rect.h,
   };
 };
 
-// Convert responsive units back to pixels (for editor display)
+// Pixel dimensions for a given canvas (e.g. for measuring)
+export interface PixelRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export const responsiveToPixels = (
   rect: ResponsiveRect,
   canvasWidth: number,
   canvasHeight: number = 800
-): LayoutRect => {
+): PixelRect => {
   return {
     x: (rect.left / 100) * canvasWidth,
     y: (rect.top / 100) * canvasHeight,
@@ -86,3 +85,36 @@ export const snapSizeToGrid = (value: number, gridSize: number): number => {
   // Round to nearest multiple of gridSize, with minimum of gridSize
   return Math.max(gridSize, Math.round(value / gridSize) * gridSize);
 };
+
+// --- Percentage-based (0–100) grid snapping for positionUnit: '%' ---
+
+export const gridPercentX = (gridSize: number, canvasWidth: number): number =>
+  canvasWidth ? (gridSize / canvasWidth) * 100 : 0;
+
+export const gridPercentY = (gridSize: number, canvasHeight: number): number =>
+  canvasHeight ? (gridSize / canvasHeight) * 100 : 0;
+
+export const snapToGridPercent = (
+  value: number,
+  gridPercent: number
+): number =>
+  gridPercent ? Math.round(value / gridPercent) * gridPercent : value;
+
+export const snapToCenteredGridPercent = (
+  value: number,
+  gridPercent: number,
+  containerPercent: number = 100
+): number => {
+  if (!gridPercent) return value;
+  const offset = (containerPercent % gridPercent) / 2;
+  const snapped = snapToGridPercent(value - offset, gridPercent) + offset;
+  return Math.max(offset, Math.min(snapped, containerPercent - offset));
+};
+
+export const snapSizeToGridPercent = (
+  value: number,
+  gridPercent: number
+): number =>
+  gridPercent
+    ? Math.max(gridPercent, Math.round(value / gridPercent) * gridPercent)
+    : value;

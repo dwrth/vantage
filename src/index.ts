@@ -40,4 +40,10 @@ export {
   snapToCenteredGrid,
   snapSizeToGrid,
   getGridOffset,
+  gridPercentX,
+  gridPercentY,
+  snapToGridPercent,
+  snapToCenteredGridPercent,
+  snapSizeToGridPercent,
 } from "./utils";
+export type { PixelRect } from "./utils";

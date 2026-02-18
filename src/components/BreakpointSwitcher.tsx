@@ -40,7 +40,7 @@ export default function BreakpointSwitcher({
             cursor: "pointer",
             ...(currentBreakpoint === bp.key
               ? { background: "#2563eb", color: "white" }
-              : { background: "#f3f4f6", color: "#374151" }),
+              : { background: "#f3f4f6", color: "#1f2937" }),
           }}
           onMouseEnter={e => {
             if (currentBreakpoint !== bp.key) {

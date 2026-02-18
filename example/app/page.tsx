@@ -18,7 +18,7 @@ export default function Home() {
     <div className="h-screen flex flex-col">
       <div className="p-4 bg-blue-50 border-b border-blue-200">
         <h1 className="m-0 text-2xl font-semibold">🎨 Page Builder Demo</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-700">
           Demonstrates <strong>any React component</strong> can be resizable.
           Auto-saves to localStorage (default). See code comments for
           server-side saving examples.

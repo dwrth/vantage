@@ -25,7 +25,7 @@ export const defaultComponents: ComponentRegistry<"image" | "text" | "video"> =
             alignItems: "center",
             justifyContent: "center",
             background: "#f3f4f6",
-            color: "#9ca3af",
+            color: "#4b5563",
           }}
         >
           No image
@@ -61,7 +61,7 @@ export const defaultComponents: ComponentRegistry<"image" | "text" | "video"> =
             alignItems: "center",
             justifyContent: "center",
             background: "#f3f4f6",
-            color: "#9ca3af",
+            color: "#4b5563",
           }}
         >
           No video URL

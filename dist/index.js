@@ -21,4 +21,9 @@ export {
   snapToCenteredGrid,
   snapSizeToGrid,
   getGridOffset,
+  gridPercentX,
+  gridPercentY,
+  snapToGridPercent,
+  snapToCenteredGridPercent,
+  snapSizeToGridPercent,
 } from "./utils";

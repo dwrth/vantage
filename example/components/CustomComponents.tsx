@@ -88,7 +88,7 @@ export const CustomCard = ({
           </h3>
         )}
         {description && (
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
+          <p style={{ margin: 0, color: "#4b5563", fontSize: "14px" }}>
             {description}
           </p>
         )}
@@ -333,7 +333,7 @@ export const TodoList = ({ title }: { title?: string }) => {
       <div style={{ flex: 1, overflow: "auto" }}>
         {todos.length === 0 ? (
           <p
-            style={{ color: "#9ca3af", textAlign: "center", marginTop: "20px" }}
+            style={{ color: "#4b5563", textAlign: "center", marginTop: "20px" }}
           >
             No todos yet. Add one above!
           </p>

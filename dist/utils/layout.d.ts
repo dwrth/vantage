@@ -5,20 +5,26 @@ export declare const getCanvasWidth: (
 ) => number;
 export declare const scaleLayoutToBreakpoint: (
   sourceRect: LayoutRect,
-  sourceBreakpoint: Breakpoint,
-  targetBreakpoint: Breakpoint,
-  breakpoints: Record<Breakpoint, number>
+  _sourceBreakpoint: Breakpoint,
+  _targetBreakpoint: Breakpoint,
+  _breakpoints: Record<Breakpoint, number>
 ) => LayoutRect;
 export declare const pixelsToResponsive: (
   rect: LayoutRect,
-  canvasWidth: number,
-  canvasHeight?: number
+  _canvasWidth?: number,
+  _canvasHeight?: number
 ) => ResponsiveRect;
+export interface PixelRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 export declare const responsiveToPixels: (
   rect: ResponsiveRect,
   canvasWidth: number,
   canvasHeight?: number
-) => LayoutRect;
+) => PixelRect;
 export declare const snapToGrid: (value: number, gridSize: number) => number;
 export declare const getGridOffset: (
   containerSize: number,
@@ -32,5 +38,26 @@ export declare const snapToCenteredGrid: (
 export declare const snapSizeToGrid: (
   value: number,
   gridSize: number
+) => number;
+export declare const gridPercentX: (
+  gridSize: number,
+  canvasWidth: number
+) => number;
+export declare const gridPercentY: (
+  gridSize: number,
+  canvasHeight: number
+) => number;
+export declare const snapToGridPercent: (
+  value: number,
+  gridPercent: number
+) => number;
+export declare const snapToCenteredGridPercent: (
+  value: number,
+  gridPercent: number,
+  containerPercent?: number
+) => number;
+export declare const snapSizeToGridPercent: (
+  value: number,
+  gridPercent: number
 ) => number;
 //# sourceMappingURL=layout.d.ts.map
