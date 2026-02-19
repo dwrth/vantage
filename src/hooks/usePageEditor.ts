@@ -50,12 +50,31 @@ export function usePageEditor<T extends string = string>(
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showGrid, setShowGrid] = useState<boolean>(true);
 
+  const lastSavedDataRef = useRef<PageData<T> | undefined>(undefined);
+  const onDirtyChangeRef = useRef(config?.onDirtyChange);
+  useEffect(() => {
+    onDirtyChangeRef.current = config?.onDirtyChange;
+  }, [config?.onDirtyChange]);
+
   // Use headless page data hook
   const { pageData, setPageData, save } = usePageData<T>(pageId, {
+    ...(config?.initialData !== undefined && {
+      initialData: config.initialData,
+    }),
     storage: config?.storage,
     autoSaveDelay: config?.autoSaveDelay,
     onSave: config?.onSave,
+    onSaved: useCallback((data: PageData<T>) => {
+      lastSavedDataRef.current = data;
+    }, []),
   });
+
+  // Set baseline for dirty check on first paint (e.g. before load completes or when load returns null)
+  useEffect(() => {
+    if (lastSavedDataRef.current === undefined) {
+      lastSavedDataRef.current = pageData;
+    }
+  }, []);
 
   // Track if we're updating from history (to avoid adding to history)
   const isHistoryUpdateRef = useRef(false);
@@ -92,6 +111,15 @@ export function usePageEditor<T extends string = string>(
       prevPageDataRef.current = pageData;
     }
   }, [pageData, updateHistory]);
+
+  // Dirty state: compare current pageData to last saved/loaded baseline
+  const isDirty =
+    lastSavedDataRef.current !== undefined &&
+    JSON.stringify(pageData) !== JSON.stringify(lastSavedDataRef.current);
+
+  useEffect(() => {
+    onDirtyChangeRef.current?.(isDirty);
+  }, [isDirty]);
 
   // Wrapper for setPageData that updates history
   const setPageDataWithHistory = useCallback(
@@ -178,6 +206,13 @@ export function usePageEditor<T extends string = string>(
     [addElementAction]
   );
 
+  const updateElementContent = useCallback(
+    (id: string, content: Record<string, unknown>) => {
+      updateElementAction(id, { content });
+    },
+    [updateElementAction]
+  );
+
   const updateZIndex = useCallback(
     (id: string, direction: "up" | "down") => {
       updateZIndexAction(id, direction);
@@ -210,6 +245,8 @@ export function usePageEditor<T extends string = string>(
     breakpoint,
     selectedIds,
     showGrid,
+    isDirty,
+    hasUnsavedChanges: isDirty,
     canUndo,
     canRedo,
     historyLoading,
@@ -230,6 +267,7 @@ export function usePageEditor<T extends string = string>(
     updateLayoutBulk,
     addElement,
     updateElement: updateElementAction,
+    updateElementContent,
     deleteElement,
     updateZIndex,
     ensureBreakpointLayout,

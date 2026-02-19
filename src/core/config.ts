@@ -21,6 +21,8 @@ export interface PageBuilderConfig<T extends string = string> {
 
   // Storage adapter
   storage?: StorageAdapter;
+  /** If you already have page data (e.g. from Redux), pass it so the first load uses it and the editor doesn't flash. */
+  initialData?: PageData<T>;
 
   // Component registry
   components?: ComponentRegistry<T>;
@@ -29,6 +31,8 @@ export interface PageBuilderConfig<T extends string = string> {
   onSave?: (data: PageData<T>) => void;
   onElementSelect?: (elementId: string | null) => void;
   onElementUpdate?: (elementId: string, updates: any) => void;
+  /** Called when dirty state changes (e.g. for external Save button visibility). */
+  onDirtyChange?: (dirty: boolean) => void;
 
   // Auto-save settings
   autoSaveDelay?: number; // milliseconds
@@ -41,7 +45,13 @@ export interface PageBuilderConfig<T extends string = string> {
 export const defaultConfig: Required<
   Omit<
     PageBuilderConfig,
-    "storage" | "components" | "onSave" | "onElementSelect" | "onElementUpdate"
+    | "storage"
+    | "components"
+    | "onSave"
+    | "onElementSelect"
+    | "onElementUpdate"
+    | "onDirtyChange"
+    | "initialData"
   >
 > = {
   gridSize: 50,

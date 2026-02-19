@@ -18,9 +18,11 @@ export function usePageData(pageId, options) {
   );
   const autoSaveDelay = options?.autoSaveDelay ?? defaultConfig.autoSaveDelay;
   const onSaveRef = useRef(options?.onSave);
+  const onSavedRef = useRef(options?.onSaved);
   useEffect(() => {
     onSaveRef.current = options?.onSave;
-  }, [options?.onSave]);
+    onSavedRef.current = options?.onSaved;
+  }, [options?.onSave, options?.onSaved]);
   const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
   const [pageData, setPageData] = useState(() => {
     const initial = options?.initialData || { pageId, elements: [] };
@@ -29,7 +31,12 @@ export function usePageData(pageId, options) {
   // Load initial data
   useEffect(() => {
     if (options?.initialData) {
-      setPageData(options.initialData);
+      const normalized = normalizePageData(
+        options.initialData,
+        defaultSectionHeight
+      );
+      setPageData(normalized);
+      onSavedRef.current?.(normalized);
       return;
     }
     const loadData = async () => {
@@ -56,7 +63,12 @@ export function usePageData(pageId, options) {
           }),
         };
         const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
-        setPageData(normalizePageData(withResponsive, defaultSectionHeight));
+        const normalized = normalizePageData(
+          withResponsive,
+          defaultSectionHeight
+        );
+        setPageData(normalized);
+        onSavedRef.current?.(normalized);
       }
     };
     loadData();
@@ -83,7 +95,12 @@ export function usePageData(pageId, options) {
           return el;
         }),
       };
-      setPageData(normalizePageData(withResponsive, defaultSectionHeight));
+      const normalized = normalizePageData(
+        withResponsive,
+        defaultSectionHeight
+      );
+      setPageData(normalized);
+      onSavedRef.current?.(normalized);
     },
     [defaultSectionHeight]
   );

@@ -666,6 +666,7 @@ export function PageEditor({ editor }) {
                                   selectElements(nextIds);
                                 },
                                 children: _jsx("div", {
+                                  "data-vantage-cell": true,
                                   style: {
                                     width: "100%",
                                     height: "100%",

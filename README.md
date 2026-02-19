@@ -113,15 +113,15 @@ function MyCustomUI() {
 
 **Instance API (VantageEditorInstance):**
 
-- **State:** `pageData`, `breakpoint`, `selectedIds`, `showGrid`, `canUndo`,
-  `canRedo`, `historyLoading`, `gridSize`, `breakpoints`, `canvasHeight`,
-  `defaultSectionHeight`
+- **State:** `pageData`, `breakpoint`, `selectedIds`, `showGrid`, `isDirty`,
+  `hasUnsavedChanges`, `canUndo`, `canRedo`, `historyLoading`, `gridSize`,
+  `breakpoints`, `canvasHeight`, `defaultSectionHeight`
 - **Setters:** `setBreakpoint`, `setSelectedIds`, `setShowGrid`, `setPageData`,
   `selectElements`
 - **Element actions:**
   `addElement(type, defaultContent?, sectionId?, externalId?)`, `updateElement`,
-  `updateLayout`, `updateLayoutBulk`, `deleteElement`, `updateZIndex`,
-  `ensureBreakpointLayout`
+  `updateElementContent(id, content)`, `updateLayout`, `updateLayoutBulk`,
+  `deleteElement`, `updateZIndex`, `ensureBreakpointLayout`
 - **Section actions:** `addSection`, `deleteSection`, `updateSectionHeight`,
   `updateSectionFullWidth`
 - **History:** `undo`, `redo`, `save`
@@ -281,6 +281,14 @@ draggable and resizable. The registered component receives the element's
 `content` object as props, so you can pass it through to existing components
 that expect a specific shape (e.g. CMS or backend model).
 
+**Filling the container:** Each component is rendered inside a fixed-size resize
+cell. For the selection box to match what the user sees and for resizing to feel
+correct, the visible component should **fill its container** (e.g. root node
+with `width: 100%; height: 100%`). The cell wrapper has `data-vantage-cell`; you
+can add global CSS such as
+`[data-vantage-cell] > * { width: 100%; height: 100%; }` so all registered
+components fill by default.
+
 ```tsx
 import {
   PageEditor,
@@ -357,6 +365,41 @@ MongoDB `_id`):
    endpoints that expect server ids; use `externalId` for the canonical server
    id.
 
+**Layout vs. order:** Placement is defined by **layout** (position and size per
+breakpoint). Element order in the array is derived for compatibility; when
+syncing to a backend that uses layout as the source of truth, do not rely on
+array order for “dirty” or save logic.
+
+## Dirty state and external Save button
+
+The editor exposes **unsaved changes** so you can drive an external Save/Cancel
+bar:
+
+- **State:** `editor.isDirty` and `editor.hasUnsavedChanges` (aliases) are
+  `true` when the current `pageData` differs from the last saved or loaded
+  baseline.
+- **Callback:** Pass `onDirtyChange={(dirty) => { ... }}` in
+  `useVantageEditor({ ... })` to be notified when dirty state changes.
+
+If you use an external Save button, you can rely on `isDirty` (or
+`onDirtyChange`) instead of comparing `pageData` to a snapshot in your own
+logic. For hosts that need a stable “vantage editor is active” signal (e.g. to
+avoid clearing dirty state from other logic): set your ref or flag inside the
+editor component when it mounts, and **clear it only in the parent** when the
+user explicitly leaves the vantage editor (e.g. switches tabs). Do not clear
+that ref in the editor’s effect cleanup, so React effect order and Strict Mode
+don’t clear it before your hook runs.
+
+## Syncing external edits into the editor (e.g. sidebar)
+
+When users edit component content in an external form or sidebar (title, URL,
+styling, etc.), sync that into the editor so the next save persists it. Use
+`editor.updateElement(elementId, { content: updatedContent })` with the
+element’s vantage `id` (look up by `externalId` if your UI is keyed by backend
+id). For content-only updates you can use
+`editor.updateElementContent(elementId, content)` so intent is clear and you
+don’t accidentally overwrite layout.
+
 ## Headless Hooks API
 
 ### `usePageData`
@@ -368,6 +411,7 @@ const { pageData, setPageData, save } = usePageData(pageId, {
   storage?: StorageAdapter,
   autoSaveDelay?: number,
   onSave?: (data: PageData) => void,
+  onSaved?: (data: PageData) => void,
   initialData?: PageData,
 });
 ```
@@ -558,14 +602,20 @@ npm run example:dev
 
 ### Types
 
-- `VantageEditorInstance<T>` - The editor instance type. Use it to type props or
-  custom UI that receives the instance.
+- `VantageEditorInstance<T>` - The editor instance type (state, setters, actions
+  like `updateElement`, `updateElementContent`, `pageData`, `save`). Use it to
+  type props or custom UI that receives the instance.
+- `UseVantageEditorOptions<T>` - Options passed to `useVantageEditor` (includes
+  `storage`, `initialData`, `onDirtyChange`, etc.).
+- `UsePageDataOptions<T>` - Options for `usePageData` (storage, `onSave`,
+  `initialData`, `onSaved`). Use when typing custom adapters or wrappers.
+- `StorageAdapter` - Storage interface (save can return `PageData | null`).
+- `PageData`, `PageElement`, `Section`, `LayoutRect`, etc. - Core data types.
 
 ### Adapters
 
 - `StorageAdapter` - Storage interface
 - `LocalStorageAdapter` - Browser localStorage implementation
-- `StorageAdapter` - Interface for custom storage implementations
 - `ComponentRegistry` - Component registry interface
 
 ## License

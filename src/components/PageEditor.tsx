@@ -691,6 +691,7 @@ export function PageEditor<T extends string = string>({
                           }}
                         >
                           <div
+                            data-vantage-cell
                             style={{
                               width: "100%",
                               height: "100%",

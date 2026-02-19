@@ -9,18 +9,23 @@ import {
 } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
+/** Options for usePageData (storage, callbacks, initial data). */
+export type UsePageDataOptions<T extends string = string> = {
+  storage?: StorageAdapter;
+  autoSaveDelay?: number;
+  onSave?: (data: PageData<T>) => void;
+  /** Called when data is saved or loaded (baseline for dirty comparison). */
+  onSaved?: (data: PageData<T>) => void;
+  initialData?: PageData<T>;
+};
+
 /**
  * Headless hook for managing page data
  * Exposes pageData and save function for custom implementations
  */
 export function usePageData<T extends string = string>(
   pageId: string,
-  options?: {
-    storage?: StorageAdapter;
-    autoSaveDelay?: number;
-    onSave?: (data: PageData<T>) => void;
-    initialData?: PageData<T>;
-  }
+  options?: UsePageDataOptions<T>
 ) {
   // Memoize storage to prevent recreating adapter on every render
   const storage: StorageAdapter = useMemo(
@@ -29,10 +34,12 @@ export function usePageData<T extends string = string>(
   );
   const autoSaveDelay = options?.autoSaveDelay ?? defaultConfig.autoSaveDelay;
   const onSaveRef = useRef(options?.onSave);
+  const onSavedRef = useRef(options?.onSaved);
 
   useEffect(() => {
     onSaveRef.current = options?.onSave;
-  }, [options?.onSave]);
+    onSavedRef.current = options?.onSaved;
+  }, [options?.onSave, options?.onSaved]);
 
   const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
   const [pageData, setPageData] = useState<PageData<T>>(() => {
@@ -46,7 +53,12 @@ export function usePageData<T extends string = string>(
   // Load initial data
   useEffect(() => {
     if (options?.initialData) {
-      setPageData(options.initialData);
+      const normalized = normalizePageData(
+        options.initialData as PageData<T>,
+        defaultSectionHeight
+      ) as PageData<T>;
+      setPageData(normalized);
+      onSavedRef.current?.(normalized);
       return;
     }
 
@@ -74,7 +86,12 @@ export function usePageData<T extends string = string>(
           }),
         } as PageData<T>;
         const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
-        setPageData(normalizePageData(withResponsive, defaultSectionHeight));
+        const normalized = normalizePageData(
+          withResponsive,
+          defaultSectionHeight
+        );
+        setPageData(normalized);
+        onSavedRef.current?.(normalized);
       }
     };
     loadData();
@@ -102,9 +119,12 @@ export function usePageData<T extends string = string>(
           return el as PageElement<T>;
         }),
       } as PageData<T>;
-      setPageData(
-        normalizePageData(withResponsive, defaultSectionHeight) as PageData<T>
-      );
+      const normalized = normalizePageData(
+        withResponsive,
+        defaultSectionHeight
+      ) as PageData<T>;
+      setPageData(normalized);
+      onSavedRef.current?.(normalized);
     },
     [defaultSectionHeight]
   );

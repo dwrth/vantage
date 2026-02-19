@@ -11,6 +11,10 @@ export interface VantageEditorInstance<T extends string = string> {
   breakpoint: Breakpoint;
   selectedIds: string[];
   showGrid: boolean;
+  /** True when there are unsaved changes (compare to last saved or loaded state). */
+  isDirty: boolean;
+  /** Alias for isDirty. Use for external Save button visibility. */
+  hasUnsavedChanges: boolean;
   canUndo: boolean;
   canRedo: boolean;
   historyLoading: boolean;
@@ -36,6 +40,8 @@ export interface VantageEditorInstance<T extends string = string> {
     externalId?: string
   ) => void;
   updateElement: (id: string, updates: Partial<PageElement<T>>) => void;
+  /** Update only the content of an element (e.g. from a sidebar). Same as updateElement(id, { content }). */
+  updateElementContent: (id: string, content: Record<string, unknown>) => void;
   updateLayout: (id: string, newRect: LayoutRect) => void;
   updateLayoutBulk: (updates: { id: string; rect: LayoutRect }[]) => void;
   deleteElement: (id: string) => void;

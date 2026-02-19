@@ -5,6 +5,7 @@ export { default as GridOverlay } from "./components/GridOverlay";
 export { useVantageEditor, usePageEditor } from "./hooks/usePageEditor";
 export type { UseVantageEditorOptions } from "./hooks/usePageEditor";
 export { usePageData } from "./hooks/usePageData";
+export type { UsePageDataOptions } from "./hooks/usePageData";
 export { usePageActions } from "./hooks/usePageActions";
 export { useHistory } from "./hooks/useHistory";
 export type {

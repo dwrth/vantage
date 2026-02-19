@@ -11,10 +11,14 @@ export interface PageBuilderConfig<T extends string = string> {
   /** Maximum width (px) for content-width sections. Defaults to desktop breakpoint. */
   maxSectionWidth?: number;
   storage?: StorageAdapter;
+  /** If you already have page data (e.g. from Redux), pass it so the first load uses it and the editor doesn't flash. */
+  initialData?: PageData<T>;
   components?: ComponentRegistry<T>;
   onSave?: (data: PageData<T>) => void;
   onElementSelect?: (elementId: string | null) => void;
   onElementUpdate?: (elementId: string, updates: any) => void;
+  /** Called when dirty state changes (e.g. for external Save button visibility). */
+  onDirtyChange?: (dirty: boolean) => void;
   autoSaveDelay?: number;
   maxHistorySize?: number;
   persistHistory?: boolean;
@@ -22,7 +26,13 @@ export interface PageBuilderConfig<T extends string = string> {
 export declare const defaultConfig: Required<
   Omit<
     PageBuilderConfig,
-    "storage" | "components" | "onSave" | "onElementSelect" | "onElementUpdate"
+    | "storage"
+    | "components"
+    | "onSave"
+    | "onElementSelect"
+    | "onElementUpdate"
+    | "onDirtyChange"
+    | "initialData"
   >
 >;
 //# sourceMappingURL=config.d.ts.map
