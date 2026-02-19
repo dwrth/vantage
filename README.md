@@ -118,8 +118,10 @@ function MyCustomUI() {
   `defaultSectionHeight`
 - **Setters:** `setBreakpoint`, `setSelectedIds`, `setShowGrid`, `setPageData`,
   `selectElements`
-- **Element actions:** `addElement`, `updateElement`, `updateLayout`,
-  `updateLayoutBulk`, `deleteElement`, `updateZIndex`, `ensureBreakpointLayout`
+- **Element actions:**
+  `addElement(type, defaultContent?, sectionId?, externalId?)`, `updateElement`,
+  `updateLayout`, `updateLayoutBulk`, `deleteElement`, `updateZIndex`,
+  `ensureBreakpointLayout`
 - **Section actions:** `addSection`, `deleteSection`, `updateSectionHeight`,
   `updateSectionFullWidth`
 - **History:** `undo`, `redo`, `save`
@@ -303,6 +305,21 @@ const editor = useVantageEditor({
 });
 <PageEditor editor={editor} />;
 ```
+
+## Linking components to your data model (`externalId`)
+
+Each element has an internal `id` used by the page builder. You can also set an
+optional **`externalId`** (user-defined id) to link that component to your own
+backend or CMS. This keeps layout in the page builder and component-related data
+in your model.
+
+- **On add:**
+  `editor.addElement("text", undefined, sectionId, "my-cms-block-123")`
+- **Later:**
+  `editor.updateElement(elementId, { externalId: "my-cms-block-123" })`
+- **In page data:** Every `PageElement` may have `externalId?: string`. It is
+  persisted with the page and included in `onSave` / storage. Use it to look up
+  the corresponding record in your database or CMS when rendering or syncing.
 
 ## Headless Hooks API
 

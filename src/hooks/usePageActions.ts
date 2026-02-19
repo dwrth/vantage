@@ -121,7 +121,12 @@ export function usePageActions<T extends string = string>(
   );
 
   const addElement = useCallback(
-    (type: T, defaultContent?: Record<string, any>, sectionId?: string) => {
+    (
+      type: T,
+      defaultContent?: Record<string, any>,
+      sectionId?: string,
+      externalId?: string
+    ) => {
       setPageData(prev => {
         const sections = prev.sections;
         const targetSectionId = sectionId ?? sections?.[0]?.id;
@@ -180,6 +185,7 @@ export function usePageActions<T extends string = string>(
           },
           zIndex: prev.elements?.length ?? 0,
           ...(targetSectionId ? { sectionId: targetSectionId } : {}),
+          ...(externalId !== undefined ? { externalId } : {}),
         };
 
         return {

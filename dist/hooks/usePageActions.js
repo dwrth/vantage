@@ -98,7 +98,7 @@ export function usePageActions(pageData, setPageData, options) {
     [ensureBreakpointLayout, gridSize, breakpoints, canvasHeight]
   );
   const addElement = useCallback(
-    (type, defaultContent, sectionId) => {
+    (type, defaultContent, sectionId, externalId) => {
       setPageData(prev => {
         const sections = prev.sections;
         const targetSectionId = sectionId ?? sections?.[0]?.id;
@@ -150,6 +150,7 @@ export function usePageActions(pageData, setPageData, options) {
           },
           zIndex: prev.elements?.length ?? 0,
           ...(targetSectionId ? { sectionId: targetSectionId } : {}),
+          ...(externalId !== undefined ? { externalId } : {}),
         };
         return {
           ...prev,

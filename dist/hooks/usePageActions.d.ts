@@ -18,7 +18,8 @@ export declare function usePageActions<T extends string = string>(
   addElement: (
     type: T,
     defaultContent?: Record<string, any>,
-    sectionId?: string
+    sectionId?: string,
+    externalId?: string
   ) => void;
   updateLayout: (
     id: string,

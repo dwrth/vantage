@@ -32,7 +32,8 @@ export interface VantageEditorInstance<T extends string = string> {
   addElement: (
     type: T,
     defaultContent?: Record<string, unknown>,
-    sectionId?: string
+    sectionId?: string,
+    externalId?: string
   ) => void;
   updateElement: (id: string, updates: Partial<PageElement<T>>) => void;
   updateLayout: (id: string, newRect: LayoutRect) => void;

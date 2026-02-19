@@ -134,8 +134,8 @@ export function usePageEditor(pageId, config) {
     [breakpoint, updateLayoutBulkAction]
   );
   const addElement = useCallback(
-    (type, defaultContent, sectionId) => {
-      addElementAction(type, defaultContent, sectionId);
+    (type, defaultContent, sectionId, externalId) => {
+      addElementAction(type, defaultContent, sectionId, externalId);
     },
     [addElementAction]
   );

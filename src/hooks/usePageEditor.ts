@@ -167,8 +167,13 @@ export function usePageEditor<T extends string = string>(
   );
 
   const addElement = useCallback(
-    (type: T, defaultContent?: Record<string, any>, sectionId?: string) => {
-      addElementAction(type, defaultContent, sectionId);
+    (
+      type: T,
+      defaultContent?: Record<string, any>,
+      sectionId?: string,
+      externalId?: string
+    ) => {
+      addElementAction(type, defaultContent, sectionId, externalId);
     },
     [addElementAction]
   );

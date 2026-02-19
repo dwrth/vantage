@@ -27,6 +27,13 @@ export interface PageElement<T extends string = string> {
   sectionId?: string;
   /** When false, this element does not snap to grid when dragging or resizing. Default true. */
   snapToGrid?: boolean;
+  /**
+   * Optional user-defined id for linking this component to an external model.
+   * Use this for headless workflows: store component-related data (e.g. CMS entry id,
+   * A/B variant, analytics id) in your own backend and reference it via externalId.
+   * The page builder uses `id` internally; externalId is never required by the editor.
+   */
+  externalId?: string;
 }
 /** A vertical section of the page. Page height = sum of section heights. */
 export interface Section {
