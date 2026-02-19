@@ -8,9 +8,14 @@ export interface HistorySnapshot {
  * Storage adapter interface
  * Implement this interface to provide your own storage backend
  * (axios, fetch, server actions, GraphQL, etc.)
+ * save() may optionally return updated PageData (e.g. with server-assigned externalIds);
+ * if returned, the editor will merge it so the next save uses server ids.
  */
 export interface StorageAdapter {
-  save(pageId: string, data: PageData): Promise<void> | void;
+  save(
+    pageId: string,
+    data: PageData
+  ): Promise<PageData | null | void> | PageData | null | void;
   load(pageId: string): Promise<PageData | null> | PageData | null;
   delete?(pageId: string): Promise<void> | void;
   saveHistory?(

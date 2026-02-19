@@ -80,6 +80,35 @@ export function usePageData<T extends string = string>(
     loadData();
   }, [pageId, storage, options?.initialData]);
 
+  // Normalize saved/loaded page data (responsive layouts + sections) for consistency with load()
+  const applySavedResult = useCallback(
+    (raw: PageData<T>) => {
+      const withResponsive = {
+        ...raw,
+        elements: (raw.elements || []).map(el => {
+          if (!el.layout.responsive) {
+            return {
+              ...el,
+              layout: {
+                ...el.layout,
+                responsive: pixelsToResponsive(
+                  el.layout.desktop,
+                  getCanvasWidth("desktop", defaultConfig.breakpoints!),
+                  defaultConfig.defaultCanvasHeight!
+                ),
+              },
+            } as PageElement<T>;
+          }
+          return el as PageElement<T>;
+        }),
+      } as PageData<T>;
+      setPageData(
+        normalizePageData(withResponsive, defaultSectionHeight) as PageData<T>
+      );
+    },
+    [defaultSectionHeight]
+  );
+
   // Manual save function (optimistic - updates UI immediately, syncs to server)
   const save = useCallback(
     async (data?: PageData<T>) => {
@@ -88,32 +117,38 @@ export function usePageData<T extends string = string>(
       // Optimistic update - callback fires immediately
       onSaveRef.current?.(dataToSave);
 
-      // Save to server in background (non-blocking)
-      Promise.resolve(storage.save(pageId, dataToSave)).catch(error => {
+      try {
+        const result = await Promise.resolve(storage.save(pageId, dataToSave));
+        if (result != null) {
+          applySavedResult(result as PageData<T>);
+        }
+      } catch (error) {
         console.error("Failed to save to server:", error);
-        // Could trigger error callback or retry logic here
-      });
+      }
     },
-    [pageId, storage, pageData]
+    [pageId, storage, pageData, applySavedResult]
   );
 
   // Auto-save effect (optimistic updates)
   useEffect(() => {
     if (autoSaveDelay <= 0) return; // Disable auto-save if delay is 0 or negative
 
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(async () => {
       // Optimistic: fire callback immediately
       onSaveRef.current?.(pageData);
 
-      // Save to server in background (non-blocking)
-      Promise.resolve(storage.save(pageId, pageData)).catch(error => {
+      try {
+        const result = await Promise.resolve(storage.save(pageId, pageData));
+        if (result != null) {
+          applySavedResult(result as PageData<T>);
+        }
+      } catch (error) {
         console.error("Auto-save failed:", error);
-        // Could implement retry logic or error notification here
-      });
+      }
     }, autoSaveDelay);
 
     return () => clearTimeout(timeoutId);
-  }, [pageData, pageId, storage, autoSaveDelay]);
+  }, [pageData, pageId, storage, autoSaveDelay, applySavedResult]);
 
   return {
     pageData,

@@ -133,6 +133,18 @@ The package **never makes network requests**. You provide your own storage
 implementation using any HTTP client you prefer (axios, fetch, server actions,
 etc.).
 
+**Initial data:** If you already have page data (e.g. from a parent loader or
+Redux), pass it as `initialData` in `usePageData(pageId, { initialData })` or
+have your adapter's `load()` return that on the first call. The editor will use
+it immediately so it doesn't flash or overwrite optimistically added elements
+before your async fetch completes.
+
+**Save return value:** `save()` may optionally return `Promise<PageData | null>`
+(or sync `PageData | null`). If your adapter returns updated page data (e.g.
+with server-assigned `externalId`s or merged content), the editor will call
+`setPageData(returned)` after a successful save so the next save uses server ids
+without an extra round-trip.
+
 ### Using localStorage (Default)
 
 ```tsx
@@ -265,7 +277,9 @@ const editor = useVantageEditor({ pageId: "home", storage });
 ## Custom Components
 
 **Any React component works!** Just register it and it instantly becomes
-draggable and resizable.
+draggable and resizable. The registered component receives the element's
+`content` object as props, so you can pass it through to existing components
+that expect a specific shape (e.g. CMS or backend model).
 
 ```tsx
 import {
@@ -315,11 +329,33 @@ in your model.
 
 - **On add:**
   `editor.addElement("text", undefined, sectionId, "my-cms-block-123")`
+- **Pre-created components:** When your backend pre-creates a component and
+  returns an id, pass it as the 4th argument:
+  `addElement(type, content, sectionId, backendId)` so the element is created
+  with `externalId` from the start.
 - **Later:**
   `editor.updateElement(elementId, { externalId: "my-cms-block-123" })`
 - **In page data:** Every `PageElement` may have `externalId?: string`. It is
   persisted with the page and included in `onSave` / storage. Use it to look up
   the corresponding record in your database or CMS when rendering or syncing.
+
+**Element id format:** New elements get a client-generated `id` (e.g.
+`el-${Date.now()}`). Use `externalId` for the canonical server id; treat client
+ids like `el-*` as "new" for create vs update.
+
+### Server-generated IDs
+
+When your **backend** creates the component and returns a persistent id (e.g.
+MongoDB `_id`):
+
+1. Persist that id as `externalId` in the saved layout, or return it in the
+   `PageData` from your adapter's `save()` (see **Save return value** above).
+2. After save, the editor will update (via returned data or your own
+   `setPageData`) so the next save uses that id for **updates** instead of
+   sending the temp id to an update API.
+3. Do not send client-generated ids (e.g. `el-*`) to backend **update**
+   endpoints that expect server ids; use `externalId` for the canonical server
+   id.
 
 ## Headless Hooks API
 
