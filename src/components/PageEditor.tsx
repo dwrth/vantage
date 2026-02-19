@@ -618,6 +618,64 @@ export function PageEditor<T extends string = string>({
                             topLeft: true,
                           }}
                           bounds="parent"
+                          resizeHandleStyles={
+                            selectedIds.includes(element.id)
+                              ? {
+                                  topRight: {
+                                    width: "9px",
+                                    backgroundColor: "#3b82f6",
+                                    height: "9px",
+                                    right: "-9px",
+                                    top: "-9px",
+                                    borderRadius: "25%",
+                                  },
+                                  bottomRight: {
+                                    width: "9px",
+                                    backgroundColor: "#3b82f6",
+                                    height: "9px",
+                                    right: "-9px",
+                                    bottom: "-9px",
+                                    borderRadius: "25%",
+                                  },
+                                  bottomLeft: {
+                                    width: "9px",
+                                    backgroundColor: "#3b82f6",
+                                    height: "9px",
+                                    left: "-9px",
+                                    bottom: "-9px",
+                                    borderRadius: "25%",
+                                  },
+                                  topLeft: {
+                                    width: "9px",
+                                    backgroundColor: "#3b82f6",
+                                    height: "9px",
+                                    left: "-9px",
+                                    top: "-9px",
+                                    borderRadius: "25%",
+                                  },
+                                  top: {
+                                    backgroundColor: "#3b82f6",
+                                    top: "-6px",
+                                    height: "2px",
+                                  },
+                                  bottom: {
+                                    backgroundColor: "#3b82f6",
+                                    bottom: "-6px",
+                                    height: "2px",
+                                  },
+                                  left: {
+                                    backgroundColor: "#3b82f6",
+                                    left: "-6px",
+                                    width: "2px",
+                                  },
+                                  right: {
+                                    backgroundColor: "#3b82f6",
+                                    right: "-6px",
+                                    width: "2px",
+                                  },
+                                }
+                              : {}
+                          }
                           style={{ zIndex: element.zIndex }}
                           onMouseDown={e => {
                             e.stopPropagation();
@@ -636,11 +694,6 @@ export function PageEditor<T extends string = string>({
                             style={{
                               width: "100%",
                               height: "100%",
-                              border: `2px solid ${
-                                selectedIds.includes(element.id)
-                                  ? "#3b82f6"
-                                  : "transparent"
-                              }`,
                             }}
                           >
                             <Component {...(element.content as any)} />
