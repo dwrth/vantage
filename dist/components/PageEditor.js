@@ -528,18 +528,33 @@ export function PageEditor({ editor }) {
                                   const heightPercent =
                                     (ref.offsetHeight / section.height) * 100;
                                   const snap = element.snapToGrid !== false;
-                                  const w = snap
-                                    ? snapSizeToGridPercent(widthPercent, gx)
-                                    : Math.max(
-                                        0.1,
-                                        Math.min(100, widthPercent)
-                                      );
-                                  const h = snap
-                                    ? snapSizeToGridPercent(heightPercent, gy)
-                                    : Math.max(
-                                        0.1,
-                                        Math.min(100, heightPercent)
-                                      );
+                                  const ratio = element.aspectRatio;
+                                  let w;
+                                  let h;
+                                  if (ratio != null && ratio > 0) {
+                                    // Rnd already kept aspect ratio; just clamp size (no size snap to avoid breaking ratio)
+                                    w = Math.max(
+                                      0.1,
+                                      Math.min(100, widthPercent)
+                                    );
+                                    h = Math.max(
+                                      0.1,
+                                      Math.min(100, heightPercent)
+                                    );
+                                  } else {
+                                    w = snap
+                                      ? snapSizeToGridPercent(widthPercent, gx)
+                                      : Math.max(
+                                          0.1,
+                                          Math.min(100, widthPercent)
+                                        );
+                                    h = snap
+                                      ? snapSizeToGridPercent(heightPercent, gy)
+                                      : Math.max(
+                                          0.1,
+                                          Math.min(100, heightPercent)
+                                        );
+                                  }
                                   const gridOffsetX = (100 % gx) / 2;
                                   const gridOffsetY = (100 % gy) / 2;
                                   const maxX = 100 - w - gridOffsetX;
@@ -581,6 +596,11 @@ export function PageEditor({ editor }) {
                                   element.snapToGrid !== false
                                     ? [gx, gy]
                                     : [0.001, 0.001],
+                                lockAspectRatio:
+                                  element.aspectRatio != null &&
+                                  element.aspectRatio > 0
+                                    ? element.aspectRatio
+                                    : false,
                                 enableResizing: {
                                   top: true,
                                   right: true,

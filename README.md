@@ -338,6 +338,9 @@ in your model.
 - **In page data:** Every `PageElement` may have `externalId?: string`. It is
   persisted with the page and included in `onSave` / storage. Use it to look up
   the corresponding record in your database or CMS when rendering or syncing.
+- **Aspect ratio:** Set `aspectRatio?: number` (width/height) on an element to
+  constrain resizing to that ratio (e.g. `16/9` for video, `1` for square).
+  Resize handles still work; the editor keeps the ratio while dragging.
 
 **Element id format:** New elements get a client-generated `id` (e.g.
 `el-${Date.now()}`). Use `externalId` for the canonical server id; treat client
