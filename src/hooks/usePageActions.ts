@@ -124,13 +124,14 @@ export function usePageActions<T extends string = string>(
     (type: T, defaultContent?: Record<string, any>, sectionId?: string) => {
       setPageData(prev => {
         const sections = prev.sections;
-        const targetSectionId =
-          sectionId ?? sections?.[0]?.id;
+        const targetSectionId = sectionId ?? sections?.[0]?.id;
         const section = sections?.find(s => s.id === targetSectionId);
         const sectionHeight = section?.height ?? canvasHeight;
         const elementsInSection = targetSectionId
           ? (prev.elements || []).filter(
-              el => (el as PageElement<T> & { sectionId?: string }).sectionId === targetSectionId
+              el =>
+                (el as PageElement<T> & { sectionId?: string }).sectionId ===
+                targetSectionId
             )
           : prev.elements;
 
@@ -177,7 +178,7 @@ export function usePageActions<T extends string = string>(
             mobile: mobilePos,
             responsive: pixelsToResponsive(desktopPos),
           },
-          zIndex: (prev.elements?.length ?? 0),
+          zIndex: prev.elements?.length ?? 0,
           ...(targetSectionId ? { sectionId: targetSectionId } : {}),
         };
 
@@ -217,10 +218,7 @@ export function usePageActions<T extends string = string>(
   );
 
   const updateLayoutBulk = useCallback(
-    (
-      updates: { id: string; rect: LayoutRect }[],
-      breakpoint: Breakpoint
-    ) => {
+    (updates: { id: string; rect: LayoutRect }[], breakpoint: Breakpoint) => {
       if (updates.length === 0) return;
       setPageData(prev => {
         const byId = new Map(updates.map(u => [u.id, u.rect]));
@@ -315,71 +313,71 @@ export function usePageActions<T extends string = string>(
     });
   }, []);
 
-  const updateSectionHeight = useCallback((sectionId: string, height: number) => {
-    setPageData(prev => {
-      const section = prev.sections?.find(s => s.id === sectionId);
-      const oldHeight = section?.height ?? 600;
-      const sectionElements = (prev.elements || []).filter(
-        (el): el is PageElement<T> & { sectionId: string } =>
-          (el as PageElement<T> & { sectionId?: string }).sectionId === sectionId
-      );
-      const maxBottomPercent =
-        sectionElements.length > 0
-          ? Math.max(
-              ...sectionElements.map(
-                el => el.layout.desktop.y + el.layout.desktop.h
+  const updateSectionHeight = useCallback(
+    (sectionId: string, height: number) => {
+      setPageData(prev => {
+        const section = prev.sections?.find(s => s.id === sectionId);
+        const oldHeight = section?.height ?? 600;
+        const sectionElements = (prev.elements || []).filter(
+          (el): el is PageElement<T> & { sectionId: string } =>
+            (el as PageElement<T> & { sectionId?: string }).sectionId ===
+            sectionId
+        );
+        const maxBottomPercent =
+          sectionElements.length > 0
+            ? Math.max(
+                ...sectionElements.map(
+                  el => el.layout.desktop.y + el.layout.desktop.h
+                )
               )
-            )
-          : 0;
-      const minHeightPx =
-        maxBottomPercent > 0
-          ? (maxBottomPercent / 100) * oldHeight
-          : 0;
-      const minHeightSnapped =
-        minHeightPx <= 0
-          ? 0
-          : Math.ceil(minHeightPx / gridSize) * gridSize;
-      const clamped = Math.max(100, Math.max(minHeightSnapped, height));
-      const newHeight = Math.max(
-        minHeightSnapped,
-        snapSizeToGrid(clamped, gridSize)
-      );
-      const scale = oldHeight / newHeight;
+            : 0;
+        const minHeightPx =
+          maxBottomPercent > 0 ? (maxBottomPercent / 100) * oldHeight : 0;
+        const minHeightSnapped =
+          minHeightPx <= 0 ? 0 : Math.ceil(minHeightPx / gridSize) * gridSize;
+        const clamped = Math.max(100, Math.max(minHeightSnapped, height));
+        const newHeight = Math.max(
+          minHeightSnapped,
+          snapSizeToGrid(clamped, gridSize)
+        );
+        const scale = oldHeight / newHeight;
 
-      const scaleRectYH = (rect: LayoutRect): LayoutRect => {
-        const scaledY = rect.y * scale;
-        const scaledH = rect.h * scale;
-        const h = Math.max(0.1, Math.min(100, scaledH));
-        const y = Math.max(0, Math.min(100 - h, scaledY));
-        return { ...rect, y, h };
-      };
+        const scaleRectYH = (rect: LayoutRect): LayoutRect => {
+          const scaledY = rect.y * scale;
+          const scaledH = rect.h * scale;
+          const h = Math.max(0.1, Math.min(100, scaledH));
+          const y = Math.max(0, Math.min(100 - h, scaledY));
+          return { ...rect, y, h };
+        };
 
-      const elements = (prev.elements || []).map(el => {
-        const pe = el as PageElement<T> & { sectionId?: string };
-        if (pe.sectionId !== sectionId) return el;
-        const desktop = scaleRectYH(el.layout.desktop);
-        const tablet = scaleRectYH(el.layout.tablet);
-        const mobile = scaleRectYH(el.layout.mobile);
+        const elements = (prev.elements || []).map(el => {
+          const pe = el as PageElement<T> & { sectionId?: string };
+          if (pe.sectionId !== sectionId) return el;
+          const desktop = scaleRectYH(el.layout.desktop);
+          const tablet = scaleRectYH(el.layout.tablet);
+          const mobile = scaleRectYH(el.layout.mobile);
+          return {
+            ...el,
+            layout: {
+              desktop,
+              tablet,
+              mobile,
+              responsive: pixelsToResponsive(desktop),
+            },
+          };
+        });
+
         return {
-          ...el,
-          layout: {
-            desktop,
-            tablet,
-            mobile,
-            responsive: pixelsToResponsive(desktop),
-          },
+          ...prev,
+          sections: (prev.sections || []).map(s =>
+            s.id === sectionId ? { ...s, height: newHeight } : s
+          ),
+          elements,
         };
       });
-
-      return {
-        ...prev,
-        sections: (prev.sections || []).map(s =>
-          s.id === sectionId ? { ...s, height: newHeight } : s
-        ),
-        elements,
-      };
-    });
-  }, [gridSize]);
+    },
+    [gridSize]
+  );
 
   const updateSectionFullWidth = useCallback(
     (sectionId: string, fullWidth: boolean) => {

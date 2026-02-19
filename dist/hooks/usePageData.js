@@ -1,84 +1,97 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LocalStorageAdapter } from "../adapters/storage";
-import { pixelsToResponsive, getCanvasWidth, normalizePageData, } from "../utils/layout";
+import {
+  pixelsToResponsive,
+  getCanvasWidth,
+  normalizePageData,
+} from "../utils/layout";
 import { defaultConfig } from "../core/config";
 /**
  * Headless hook for managing page data
  * Exposes pageData and save function for custom implementations
  */
 export function usePageData(pageId, options) {
-    // Memoize storage to prevent recreating adapter on every render
-    const storage = useMemo(() => options?.storage || new LocalStorageAdapter(), [options?.storage]);
-    const autoSaveDelay = options?.autoSaveDelay ?? defaultConfig.autoSaveDelay;
-    const onSaveRef = useRef(options?.onSave);
-    useEffect(() => {
-        onSaveRef.current = options?.onSave;
-    }, [options?.onSave]);
-    const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
-    const [pageData, setPageData] = useState(() => {
-        const initial = options?.initialData || { pageId, elements: [] };
-        return normalizePageData(initial, defaultSectionHeight);
-    });
-    // Load initial data
-    useEffect(() => {
-        if (options?.initialData) {
-            setPageData(options.initialData);
-            return;
-        }
-        const loadData = async () => {
-            const loaded = await Promise.resolve(storage.load(pageId));
-            if (loaded) {
-                // Ensure responsive layouts and sections
-                const withResponsive = {
-                    ...loaded,
-                    elements: (loaded.elements || []).map(el => {
-                        if (!el.layout.responsive) {
-                            return {
-                                ...el,
-                                layout: {
-                                    ...el.layout,
-                                    responsive: pixelsToResponsive(el.layout.desktop, getCanvasWidth("desktop", defaultConfig.breakpoints), defaultConfig.defaultCanvasHeight),
-                                },
-                            };
-                        }
-                        return el;
-                    }),
-                };
-                const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
-                setPageData(normalizePageData(withResponsive, defaultSectionHeight));
+  // Memoize storage to prevent recreating adapter on every render
+  const storage = useMemo(
+    () => options?.storage || new LocalStorageAdapter(),
+    [options?.storage]
+  );
+  const autoSaveDelay = options?.autoSaveDelay ?? defaultConfig.autoSaveDelay;
+  const onSaveRef = useRef(options?.onSave);
+  useEffect(() => {
+    onSaveRef.current = options?.onSave;
+  }, [options?.onSave]);
+  const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
+  const [pageData, setPageData] = useState(() => {
+    const initial = options?.initialData || { pageId, elements: [] };
+    return normalizePageData(initial, defaultSectionHeight);
+  });
+  // Load initial data
+  useEffect(() => {
+    if (options?.initialData) {
+      setPageData(options.initialData);
+      return;
+    }
+    const loadData = async () => {
+      const loaded = await Promise.resolve(storage.load(pageId));
+      if (loaded) {
+        // Ensure responsive layouts and sections
+        const withResponsive = {
+          ...loaded,
+          elements: (loaded.elements || []).map(el => {
+            if (!el.layout.responsive) {
+              return {
+                ...el,
+                layout: {
+                  ...el.layout,
+                  responsive: pixelsToResponsive(
+                    el.layout.desktop,
+                    getCanvasWidth("desktop", defaultConfig.breakpoints),
+                    defaultConfig.defaultCanvasHeight
+                  ),
+                },
+              };
             }
+            return el;
+          }),
         };
-        loadData();
-    }, [pageId, storage, options?.initialData]);
-    // Manual save function (optimistic - updates UI immediately, syncs to server)
-    const save = useCallback(async (data) => {
-        const dataToSave = data || pageData;
-        // Optimistic update - callback fires immediately
-        onSaveRef.current?.(dataToSave);
-        // Save to server in background (non-blocking)
-        Promise.resolve(storage.save(pageId, dataToSave)).catch(error => {
-            console.error("Failed to save to server:", error);
-            // Could trigger error callback or retry logic here
-        });
-    }, [pageId, storage, pageData]);
-    // Auto-save effect (optimistic updates)
-    useEffect(() => {
-        if (autoSaveDelay <= 0)
-            return; // Disable auto-save if delay is 0 or negative
-        const timeoutId = setTimeout(() => {
-            // Optimistic: fire callback immediately
-            onSaveRef.current?.(pageData);
-            // Save to server in background (non-blocking)
-            Promise.resolve(storage.save(pageId, pageData)).catch(error => {
-                console.error("Auto-save failed:", error);
-                // Could implement retry logic or error notification here
-            });
-        }, autoSaveDelay);
-        return () => clearTimeout(timeoutId);
-    }, [pageData, pageId, storage, autoSaveDelay]);
-    return {
-        pageData,
-        setPageData,
-        save,
+        const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
+        setPageData(normalizePageData(withResponsive, defaultSectionHeight));
+      }
     };
+    loadData();
+  }, [pageId, storage, options?.initialData]);
+  // Manual save function (optimistic - updates UI immediately, syncs to server)
+  const save = useCallback(
+    async data => {
+      const dataToSave = data || pageData;
+      // Optimistic update - callback fires immediately
+      onSaveRef.current?.(dataToSave);
+      // Save to server in background (non-blocking)
+      Promise.resolve(storage.save(pageId, dataToSave)).catch(error => {
+        console.error("Failed to save to server:", error);
+        // Could trigger error callback or retry logic here
+      });
+    },
+    [pageId, storage, pageData]
+  );
+  // Auto-save effect (optimistic updates)
+  useEffect(() => {
+    if (autoSaveDelay <= 0) return; // Disable auto-save if delay is 0 or negative
+    const timeoutId = setTimeout(() => {
+      // Optimistic: fire callback immediately
+      onSaveRef.current?.(pageData);
+      // Save to server in background (non-blocking)
+      Promise.resolve(storage.save(pageId, pageData)).catch(error => {
+        console.error("Auto-save failed:", error);
+        // Could implement retry logic or error notification here
+      });
+    }, autoSaveDelay);
+    return () => clearTimeout(timeoutId);
+  }, [pageData, pageId, storage, autoSaveDelay]);
+  return {
+    pageData,
+    setPageData,
+    save,
+  };
 }

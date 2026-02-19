@@ -161,9 +161,7 @@ export function usePageEditor<T extends string = string>(
   const updateLayoutBulk = useCallback(
     (updates: { id: string; rect: LayoutRect }[]) => {
       updateLayoutBulkAction(updates, breakpoint);
-      updates.forEach(({ id, rect }) =>
-        onElementUpdateRef.current?.(id, rect)
-      );
+      updates.forEach(({ id, rect }) => onElementUpdateRef.current?.(id, rect));
     },
     [breakpoint, updateLayoutBulkAction]
   );

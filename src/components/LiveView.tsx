@@ -33,8 +33,7 @@ export function LiveView<T extends string = string>({
   const containerWidth = currentBreakpoint
     ? breakpoints[currentBreakpoint]
     : breakpoints.desktop;
-  const defaultSectionHeight =
-    defaultConfig.defaultSectionHeight ?? 600;
+  const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
   const pageTotalHeight = getPageTotalHeight(
     pageData.sections,
     defaultSectionHeight
@@ -158,10 +157,7 @@ export function LiveView<T extends string = string>({
                   const Component = components[element.type as T];
                   if (!Component) return null;
                   return (
-                    <div
-                      key={element.id}
-                      className={`element-${element.id}`}
-                    >
+                    <div key={element.id} className={`element-${element.id}`}>
                       <Component {...(element.content as any)} />
                     </div>
                   );

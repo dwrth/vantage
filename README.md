@@ -37,7 +37,9 @@ script.
 
 ## Basic Usage
 
-The editor is driven by a **vantageEditor instance** (like React Hook Form's `useForm`). Create the instance with `useVantageEditor`, then pass it to `PageEditor`:
+The editor is driven by a **vantageEditor instance** (like React Hook Form's
+`useForm`). Create the instance with `useVantageEditor`, then pass it to
+`PageEditor`:
 
 ```tsx
 import { PageEditor, useVantageEditor } from "@vantage/page-builder";
@@ -50,7 +52,8 @@ function App() {
 
 ## Custom UI (Wire the instance to your own UI)
 
-The same `editor` instance exposes all state and actions so you can build your own toolbar, sidebar, or headless canvas:
+The same `editor` instance exposes all state and actions so you can build your
+own toolbar, sidebar, or headless canvas:
 
 ```tsx
 import {
@@ -73,12 +76,19 @@ function CustomEditor() {
 
 // Or build your own UI with the same instance:
 function MyCustomUI() {
-  const editor = useVantageEditor({ pageId: "page-1", components: myComponents });
+  const editor = useVantageEditor({
+    pageId: "page-1",
+    components: myComponents,
+  });
 
   return (
     <div>
-      <button onClick={editor.undo} disabled={!editor.canUndo}>Undo</button>
-      <button onClick={editor.redo} disabled={!editor.canRedo}>Redo</button>
+      <button onClick={editor.undo} disabled={!editor.canUndo}>
+        Undo
+      </button>
+      <button onClick={editor.redo} disabled={!editor.canRedo}>
+        Redo
+      </button>
       <button onClick={() => editor.addSection(false)}>Add section</button>
       <button onClick={() => editor.addElement("text")}>Add text</button>
       <select
@@ -103,10 +113,15 @@ function MyCustomUI() {
 
 **Instance API (VantageEditorInstance):**
 
-- **State:** `pageData`, `breakpoint`, `selectedIds`, `showGrid`, `canUndo`, `canRedo`, `historyLoading`, `gridSize`, `breakpoints`, `canvasHeight`, `defaultSectionHeight`
-- **Setters:** `setBreakpoint`, `setSelectedIds`, `setShowGrid`, `setPageData`, `selectElements`
-- **Element actions:** `addElement`, `updateElement`, `updateLayout`, `updateLayoutBulk`, `deleteElement`, `updateZIndex`, `ensureBreakpointLayout`
-- **Section actions:** `addSection`, `deleteSection`, `updateSectionHeight`, `updateSectionFullWidth`
+- **State:** `pageData`, `breakpoint`, `selectedIds`, `showGrid`, `canUndo`,
+  `canRedo`, `historyLoading`, `gridSize`, `breakpoints`, `canvasHeight`,
+  `defaultSectionHeight`
+- **Setters:** `setBreakpoint`, `setSelectedIds`, `setShowGrid`, `setPageData`,
+  `selectElements`
+- **Element actions:** `addElement`, `updateElement`, `updateLayout`,
+  `updateLayoutBulk`, `deleteElement`, `updateZIndex`, `ensureBreakpointLayout`
+- **Section actions:** `addSection`, `deleteSection`, `updateSectionHeight`,
+  `updateSectionFullWidth`
 - **History:** `undo`, `redo`, `save`
 - **Rendering:** `components` (for use with `LiveView` or a custom canvas)
 
@@ -119,7 +134,11 @@ etc.).
 ### Using localStorage (Default)
 
 ```tsx
-import { PageEditor, useVantageEditor, LocalStorageAdapter } from "@vantage/page-builder";
+import {
+  PageEditor,
+  useVantageEditor,
+  LocalStorageAdapter,
+} from "@vantage/page-builder";
 
 function App() {
   const storage = new LocalStorageAdapter();
@@ -247,7 +266,11 @@ const editor = useVantageEditor({ pageId: "home", storage });
 draggable and resizable.
 
 ```tsx
-import { PageEditor, useVantageEditor, ComponentRegistry } from "@vantage/page-builder";
+import {
+  PageEditor,
+  useVantageEditor,
+  ComponentRegistry,
+} from "@vantage/page-builder";
 
 const components: ComponentRegistry<"button" | "card"> = {
   button: ({ label, onClick }) => <button onClick={onClick}>{label}</button>,
@@ -473,14 +496,17 @@ npm run example:dev
 
 ### Hooks
 
-- `useVantageEditor` - Creates the editor instance (recommended). Pass options `{ pageId, ...config }`; returns `VantageEditorInstance`.
-- `usePageEditor` - Lower-level editor hook (same return shape as useVantageEditor; useVantageEditor is the public API).
+- `useVantageEditor` - Creates the editor instance (recommended). Pass options
+  `{ pageId, ...config }`; returns `VantageEditorInstance`.
+- `usePageEditor` - Lower-level editor hook (same return shape as
+  useVantageEditor; useVantageEditor is the public API).
 - `usePageData` - Headless data management hook
 - `usePageActions` - Headless element manipulation hook
 
 ### Types
 
-- `VantageEditorInstance<T>` - The editor instance type. Use it to type props or custom UI that receives the instance.
+- `VantageEditorInstance<T>` - The editor instance type. Use it to type props or
+  custom UI that receives the instance.
 
 ### Adapters
 
