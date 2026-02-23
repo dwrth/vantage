@@ -11,21 +11,15 @@ export { usePageActions } from "./hooks/usePageActions";
 export { useHistory } from "./hooks/useHistory";
 export { LocalStorageAdapter } from "./adapters/storage";
 export { defaultComponents } from "./adapters/components";
-// Utils
+// Utils (grid-based layout)
 export {
-  pixelsToResponsive,
-  responsiveToPixels,
-  scaleLayoutToBreakpoint,
   getCanvasWidth,
+  getSectionRowCount,
+  gridPlacementToCss,
+  findNextGridPlacement,
+  ensureBreakpointLayout,
+  marqueePxToGridRange,
+  gridPlacementOverlapsRange,
   getPageTotalHeight,
   normalizePageData,
-  snapToGrid,
-  snapToCenteredGrid,
-  snapSizeToGrid,
-  getGridOffset,
-  gridPercentX,
-  gridPercentY,
-  snapToGridPercent,
-  snapToCenteredGridPercent,
-  snapSizeToGridPercent,
 } from "./utils";

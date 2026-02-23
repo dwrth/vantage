@@ -1,75 +1,90 @@
-// Layout utility functions
+// Layout utility functions (grid-based)
 export const getCanvasWidth = (breakpoint, breakpoints) => {
   return breakpoints[breakpoint];
 };
-// LayoutRect is percentage-based (0–100); same values work across breakpoints
-export const scaleLayoutToBreakpoint = (
-  sourceRect,
-  _sourceBreakpoint,
-  _targetBreakpoint,
-  _breakpoints
-) => {
-  return { ...sourceRect };
-};
-// LayoutRect is already in 0–100; map to ResponsiveRect (same units)
-export const pixelsToResponsive = (rect, _canvasWidth, _canvasHeight) => {
+/** Number of grid rows in a section given its height and row height. */
+export function getSectionRowCount(sectionHeight, gridRowHeight) {
+  return Math.ceil(sectionHeight / gridRowHeight);
+}
+/** Convert 0-based GridPlacement to 1-based CSS grid-column/grid-row strings. */
+export function gridPlacementToCss(placement) {
   return {
-    left: rect.x,
-    top: rect.y,
-    width: rect.w,
-    height: rect.h,
+    gridColumn: `${placement.columnStart + 1} / ${placement.columnEnd + 1}`,
+    gridRow: `${placement.rowStart + 1} / ${placement.rowEnd + 1}`,
   };
-};
-export const responsiveToPixels = (rect, canvasWidth, canvasHeight = 800) => {
+}
+/** Find the next available grid placement (deterministic; overlap allowed). */
+export function findNextGridPlacement(
+  gridColumns,
+  rowCount,
+  defaultColSpan,
+  defaultRowSpan,
+  existingPlacements
+) {
+  const colSpan = Math.min(defaultColSpan, gridColumns);
+  const rowSpan = Math.min(defaultRowSpan, rowCount);
+  for (let row = 0; row <= rowCount - rowSpan; row++) {
+    for (let col = 0; col <= gridColumns - colSpan; col++) {
+      const candidate = {
+        columnStart: col,
+        columnEnd: col + colSpan,
+        rowStart: row,
+        rowEnd: row + rowSpan,
+      };
+      // Overlap allowed; we just pick first spot for predictability
+      return candidate;
+    }
+  }
+  // Fallback: place at 0,0 with requested span (clamped by caller if needed)
   return {
-    x: (rect.left / 100) * canvasWidth,
-    y: (rect.top / 100) * canvasHeight,
-    w: (rect.width / 100) * canvasWidth,
-    h: (rect.height / 100) * canvasHeight,
+    columnStart: 0,
+    columnEnd: colSpan,
+    rowStart: 0,
+    rowEnd: rowSpan,
   };
-};
-// Grid snapping utility
-export const snapToGrid = (value, gridSize) => {
-  return Math.round(value / gridSize) * gridSize;
-};
-// Calculate grid offset to center the grid (equal cutoff on both sides)
-export const getGridOffset = (containerSize, gridSize) => {
-  return (containerSize % gridSize) / 2;
-};
-// Snap to centered grid (accounts for grid offset)
-export const snapToCenteredGrid = (value, gridSize, containerSize) => {
-  const offset = getGridOffset(containerSize, gridSize);
-  // Adjust value by offset, snap to grid, then adjust back
-  const snapped = snapToGrid(value - offset, gridSize) + offset;
-  // Ensure snapped value doesn't exceed container bounds
-  return Math.max(offset, Math.min(snapped, containerSize - offset));
-};
-// Snap size to grid (ensures size is a multiple of gridSize)
-export const snapSizeToGrid = (value, gridSize) => {
-  // Round to nearest multiple of gridSize, with minimum of gridSize
-  return Math.max(gridSize, Math.round(value / gridSize) * gridSize);
-};
-// --- Percentage-based (0–100) grid snapping for positionUnit: '%' ---
-export const gridPercentX = (gridSize, canvasWidth) =>
-  canvasWidth ? (gridSize / canvasWidth) * 100 : 0;
-export const gridPercentY = (gridSize, canvasHeight) =>
-  canvasHeight ? (gridSize / canvasHeight) * 100 : 0;
-export const snapToGridPercent = (value, gridPercent) =>
-  gridPercent ? Math.round(value / gridPercent) * gridPercent : value;
-export const snapToCenteredGridPercent = (
-  value,
-  gridPercent,
-  containerPercent = 100
-) => {
-  if (!gridPercent) return value;
-  const offset = (containerPercent % gridPercent) / 2;
-  const snapped = snapToGridPercent(value - offset, gridPercent) + offset;
-  return Math.max(offset, Math.min(snapped, containerPercent - offset));
-};
-export const snapSizeToGridPercent = (value, gridPercent) =>
-  gridPercent
-    ? Math.max(gridPercent, Math.round(value / gridPercent) * gridPercent)
-    : value;
+}
+/** Return placement for the given breakpoint, falling back to desktop. */
+export function ensureBreakpointLayout(element, breakpoint) {
+  const layout = element.layout[breakpoint];
+  if (layout) return layout;
+  return element.layout.desktop;
+}
+/** Convert a pixel rect (relative to container) to grid column/row range for marquee selection. */
+export function marqueePxToGridRange(
+  leftPx,
+  topPx,
+  rightPx,
+  bottomPx,
+  containerWidth,
+  containerHeight,
+  gridColumns,
+  gridRowHeight
+) {
+  const colWidth = containerWidth / gridColumns;
+  const minCol = Math.max(0, Math.floor(leftPx / colWidth));
+  const maxCol = Math.min(gridColumns, Math.ceil(rightPx / colWidth));
+  const minRow = Math.max(0, Math.floor(topPx / gridRowHeight));
+  const maxRow = Math.min(
+    Math.ceil(containerHeight / gridRowHeight),
+    Math.ceil(bottomPx / gridRowHeight)
+  );
+  return { minCol, maxCol, minRow, maxRow };
+}
+/** Check if a grid placement overlaps a grid range (e.g. from marquee). */
+export function gridPlacementOverlapsRange(
+  placement,
+  minCol,
+  maxCol,
+  minRow,
+  maxRow
+) {
+  return (
+    placement.columnEnd > minCol &&
+    placement.columnStart < maxCol &&
+    placement.rowEnd > minRow &&
+    placement.rowStart < maxRow
+  );
+}
 // --- Sections (page height = sum of section heights) ---
 /** Total page height in px. Uses defaultSingleSectionHeight when no sections. */
 export function getPageTotalHeight(sections, defaultSingleSectionHeight) {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { PageData, Breakpoint, LayoutRect } from "../core/types";
+import { PageData, Breakpoint, GridPlacement } from "../core/types";
 import { PageBuilderConfig, defaultConfig } from "../core/config";
 import type { VantageEditorInstance } from "../core/editor-instance";
 import { ComponentRegistry, defaultComponents } from "../adapters/components";
@@ -31,7 +31,8 @@ export function usePageEditor<T extends string = string>(
     onElementUpdateRef.current = config?.onElementUpdate;
   }, [config?.onElementSelect, config?.onElementUpdate]);
 
-  const gridSize = config?.gridSize ?? defaultConfig.gridSize;
+  const gridColumns = config?.gridColumns ?? defaultConfig.gridColumns;
+  const gridRowHeight = config?.gridRowHeight ?? defaultConfig.gridRowHeight;
   // Memoize breakpoints to prevent recreating callbacks
   const breakpoints = useMemo(
     () => config?.breakpoints ?? defaultConfig.breakpoints,
@@ -135,13 +136,21 @@ export function usePageEditor<T extends string = string>(
   // Memoize options to prevent usePageActions from recreating callbacks
   const actionsOptions = useMemo(
     () => ({
-      gridSize,
+      gridColumns,
+      gridRowHeight,
       breakpoints,
       canvasHeight,
       defaultSectionHeight,
       maxSectionWidth,
     }),
-    [gridSize, breakpoints, canvasHeight, defaultSectionHeight, maxSectionWidth]
+    [
+      gridColumns,
+      gridRowHeight,
+      breakpoints,
+      canvasHeight,
+      defaultSectionHeight,
+      maxSectionWidth,
+    ]
   );
 
   // Use headless page actions hook (use history-aware setter)
@@ -179,17 +188,19 @@ export function usePageEditor<T extends string = string>(
   }, [historyRedo, setPageData]);
 
   const updateLayout = useCallback(
-    (id: string, newRect: LayoutRect) => {
-      updateLayoutAction(id, breakpoint, newRect);
-      onElementUpdateRef.current?.(id, newRect);
+    (id: string, newPlacement: GridPlacement) => {
+      updateLayoutAction(id, breakpoint, newPlacement);
+      onElementUpdateRef.current?.(id, newPlacement);
     },
     [breakpoint, updateLayoutAction]
   );
 
   const updateLayoutBulk = useCallback(
-    (updates: { id: string; rect: LayoutRect }[]) => {
+    (updates: { id: string; placement: GridPlacement }[]) => {
       updateLayoutBulkAction(updates, breakpoint);
-      updates.forEach(({ id, rect }) => onElementUpdateRef.current?.(id, rect));
+      updates.forEach(({ id, placement }) =>
+        onElementUpdateRef.current?.(id, placement)
+      );
     },
     [breakpoint, updateLayoutBulkAction]
   );
@@ -250,7 +261,8 @@ export function usePageEditor<T extends string = string>(
     canUndo,
     canRedo,
     historyLoading,
-    gridSize,
+    gridColumns,
+    gridRowHeight,
     breakpoints,
     canvasHeight,
     defaultSectionHeight,

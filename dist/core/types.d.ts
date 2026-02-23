@@ -1,21 +1,14 @@
 export type Breakpoint = "desktop" | "tablet" | "mobile";
-export interface LayoutRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-export interface ResponsiveRect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
+export interface GridPlacement {
+  columnStart: number;
+  columnEnd: number;
+  rowStart: number;
+  rowEnd: number;
 }
 export interface ElementLayout {
-  desktop: LayoutRect;
-  tablet: LayoutRect;
-  mobile: LayoutRect;
-  responsive?: ResponsiveRect;
+  desktop: GridPlacement;
+  tablet: GridPlacement;
+  mobile: GridPlacement;
 }
 export interface PageElement<T extends string = string> {
   id: string;

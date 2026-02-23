@@ -10,7 +10,7 @@ applications.
 - 🎯 Grid-based snapping
 - 💾 Pluggable storage adapters (localStorage, API, etc.)
 - 🔧 **Any React component works** - Just register it and it becomes resizable!
-- 📐 Percentage-based responsive layouts
+- 📐 Grid-based responsive layouts
 - 🎛️ Fully configurable
 - 🧩 **Headless hooks** - Build your own UI with exposed hooks
 
@@ -366,9 +366,9 @@ MongoDB `_id`):
    id.
 
 **Layout vs. order:** Placement is defined by **layout** (position and size per
-breakpoint). Element order in the array is derived for compatibility; when
-syncing to a backend that uses layout as the source of truth, do not rely on
-array order for “dirty” or save logic.
+breakpoint). Element order in the array is derived when syncing to a backend
+that uses layout as the source of truth, do not rely on array order for “dirty”
+or save logic.
 
 ## Dirty state and external Save button
 
@@ -610,7 +610,7 @@ npm run example:dev
 - `UsePageDataOptions<T>` - Options for `usePageData` (storage, `onSave`,
   `initialData`, `onSaved`). Use when typing custom adapters or wrappers.
 - `StorageAdapter` - Storage interface (save can return `PageData | null`).
-- `PageData`, `PageElement`, `Section`, `LayoutRect`, etc. - Core data types.
+- `PageData`, `PageElement`, `Section`, `GridPlacement`, etc. - Core data types.
 
 ### Adapters
 

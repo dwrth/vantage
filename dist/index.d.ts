@@ -12,8 +12,7 @@ export type {
   PageData,
   PageElement,
   Section,
-  LayoutRect,
-  ResponsiveRect,
+  GridPlacement,
   ElementLayout,
   Breakpoint,
 } from "./core/types";
@@ -24,21 +23,14 @@ export type { ComponentRegistry } from "./adapters/components";
 export { LocalStorageAdapter } from "./adapters/storage";
 export { defaultComponents } from "./adapters/components";
 export {
-  pixelsToResponsive,
-  responsiveToPixels,
-  scaleLayoutToBreakpoint,
   getCanvasWidth,
+  getSectionRowCount,
+  gridPlacementToCss,
+  findNextGridPlacement,
+  ensureBreakpointLayout,
+  marqueePxToGridRange,
+  gridPlacementOverlapsRange,
   getPageTotalHeight,
   normalizePageData,
-  snapToGrid,
-  snapToCenteredGrid,
-  snapSizeToGrid,
-  getGridOffset,
-  gridPercentX,
-  gridPercentY,
-  snapToGridPercent,
-  snapToCenteredGridPercent,
-  snapSizeToGridPercent,
 } from "./utils";
-export type { PixelRect } from "./utils";
 //# sourceMappingURL=index.d.ts.map

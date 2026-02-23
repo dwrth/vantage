@@ -7,12 +7,10 @@ import {
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Rnd } from "react-rnd";
 import {
-  snapToCenteredGridPercent,
-  snapSizeToGridPercent,
-  snapSizeToGrid,
-  gridPercentX,
-  gridPercentY,
   getPageTotalHeight,
+  getSectionRowCount,
+  marqueePxToGridRange,
+  gridPlacementOverlapsRange,
 } from "../utils/layout";
 import BreakpointSwitcher from "./BreakpointSwitcher";
 import GridOverlay from "./GridOverlay";
@@ -55,7 +53,8 @@ export function PageEditor({ editor }) {
     redo,
     canUndo,
     canRedo,
-    gridSize,
+    gridColumns,
+    gridRowHeight,
     breakpoints,
     canvasHeight,
     defaultSectionHeight,
@@ -101,7 +100,7 @@ export function PageEditor({ editor }) {
       setSelectedSectionId(sections[0]?.id ?? null);
     }
   }, [sections, selectedSectionId]);
-  // Section height resize (mouse drag), snapped to grid
+  // Section height resize (mouse drag), snapped to grid row height
   useEffect(() => {
     if (!resizingSectionId) return;
     const onMove = e => {
@@ -111,7 +110,7 @@ export function PageEditor({ editor }) {
         const rawHeight = resizeStartHeight + delta;
         const snappedHeight = Math.max(
           100,
-          snapSizeToGrid(rawHeight, gridSize)
+          Math.round(rawHeight / gridRowHeight) * gridRowHeight
         );
         updateSectionHeight(resizingSectionId, snappedHeight);
       }
@@ -128,7 +127,7 @@ export function PageEditor({ editor }) {
     resizeStartY,
     resizeStartHeight,
     sections,
-    gridSize,
+    gridRowHeight,
     updateSectionHeight,
   ]);
   const targetSectionId = selectedSectionId ?? sections[0]?.id;
@@ -147,26 +146,23 @@ export function PageEditor({ editor }) {
       const elements = marqueeElementsRef.current;
       if (container && elements.length > 0) {
         const rect = container.getBoundingClientRect();
-        const left = Math.min(current.startX, current.endX);
-        const right = Math.max(current.startX, current.endX);
-        const top = Math.min(current.startY, current.endY);
-        const bottom = Math.max(current.startY, current.endY);
-        const marqueeL = ((left - rect.left) / rect.width) * 100;
-        const marqueeR = ((right - rect.left) / rect.width) * 100;
-        const marqueeT = ((top - rect.top) / rect.height) * 100;
-        const marqueeB = ((bottom - rect.top) / rect.height) * 100;
-        const selected = elements.filter(el => {
-          const l = el.layout.x;
-          const r = el.layout.x + el.layout.w;
-          const t = el.layout.y;
-          const b = el.layout.y + el.layout.h;
-          return !(
-            marqueeR < l ||
-            r < marqueeL ||
-            marqueeB < t ||
-            b < marqueeT
-          );
-        });
+        const leftPx = Math.min(current.startX, current.endX) - rect.left;
+        const rightPx = Math.max(current.startX, current.endX) - rect.left;
+        const topPx = Math.min(current.startY, current.endY) - rect.top;
+        const bottomPx = Math.max(current.startY, current.endY) - rect.top;
+        const { minCol, maxCol, minRow, maxRow } = marqueePxToGridRange(
+          leftPx,
+          topPx,
+          rightPx,
+          bottomPx,
+          rect.width,
+          rect.height,
+          gridColumns,
+          gridRowHeight
+        );
+        const selected = elements.filter(el =>
+          gridPlacementOverlapsRange(el.layout, minCol, maxCol, minRow, maxRow)
+        );
         selectElements(selected.map(el => el.id));
       }
       setMarquee(null);
@@ -179,7 +175,7 @@ export function PageEditor({ editor }) {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [marquee, selectElements]);
+  }, [marquee, selectElements, gridColumns, gridRowHeight]);
   const handleCanvasMouseDown = useCallback(
     (e, sectionElements, breakpointKey, sectionId) => {
       if (e.target !== e.currentTarget) return;
@@ -288,6 +284,8 @@ export function PageEditor({ editor }) {
                   breakpoints: breakpoints,
                   canvasHeight: gridHeight,
                   currentBreakpoint: breakpoint,
+                  gridColumns: gridColumns,
+                  gridRowHeight: gridRowHeight,
                 }),
               ],
             })
@@ -323,11 +321,11 @@ export function PageEditor({ editor }) {
                     children: [
                       _jsxs("div", {
                         style: {
-                          position: "relative",
                           width: innerWidth,
                           height: section.height,
                           margin: "0 auto",
                           boxSizing: "border-box",
+                          position: "relative",
                         },
                         onMouseDown: e => {
                           if (e.target === e.currentTarget) {
@@ -344,7 +342,8 @@ export function PageEditor({ editor }) {
                             _jsx(GridOverlay, {
                               width: innerWidth,
                               height: section.height,
-                              gridSize: gridSize,
+                              gridColumns: gridColumns,
+                              gridRowHeight: gridRowHeight,
                             }),
                           marquee &&
                             marquee.sectionId === section.id &&
@@ -369,41 +368,33 @@ export function PageEditor({ editor }) {
                           sectionElements.map(element => {
                             const Component = components[element.type];
                             if (!Component) return null;
-                            const layout = ensureBreakpointLayout(
+                            const placement = ensureBreakpointLayout(
                               element,
                               breakpoint
                             );
-                            const gx = gridPercentX(gridSize, innerWidth);
-                            const gy = gridPercentY(gridSize, section.height);
+                            const rowCount = getSectionRowCount(
+                              section.height,
+                              gridRowHeight
+                            );
                             return _jsx(
                               Rnd,
                               {
-                                positionUnit: "%",
-                                size: {
-                                  width: `${layout.w}%`,
-                                  height: `${layout.h}%`,
+                                gridConfig: {
+                                  columns: gridColumns,
+                                  rowHeight: gridRowHeight,
                                 },
-                                position:
-                                  groupDrag &&
-                                  groupDrag.draggedId !== element.id &&
-                                  selectedIds.includes(element.id)
-                                    ? {
-                                        x: Math.max(
-                                          0,
-                                          Math.min(
-                                            100 - layout.w,
-                                            layout.x + groupDrag.deltaX
-                                          )
-                                        ),
-                                        y: Math.max(
-                                          0,
-                                          Math.min(
-                                            100 - layout.h,
-                                            layout.y + groupDrag.deltaY
-                                          )
-                                        ),
-                                      }
-                                    : { x: layout.x, y: layout.y },
+                                positionUnit: "grid",
+                                sizeUnit: "grid",
+                                position: {
+                                  columnStart: placement.columnStart,
+                                  rowStart: placement.rowStart,
+                                },
+                                size: {
+                                  columnSpan:
+                                    placement.columnEnd - placement.columnStart,
+                                  rowSpan:
+                                    placement.rowEnd - placement.rowStart,
+                                },
                                 onDragStart: () => {
                                   if (
                                     selectedIds.includes(element.id) &&
@@ -417,51 +408,28 @@ export function PageEditor({ editor }) {
                                     });
                                   }
                                 },
-                                onDrag: (e, d) => {
-                                  if (
-                                    groupDragDraggedIdRef.current === element.id
-                                  ) {
-                                    setGroupDrag(prev =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            deltaX: d.x - layout.x,
-                                            deltaY: d.y - layout.y,
-                                          }
-                                        : {
-                                            draggedId: element.id,
-                                            deltaX: d.x - layout.x,
-                                            deltaY: d.y - layout.y,
-                                          }
-                                    );
-                                  }
-                                },
                                 onDragStop: (e, d) => {
+                                  const newPlacement =
+                                    "gridPlacement" in d
+                                      ? d.gridPlacement
+                                      : undefined;
+                                  if (!newPlacement) return;
                                   if (
                                     groupDragDraggedIdRef.current === element.id
                                   ) {
                                     groupDragDraggedIdRef.current = null;
                                     setGroupDrag(null);
                                   }
-                                  const snap = element.snapToGrid !== false;
-                                  const finalX = snap
-                                    ? snapToCenteredGridPercent(d.x, gx, 100)
-                                    : Math.max(
-                                        0,
-                                        Math.min(100 - layout.w, d.x)
-                                      );
-                                  const finalY = snap
-                                    ? snapToCenteredGridPercent(d.y, gy, 100)
-                                    : Math.max(
-                                        0,
-                                        Math.min(100 - layout.h, d.y)
-                                      );
-                                  const deltaX = finalX - layout.x;
-                                  const deltaY = finalY - layout.y;
                                   if (
                                     selectedIds.includes(element.id) &&
                                     selectedIds.length > 1
                                   ) {
+                                    const dCol =
+                                      newPlacement.columnStart -
+                                      placement.columnStart;
+                                    const dRow =
+                                      newPlacement.rowStart -
+                                      placement.rowStart;
                                     const others = (
                                       pageData.elements ?? []
                                     ).filter(
@@ -473,114 +441,62 @@ export function PageEditor({ editor }) {
                                     const updates = [
                                       {
                                         id: element.id,
-                                        rect: {
-                                          ...layout,
-                                          x: finalX,
-                                          y: finalY,
-                                        },
+                                        placement: newPlacement,
                                       },
                                     ];
                                     others.forEach(other => {
-                                      const otherLayout =
+                                      const otherPlacement =
                                         ensureBreakpointLayout(
                                           other,
                                           breakpoint
                                         );
+                                      const colSpan =
+                                        otherPlacement.columnEnd -
+                                        otherPlacement.columnStart;
+                                      const rowSpan =
+                                        otherPlacement.rowEnd -
+                                        otherPlacement.rowStart;
+                                      const newColStart = Math.max(
+                                        0,
+                                        Math.min(
+                                          gridColumns - colSpan,
+                                          otherPlacement.columnStart + dCol
+                                        )
+                                      );
+                                      const newRowStart = Math.max(
+                                        0,
+                                        Math.min(
+                                          rowCount - rowSpan,
+                                          otherPlacement.rowStart + dRow
+                                        )
+                                      );
                                       updates.push({
                                         id: other.id,
-                                        rect: {
-                                          ...otherLayout,
-                                          x: Math.max(
-                                            0,
-                                            Math.min(
-                                              100 - otherLayout.w,
-                                              otherLayout.x + deltaX
-                                            )
-                                          ),
-                                          y: Math.max(
-                                            0,
-                                            Math.min(
-                                              100 - otherLayout.h,
-                                              otherLayout.y + deltaY
-                                            )
-                                          ),
+                                        placement: {
+                                          columnStart: newColStart,
+                                          columnEnd: newColStart + colSpan,
+                                          rowStart: newRowStart,
+                                          rowEnd: newRowStart + rowSpan,
                                         },
                                       });
                                     });
                                     updateLayoutBulk(updates);
                                   } else {
-                                    updateLayout(element.id, {
-                                      ...layout,
-                                      x: finalX,
-                                      y: finalY,
-                                    });
+                                    updateLayout(element.id, newPlacement);
                                   }
                                 },
                                 onResizeStop: (
                                   e,
                                   direction,
-                                  ref,
+                                  elementRef,
                                   delta,
-                                  position
+                                  position,
+                                  gridPlacement
                                 ) => {
-                                  const widthPercent =
-                                    (ref.offsetWidth / innerWidth) * 100;
-                                  const heightPercent =
-                                    (ref.offsetHeight / section.height) * 100;
-                                  const snap = element.snapToGrid !== false;
-                                  const w = snap
-                                    ? snapSizeToGridPercent(widthPercent, gx)
-                                    : Math.max(
-                                        0.1,
-                                        Math.min(100, widthPercent)
-                                      );
-                                  const h = snap
-                                    ? snapSizeToGridPercent(heightPercent, gy)
-                                    : Math.max(
-                                        0.1,
-                                        Math.min(100, heightPercent)
-                                      );
-                                  const gridOffsetX = (100 % gx) / 2;
-                                  const gridOffsetY = (100 % gy) / 2;
-                                  const maxX = 100 - w - gridOffsetX;
-                                  const maxY = 100 - h - gridOffsetY;
-                                  const x = snap
-                                    ? snapToCenteredGridPercent(
-                                        position.x,
-                                        gx,
-                                        100
-                                      )
-                                    : position.x;
-                                  const y = snap
-                                    ? snapToCenteredGridPercent(
-                                        position.y,
-                                        gy,
-                                        100
-                                      )
-                                    : position.y;
-                                  const finalX = Math.max(
-                                    gridOffsetX,
-                                    Math.min(x, maxX)
-                                  );
-                                  const finalY = Math.max(
-                                    gridOffsetY,
-                                    Math.min(y, maxY)
-                                  );
-                                  updateLayout(element.id, {
-                                    w,
-                                    h,
-                                    x: finalX,
-                                    y: finalY,
-                                  });
+                                  if (gridPlacement) {
+                                    updateLayout(element.id, gridPlacement);
+                                  }
                                 },
-                                dragGrid:
-                                  element.snapToGrid !== false
-                                    ? [gx, gy]
-                                    : [0.001, 0.001],
-                                resizeGrid:
-                                  element.snapToGrid !== false
-                                    ? [gx, gy]
-                                    : [0.001, 0.001],
                                 enableResizing: {
                                   top: true,
                                   right: true,

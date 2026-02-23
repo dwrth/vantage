@@ -3,7 +3,8 @@ import { StorageAdapter } from "../adapters/storage";
 import { ComponentRegistry } from "../adapters/components";
 import { PageData } from "./types";
 export interface PageBuilderConfig<T extends string = string> {
-  gridSize?: number;
+  gridColumns?: number;
+  gridRowHeight?: number;
   breakpoints?: Record<Breakpoint, number>;
   defaultCanvasHeight?: number;
   /** Default height (px) for a new section when using sections. */

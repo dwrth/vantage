@@ -2,28 +2,18 @@
 
 export type Breakpoint = "desktop" | "tablet" | "mobile";
 
-// Editor uses percentages (0–100) for react-rnd positionUnit: '%'
-export interface LayoutRect {
-  x: number; // 0–100
-  y: number; // 0–100
-  w: number; // 0–100
-  h: number; // 0–100
-}
-
-// Responsive units for live rendering
-export interface ResponsiveRect {
-  left: number; // percentage
-  top: number; // percentage
-  width: number; // percentage
-  height: number; // percentage
+// Grid placement (0-based line indices; columnEnd/rowEnd exclusive). Matches react-rnd GridPlacement.
+export interface GridPlacement {
+  columnStart: number; // 0-based, inclusive
+  columnEnd: number; // 0-based, exclusive
+  rowStart: number;
+  rowEnd: number;
 }
 
 export interface ElementLayout {
-  desktop: LayoutRect;
-  tablet: LayoutRect;
-  mobile: LayoutRect;
-  // Responsive version (calculated from desktop)
-  responsive?: ResponsiveRect;
+  desktop: GridPlacement;
+  tablet: GridPlacement;
+  mobile: GridPlacement;
 }
 
 // Generic element - type is configurable

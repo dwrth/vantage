@@ -8,6 +8,10 @@ interface LiveViewProps<T extends string = string> {
   canvasHeight?: number;
   /** When set (e.g. in editor preview), use this breakpoint's layout and width so device buttons work. */
   currentBreakpoint?: Breakpoint;
+  /** Grid columns (must match editor gridConfig). */
+  gridColumns?: number;
+  /** Grid row height in px (must match editor gridConfig). */
+  gridRowHeight?: number;
 }
 export declare function LiveView<T extends string = string>({
   pageData,
@@ -15,6 +19,8 @@ export declare function LiveView<T extends string = string>({
   breakpoints,
   canvasHeight,
   currentBreakpoint,
+  gridColumns,
+  gridRowHeight,
 }: LiveViewProps<T>): import("react/jsx-runtime").JSX.Element;
 export {};
 //# sourceMappingURL=LiveView.d.ts.map

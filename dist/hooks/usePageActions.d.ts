@@ -1,5 +1,10 @@
 import React from "react";
-import { PageData, PageElement, Breakpoint, LayoutRect } from "../core/types";
+import {
+  PageData,
+  PageElement,
+  Breakpoint,
+  GridPlacement,
+} from "../core/types";
 /**
  * Headless hook for page element actions
  * Provides actions for manipulating page elements without UI
@@ -8,7 +13,8 @@ export declare function usePageActions<T extends string = string>(
   pageData: PageData<T>,
   setPageData: React.Dispatch<React.SetStateAction<PageData<T>>>,
   options?: {
-    gridSize?: number;
+    gridColumns?: number;
+    gridRowHeight?: number;
     breakpoints?: Record<Breakpoint, number>;
     canvasHeight?: number;
     defaultSectionHeight?: number;
@@ -24,12 +30,12 @@ export declare function usePageActions<T extends string = string>(
   updateLayout: (
     id: string,
     breakpoint: Breakpoint,
-    newRect: LayoutRect
+    newPlacement: GridPlacement
   ) => void;
   updateLayoutBulk: (
     updates: {
       id: string;
-      rect: LayoutRect;
+      placement: GridPlacement;
     }[],
     breakpoint: Breakpoint
   ) => void;
@@ -39,7 +45,7 @@ export declare function usePageActions<T extends string = string>(
   ensureBreakpointLayout: (
     element: PageElement<T>,
     targetBreakpoint?: Breakpoint
-  ) => LayoutRect;
+  ) => GridPlacement;
   addSection: (fullWidth?: boolean) => void;
   deleteSection: (sectionId: string) => void;
   updateSectionHeight: (sectionId: string, height: number) => void;

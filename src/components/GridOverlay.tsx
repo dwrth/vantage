@@ -1,22 +1,18 @@
 interface GridOverlayProps {
   width: number;
   height: number;
-  gridSize?: number;
+  gridColumns: number;
+  gridRowHeight: number;
 }
 
 export default function GridOverlay({
   width,
   height,
-  gridSize = 50,
+  gridColumns,
+  gridRowHeight,
 }: GridOverlayProps) {
-  // Calculate offset to center the grid (equal cutoff on both sides)
-  const offsetX = (width % gridSize) / 2;
-  const offsetY = (height % gridSize) / 2;
-
-  // Create SVG pattern for rounded squares
-  const gap = Math.max(2, Math.floor(gridSize * 0.1)); // 10% gap, minimum 2px
-  const squareSize = gridSize - gap; // Larger gap between squares
-  const patternId = `grid-pattern-${gridSize}`;
+  const rowCount = Math.ceil(height / gridRowHeight);
+  const colWidth = width / gridColumns;
 
   return (
     <div
@@ -36,29 +32,30 @@ export default function GridOverlay({
           left: 0,
         }}
       >
-        <defs>
-          <pattern
-            id={patternId}
-            x={offsetX}
-            y={offsetY}
-            width={gridSize}
-            height={gridSize}
-            patternUnits="userSpaceOnUse"
-          >
-            <rect
-              x={gap / 2}
-              y={gap / 2}
-              width={squareSize}
-              height={squareSize}
-              fill="rgba(59, 130, 246, 0.06)"
-              stroke="rgba(59, 130, 246, 0.12)"
-              strokeWidth="1"
-              rx="4"
-              ry="4"
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+        {/* Vertical lines */}
+        {Array.from({ length: gridColumns + 1 }, (_, i) => (
+          <line
+            key={`v-${i}`}
+            x1={i * colWidth}
+            y1={0}
+            x2={i * colWidth}
+            y2={height}
+            stroke="rgba(59, 130, 246, 0.12)"
+            strokeWidth="1"
+          />
+        ))}
+        {/* Horizontal lines */}
+        {Array.from({ length: rowCount + 1 }, (_, i) => (
+          <line
+            key={`h-${i}`}
+            x1={0}
+            y1={i * gridRowHeight}
+            x2={width}
+            y2={i * gridRowHeight}
+            stroke="rgba(59, 130, 246, 0.12)"
+            strokeWidth="1"
+          />
+        ))}
       </svg>
     </div>
   );

@@ -4,9 +4,9 @@ import React from "react";
 import { PageData, Breakpoint } from "../core/types";
 import { ComponentRegistry, defaultComponents } from "../adapters/components";
 import {
-  pixelsToResponsive,
   getCanvasWidth,
   getPageTotalHeight,
+  gridPlacementToCss,
 } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
@@ -18,6 +18,10 @@ interface LiveViewProps<T extends string = string> {
   canvasHeight?: number;
   /** When set (e.g. in editor preview), use this breakpoint's layout and width so device buttons work. */
   currentBreakpoint?: Breakpoint;
+  /** Grid columns (must match editor gridConfig). */
+  gridColumns?: number;
+  /** Grid row height in px (must match editor gridConfig). */
+  gridRowHeight?: number;
 }
 
 const DEFAULT_CANVAS_HEIGHT = 600;
@@ -28,6 +32,8 @@ export function LiveView<T extends string = string>({
   breakpoints = defaultConfig.breakpoints!,
   canvasHeight = DEFAULT_CANVAS_HEIGHT,
   currentBreakpoint,
+  gridColumns = defaultConfig.gridColumns,
+  gridRowHeight = defaultConfig.gridRowHeight,
 }: LiveViewProps<T>) {
   const sections = pageData.sections ?? [];
   const containerWidth = currentBreakpoint
@@ -63,6 +69,9 @@ export function LiveView<T extends string = string>({
         margin-right: auto;
       }
       .live-view-section-inner {
+        display: grid;
+        grid-template-columns: repeat(${gridColumns}, 1fr);
+        grid-auto-rows: ${gridRowHeight}px;
         position: relative;
         max-width: 100%;
         margin: 0 auto;
@@ -87,41 +96,35 @@ export function LiveView<T extends string = string>({
         (el: { sectionId?: string }) => el.sectionId === section.id
       );
       sectionElements.forEach(element => {
-        const layout = element.layout[bp];
-        const responsive = pixelsToResponsive(layout);
+        const placement = element.layout[bp];
+        const { gridColumn, gridRow } = gridPlacementToCss(placement);
         css += `
           .live-view-section-${section.id} .element-${element.id} {
-            position: absolute;
-            left: ${responsive.left}%;
-            top: ${responsive.top}%;
-            width: ${responsive.width}%;
-            height: ${responsive.height}%;
+            grid-column: ${gridColumn};
+            grid-row: ${gridRow};
             z-index: ${element.zIndex};
             box-sizing: border-box;
+            min-height: 0;
           }
         `;
         if (!currentBreakpoint) {
           const tablet = element.layout.tablet;
-          const tabletResponsive = pixelsToResponsive(tablet);
+          const tabletCss = gridPlacementToCss(tablet);
           css += `
             @media (max-width: ${breakpoints.tablet}px) {
               .live-view-section-${section.id} .element-${element.id} {
-                left: ${tabletResponsive.left}%;
-                top: ${tabletResponsive.top}%;
-                width: ${tabletResponsive.width}%;
-                height: ${tabletResponsive.height}%;
+                grid-column: ${tabletCss.gridColumn};
+                grid-row: ${tabletCss.gridRow};
               }
             }
           `;
           const mobile = element.layout.mobile;
-          const mobileResponsive = pixelsToResponsive(mobile);
+          const mobileCss = gridPlacementToCss(mobile);
           css += `
             @media (max-width: ${breakpoints.mobile * 1.28}px) {
               .live-view-section-${section.id} .element-${element.id} {
-                left: ${mobileResponsive.left}%;
-                top: ${mobileResponsive.top}%;
-                width: ${mobileResponsive.width}%;
-                height: ${mobileResponsive.height}%;
+                grid-column: ${mobileCss.gridColumn};
+                grid-row: ${mobileCss.gridRow};
               }
             }
           `;

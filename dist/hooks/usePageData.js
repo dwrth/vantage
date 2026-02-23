@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LocalStorageAdapter } from "../adapters/storage";
-import {
-  pixelsToResponsive,
-  getCanvasWidth,
-  normalizePageData,
-} from "../utils/layout";
+import { normalizePageData } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 /**
  * Headless hook for managing page data
@@ -42,63 +38,16 @@ export function usePageData(pageId, options) {
     const loadData = async () => {
       const loaded = await Promise.resolve(storage.load(pageId));
       if (loaded) {
-        // Ensure responsive layouts and sections
-        const withResponsive = {
-          ...loaded,
-          elements: (loaded.elements || []).map(el => {
-            if (!el.layout.responsive) {
-              return {
-                ...el,
-                layout: {
-                  ...el.layout,
-                  responsive: pixelsToResponsive(
-                    el.layout.desktop,
-                    getCanvasWidth("desktop", defaultConfig.breakpoints),
-                    defaultConfig.defaultCanvasHeight
-                  ),
-                },
-              };
-            }
-            return el;
-          }),
-        };
-        const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
-        const normalized = normalizePageData(
-          withResponsive,
-          defaultSectionHeight
-        );
+        const normalized = normalizePageData(loaded, defaultSectionHeight);
         setPageData(normalized);
         onSavedRef.current?.(normalized);
       }
     };
     loadData();
   }, [pageId, storage, options?.initialData]);
-  // Normalize saved/loaded page data (responsive layouts + sections) for consistency with load()
   const applySavedResult = useCallback(
     raw => {
-      const withResponsive = {
-        ...raw,
-        elements: (raw.elements || []).map(el => {
-          if (!el.layout.responsive) {
-            return {
-              ...el,
-              layout: {
-                ...el.layout,
-                responsive: pixelsToResponsive(
-                  el.layout.desktop,
-                  getCanvasWidth("desktop", defaultConfig.breakpoints),
-                  defaultConfig.defaultCanvasHeight
-                ),
-              },
-            };
-          }
-          return el;
-        }),
-      };
-      const normalized = normalizePageData(
-        withResponsive,
-        defaultSectionHeight
-      );
+      const normalized = normalizePageData(raw, defaultSectionHeight);
       setPageData(normalized);
       onSavedRef.current?.(normalized);
     },

@@ -1,7 +1,7 @@
 "use client";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { defaultComponents } from "../adapters/components";
-import { pixelsToResponsive, getPageTotalHeight } from "../utils/layout";
+import { getPageTotalHeight, gridPlacementToCss } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 const DEFAULT_CANVAS_HEIGHT = 600;
 export function LiveView({
@@ -10,6 +10,8 @@ export function LiveView({
   breakpoints = defaultConfig.breakpoints,
   canvasHeight = DEFAULT_CANVAS_HEIGHT,
   currentBreakpoint,
+  gridColumns = defaultConfig.gridColumns,
+  gridRowHeight = defaultConfig.gridRowHeight,
 }) {
   const sections = pageData.sections ?? [];
   const containerWidth = currentBreakpoint
@@ -43,6 +45,9 @@ export function LiveView({
         margin-right: auto;
       }
       .live-view-section-inner {
+        display: grid;
+        grid-template-columns: repeat(${gridColumns}, 1fr);
+        grid-auto-rows: ${gridRowHeight}px;
         position: relative;
         max-width: 100%;
         margin: 0 auto;
@@ -65,41 +70,35 @@ export function LiveView({
         el => el.sectionId === section.id
       );
       sectionElements.forEach(element => {
-        const layout = element.layout[bp];
-        const responsive = pixelsToResponsive(layout);
+        const placement = element.layout[bp];
+        const { gridColumn, gridRow } = gridPlacementToCss(placement);
         css += `
           .live-view-section-${section.id} .element-${element.id} {
-            position: absolute;
-            left: ${responsive.left}%;
-            top: ${responsive.top}%;
-            width: ${responsive.width}%;
-            height: ${responsive.height}%;
+            grid-column: ${gridColumn};
+            grid-row: ${gridRow};
             z-index: ${element.zIndex};
             box-sizing: border-box;
+            min-height: 0;
           }
         `;
         if (!currentBreakpoint) {
           const tablet = element.layout.tablet;
-          const tabletResponsive = pixelsToResponsive(tablet);
+          const tabletCss = gridPlacementToCss(tablet);
           css += `
             @media (max-width: ${breakpoints.tablet}px) {
               .live-view-section-${section.id} .element-${element.id} {
-                left: ${tabletResponsive.left}%;
-                top: ${tabletResponsive.top}%;
-                width: ${tabletResponsive.width}%;
-                height: ${tabletResponsive.height}%;
+                grid-column: ${tabletCss.gridColumn};
+                grid-row: ${tabletCss.gridRow};
               }
             }
           `;
           const mobile = element.layout.mobile;
-          const mobileResponsive = pixelsToResponsive(mobile);
+          const mobileCss = gridPlacementToCss(mobile);
           css += `
             @media (max-width: ${breakpoints.mobile * 1.28}px) {
               .live-view-section-${section.id} .element-${element.id} {
-                left: ${mobileResponsive.left}%;
-                top: ${mobileResponsive.top}%;
-                width: ${mobileResponsive.width}%;
-                height: ${mobileResponsive.height}%;
+                grid-column: ${mobileCss.gridColumn};
+                grid-row: ${mobileCss.gridRow};
               }
             }
           `;

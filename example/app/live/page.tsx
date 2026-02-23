@@ -3,26 +3,29 @@
 import { useEffect, useState } from "react";
 import { LiveView, PageData, LocalStorageAdapter } from "@vantage/page-builder";
 import { customComponents } from "@/components/CustomComponents";
+import { GRID_COLUMNS, GRID_ROW_HEIGHT } from "../page";
+
+type ExampleElementType =
+  | "button"
+  | "card"
+  | "counter"
+  | "form"
+  | "alert"
+  | "todo";
 
 /**
- * Live preview page - demonstrates loading page data
- * In production, you'd use usePageData hook or load from your API
+ * Live preview – loads page data from storage and renders with LiveView (grid layout).
  */
 export default function LivePage() {
-  const [pageData, setPageData] = useState<PageData | null>(null);
+  const [pageData, setPageData] = useState<PageData<ExampleElementType> | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Example: Loading from localStorage
-    // In production, use usePageData hook or fetch from API:
-    // const { pageData } = usePageData('demo', { storage: apiStorage });
-
     const storage = new LocalStorageAdapter();
-    const loaded = storage.load("demo");
-
-    if (loaded) {
-      setPageData(loaded);
-    }
+    const loaded = storage.load("demo") as PageData<ExampleElementType> | null;
+    if (loaded) setPageData(loaded);
     setLoading(false);
   }, []);
 
@@ -58,7 +61,12 @@ export default function LivePage() {
           This is how your page looks to visitors
         </p>
       </div>
-      <LiveView pageData={pageData} components={customComponents} />
+      <LiveView
+        pageData={pageData}
+        components={customComponents}
+        gridColumns={GRID_COLUMNS}
+        gridRowHeight={GRID_ROW_HEIGHT}
+      />
     </div>
   );
 }

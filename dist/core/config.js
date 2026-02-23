@@ -1,6 +1,7 @@
 // Configuration interface
 export const defaultConfig = {
-  gridSize: 50,
+  gridColumns: 24,
+  gridRowHeight: 8,
   breakpoints: {
     desktop: 1200,
     tablet: 768,

@@ -8,18 +8,15 @@ import {
 } from "@vantage/page-builder";
 import { customComponents } from "../components/CustomComponents";
 
+/** Grid config (match react-rnd grid story: 24 columns, 8px row height). */
+export const GRID_COLUMNS = 24;
+export const GRID_ROW_HEIGHT = 8;
+
 /**
- * This page demonstrates:
- * 1. useVantageEditor creates the editor instance (like React Hook Form's useForm)
- * 2. PageEditor receives the instance; you can also use the same instance to build custom UI
- * 3. Auto-saving to localStorage; optional server-side saving via onSave
- *
- * Try adding components from the sidebar - they're all regular React components
- * that instantly become draggable and resizable!
+ * Grid-based page builder demo.
+ * Uses gridColumns / gridRowHeight; PageEditor places elements by grid coordinates.
  */
 export default function Home() {
-  // Storage must be stable across re-renders or effects in usePageData/useHistory
-  // will re-run on every render and cause an infinite loop.
   const storage = useMemo(() => new LocalStorageAdapter(), []);
   const editor = useVantageEditor({
     pageId: "demo",
@@ -28,6 +25,8 @@ export default function Home() {
     persistHistory: true,
     storage,
     maxSectionWidth: 1500,
+    gridColumns: GRID_COLUMNS,
+    gridRowHeight: GRID_ROW_HEIGHT,
   });
 
   return (
@@ -35,9 +34,8 @@ export default function Home() {
       <div className="p-4 bg-blue-50 border-b border-blue-200">
         <h1 className="m-0 text-2xl font-semibold">🎨 Page Builder Demo</h1>
         <p className="mt-2 text-sm text-slate-700">
-          Demonstrates <strong>any React component</strong> can be resizable.
-          Auto-saves to localStorage (default). See code comments for
-          server-side saving examples.
+          Grid-based layout: {GRID_COLUMNS} columns, {GRID_ROW_HEIGHT}px row
+          height. Auto-saves to localStorage.
         </p>
       </div>
       <div className="flex-1">

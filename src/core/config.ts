@@ -7,7 +7,8 @@ import { PageData } from "./types";
 
 export interface PageBuilderConfig<T extends string = string> {
   // Grid settings
-  gridSize?: number;
+  gridColumns?: number;
+  gridRowHeight?: number;
 
   // Breakpoint widths
   breakpoints?: Record<Breakpoint, number>;
@@ -54,7 +55,8 @@ export const defaultConfig: Required<
     | "initialData"
   >
 > = {
-  gridSize: 50,
+  gridColumns: 24,
+  gridRowHeight: 8,
   breakpoints: {
     desktop: 1200,
     tablet: 768,

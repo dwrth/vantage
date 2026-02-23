@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { Breakpoint, LayoutRect, PageData, PageElement } from "./types";
+import type { Breakpoint, GridPlacement, PageData, PageElement } from "./types";
 import type { ComponentRegistry } from "../adapters/components";
 export interface VantageEditorInstance<T extends string = string> {
   pageData: PageData<T>;
@@ -13,7 +13,8 @@ export interface VantageEditorInstance<T extends string = string> {
   canUndo: boolean;
   canRedo: boolean;
   historyLoading: boolean;
-  gridSize: number;
+  gridColumns: number;
+  gridRowHeight: number;
   breakpoints: Record<Breakpoint, number>;
   canvasHeight: number;
   defaultSectionHeight: number;
@@ -32,11 +33,11 @@ export interface VantageEditorInstance<T extends string = string> {
   updateElement: (id: string, updates: Partial<PageElement<T>>) => void;
   /** Update only the content of an element (e.g. from a sidebar). Same as updateElement(id, { content }). */
   updateElementContent: (id: string, content: Record<string, unknown>) => void;
-  updateLayout: (id: string, newRect: LayoutRect) => void;
+  updateLayout: (id: string, newPlacement: GridPlacement) => void;
   updateLayoutBulk: (
     updates: {
       id: string;
-      rect: LayoutRect;
+      placement: GridPlacement;
     }[]
   ) => void;
   deleteElement: (id: string) => void;
@@ -44,7 +45,7 @@ export interface VantageEditorInstance<T extends string = string> {
   ensureBreakpointLayout: (
     element: PageElement<T>,
     targetBreakpoint?: Breakpoint
-  ) => LayoutRect;
+  ) => GridPlacement;
   addSection: (fullWidth?: boolean) => void;
   deleteSection: (sectionId: string) => void;
   updateSectionHeight: (sectionId: string, height: number) => void;

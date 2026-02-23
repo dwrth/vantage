@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import React from "react";
-import { PageData, PageElement } from "../core/types";
+import { PageData } from "../core/types";
 import { StorageAdapter, LocalStorageAdapter } from "../adapters/storage";
-import {
-  pixelsToResponsive,
-  getCanvasWidth,
-  normalizePageData,
-} from "../utils/layout";
+import { normalizePageData } from "../utils/layout";
 import { defaultConfig } from "../core/config";
 
 /** Options for usePageData (storage, callbacks, initial data). */
@@ -65,31 +61,10 @@ export function usePageData<T extends string = string>(
     const loadData = async () => {
       const loaded = await Promise.resolve(storage.load(pageId));
       if (loaded) {
-        // Ensure responsive layouts and sections
-        const withResponsive = {
-          ...loaded,
-          elements: (loaded.elements || []).map(el => {
-            if (!el.layout.responsive) {
-              return {
-                ...el,
-                layout: {
-                  ...el.layout,
-                  responsive: pixelsToResponsive(
-                    el.layout.desktop,
-                    getCanvasWidth("desktop", defaultConfig.breakpoints!),
-                    defaultConfig.defaultCanvasHeight!
-                  ),
-                },
-              } as PageElement<T>;
-            }
-            return el as PageElement<T>;
-          }),
-        } as PageData<T>;
-        const defaultSectionHeight = defaultConfig.defaultSectionHeight ?? 600;
         const normalized = normalizePageData(
-          withResponsive,
+          loaded as PageData<T>,
           defaultSectionHeight
-        );
+        ) as PageData<T>;
         setPageData(normalized);
         onSavedRef.current?.(normalized);
       }
@@ -97,30 +72,10 @@ export function usePageData<T extends string = string>(
     loadData();
   }, [pageId, storage, options?.initialData]);
 
-  // Normalize saved/loaded page data (responsive layouts + sections) for consistency with load()
   const applySavedResult = useCallback(
     (raw: PageData<T>) => {
-      const withResponsive = {
-        ...raw,
-        elements: (raw.elements || []).map(el => {
-          if (!el.layout.responsive) {
-            return {
-              ...el,
-              layout: {
-                ...el.layout,
-                responsive: pixelsToResponsive(
-                  el.layout.desktop,
-                  getCanvasWidth("desktop", defaultConfig.breakpoints!),
-                  defaultConfig.defaultCanvasHeight!
-                ),
-              },
-            } as PageElement<T>;
-          }
-          return el as PageElement<T>;
-        }),
-      } as PageData<T>;
       const normalized = normalizePageData(
-        withResponsive,
+        raw,
         defaultSectionHeight
       ) as PageData<T>;
       setPageData(normalized);

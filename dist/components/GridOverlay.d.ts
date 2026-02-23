@@ -1,12 +1,14 @@
 interface GridOverlayProps {
   width: number;
   height: number;
-  gridSize?: number;
+  gridColumns: number;
+  gridRowHeight: number;
 }
 export default function GridOverlay({
   width,
   height,
-  gridSize,
+  gridColumns,
+  gridRowHeight,
 }: GridOverlayProps): import("react/jsx-runtime").JSX.Element;
 export {};
 //# sourceMappingURL=GridOverlay.d.ts.map

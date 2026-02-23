@@ -16,7 +16,8 @@ export function usePageEditor(pageId, config) {
     onElementSelectRef.current = config?.onElementSelect;
     onElementUpdateRef.current = config?.onElementUpdate;
   }, [config?.onElementSelect, config?.onElementUpdate]);
-  const gridSize = config?.gridSize ?? defaultConfig.gridSize;
+  const gridColumns = config?.gridColumns ?? defaultConfig.gridColumns;
+  const gridRowHeight = config?.gridRowHeight ?? defaultConfig.gridRowHeight;
   // Memoize breakpoints to prevent recreating callbacks
   const breakpoints = useMemo(
     () => config?.breakpoints ?? defaultConfig.breakpoints,
@@ -104,13 +105,21 @@ export function usePageEditor(pageId, config) {
   // Memoize options to prevent usePageActions from recreating callbacks
   const actionsOptions = useMemo(
     () => ({
-      gridSize,
+      gridColumns,
+      gridRowHeight,
       breakpoints,
       canvasHeight,
       defaultSectionHeight,
       maxSectionWidth,
     }),
-    [gridSize, breakpoints, canvasHeight, defaultSectionHeight, maxSectionWidth]
+    [
+      gridColumns,
+      gridRowHeight,
+      breakpoints,
+      canvasHeight,
+      defaultSectionHeight,
+      maxSectionWidth,
+    ]
   );
   // Use headless page actions hook (use history-aware setter)
   const {
@@ -144,16 +153,18 @@ export function usePageEditor(pageId, config) {
     }
   }, [historyRedo, setPageData]);
   const updateLayout = useCallback(
-    (id, newRect) => {
-      updateLayoutAction(id, breakpoint, newRect);
-      onElementUpdateRef.current?.(id, newRect);
+    (id, newPlacement) => {
+      updateLayoutAction(id, breakpoint, newPlacement);
+      onElementUpdateRef.current?.(id, newPlacement);
     },
     [breakpoint, updateLayoutAction]
   );
   const updateLayoutBulk = useCallback(
     updates => {
       updateLayoutBulkAction(updates, breakpoint);
-      updates.forEach(({ id, rect }) => onElementUpdateRef.current?.(id, rect));
+      updates.forEach(({ id, placement }) =>
+        onElementUpdateRef.current?.(id, placement)
+      );
     },
     [breakpoint, updateLayoutBulkAction]
   );
@@ -202,7 +213,8 @@ export function usePageEditor(pageId, config) {
     canUndo,
     canRedo,
     historyLoading,
-    gridSize,
+    gridColumns,
+    gridRowHeight,
     breakpoints,
     canvasHeight,
     defaultSectionHeight,
