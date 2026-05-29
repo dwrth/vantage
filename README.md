@@ -7,7 +7,14 @@ The demo app under `example/` is a working reference for everything below — to
 ## Install
 
 ```bash
-npm install vantage react react-dom @dnd-kit/core
+git clone https://github.com/stuzubi/vantage.git
+cd vantage/
+npm i
+npm run build
+yarn link
+cd <path-to-vystem-frontend>
+yarn link vantage
+yarn
 ```
 
 ## Quick start
