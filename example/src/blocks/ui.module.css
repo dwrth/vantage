@@ -1,0 +1,174 @@
+.breakWords {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  border: 1px solid #d6dae2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease,
+    box-shadow 100ms ease;
+}
+
+.button:hover {
+  background: #f0f2f6;
+  border-color: #b9bfcb;
+}
+
+.buttonPrimary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+}
+
+.buttonPrimary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.button:disabled,
+.button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.button:disabled:hover,
+.button[disabled]:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #374151;
+  letter-spacing: 0.01em;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d6dae2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2430;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  transition:
+    border-color 100ms ease,
+    box-shadow 100ms ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.formTitle {
+  composes: breakWords;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.formBody {
+  composes: breakWords;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.formRow .input {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.formRow .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.formSuccess {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  margin-top: auto;
+}
+
+.formSuccessText {
+  composes: breakWords;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.cardTitle {
+  composes: breakWords;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #111827;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.cardBody {
+  composes: breakWords;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #374151;
+  text-wrap: pretty;
+}
+
+.cardCta {
+  align-self: flex-start;
+  margin-top: auto;
+}

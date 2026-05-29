@@ -1,0 +1,189 @@
+/* Content cell — stays in normal document/stack order. */
+.grid-block__body {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #eaf2ff;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: border-color 120ms ease;
+  overflow: hidden;
+  touch-action: none;
+  will-change: transform;
+  color: #1e3a8a;
+  contain: size;
+}
+
+.grid-block__body:hover,
+.grid-block__body:focus-within {
+  border-color: #2563eb;
+}
+
+.grid-block__body--dragging {
+  z-index: 10;
+  border-color: #2563eb;
+  box-shadow: 0 10px 24px rgba(15, 17, 23, 0.12);
+  cursor: grabbing;
+  opacity: 0.85;
+}
+
+/* Chrome cell — same grid area, raised only when active. */
+.grid-block__chrome {
+  position: relative;
+  pointer-events: none;
+  min-width: 0;
+  min-height: 0;
+  touch-action: none;
+  will-change: transform;
+}
+
+.grid-block__body:hover + .grid-block__chrome,
+.grid-block__chrome:hover,
+.grid-block__chrome--active {
+  z-index: 6;
+}
+
+.grid-block__body--dragging + .grid-block__chrome {
+  z-index: 10;
+}
+
+.grid-block__chrome--active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.grid-block__body:hover + .grid-block__chrome:not(.grid-block__chrome--active)::after,
+.grid-block__chrome:hover:not(.grid-block__chrome--active)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.grid-block__handle {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(15, 17, 23, 0.08);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4b5563;
+  cursor: grab;
+  opacity: 0;
+  pointer-events: auto;
+  transition:
+    opacity 120ms ease,
+    background 100ms ease,
+    border-color 100ms ease,
+    color 100ms ease;
+  touch-action: none;
+  user-select: none;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.08);
+}
+
+.grid-block__handle:hover {
+  background: #ffffff;
+  color: #111827;
+  border-color: rgba(15, 17, 23, 0.18);
+}
+
+.grid-block__handle:active {
+  cursor: grabbing;
+}
+
+.grid-block__handle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.grid-block__body:hover + .grid-block__chrome .grid-block__handle,
+.grid-block__chrome:hover .grid-block__handle,
+.grid-block__chrome--active .grid-block__handle,
+.grid-block__body--dragging + .grid-block__chrome .grid-block__handle {
+  opacity: 1;
+}
+
+.grid-block__delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(15, 17, 23, 0.08);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #b91c1c;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: auto;
+  transition:
+    opacity 120ms ease,
+    background 100ms ease,
+    border-color 100ms ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.08);
+}
+
+.grid-block__delete:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.grid-block__delete:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.grid-block__body:hover + .grid-block__chrome .grid-block__delete,
+.grid-block__chrome:hover .grid-block__delete,
+.grid-block__chrome--active .grid-block__delete {
+  opacity: 1;
+}
+
+.grid-block__resize {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  background: #2563eb;
+  border-radius: 3px;
+  cursor: se-resize;
+  touch-action: none;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 120ms ease;
+}
+
+.grid-block__body:hover + .grid-block__chrome .grid-block__resize,
+.grid-block__chrome:hover .grid-block__resize,
+.grid-block__chrome--active .grid-block__resize,
+.grid-block__body--dragging + .grid-block__chrome .grid-block__resize {
+  opacity: 1;
+}

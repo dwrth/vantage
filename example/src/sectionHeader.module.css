@@ -1,0 +1,92 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e3e6ec;
+  border-radius: 8px;
+}
+
+.label {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.label:hover,
+.label:focus {
+  border-color: #d6dae2;
+  outline: none;
+  background: #f6f7f9;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.field input {
+  width: 4rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #d6dae2;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.actions button {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #d6dae2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease;
+}
+
+.actions button:hover {
+  background: #f0f2f6;
+  border-color: #b9bfcb;
+}
+
+.delete {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.delete:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+}

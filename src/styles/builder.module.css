@@ -1,0 +1,117 @@
+.canvas-frame {
+  width: 100%;
+  margin-inline: auto;
+  transition: max-width 160ms ease;
+}
+
+.canvas-wrap {
+  padding: 0;
+  background: transparent;
+  min-height: 200px;
+  container-type: inline-size;
+  --canvas-pad-x: 0px;
+}
+
+.builder-grid {
+  --cell-max-px: 96px;
+  --row-max-px: 48px;
+  --max-section-w: calc(var(--cols) * var(--cell-max-px));
+  --content-w: min(
+    max(0px, calc(100cqi - var(--canvas-pad-x) - var(--col-gap-px) - var(--col-gap-px))),
+    var(--max-section-w)
+  );
+  --content-offset-px: calc((100cqi - var(--content-w)) / 2);
+  --cell-px: max(
+    0px,
+    calc((var(--content-w) - (var(--cols) - 1) * var(--col-gap-px)) / var(--cols))
+  );
+  --row-px: calc(var(--cell-px) * var(--row-max-px) / var(--cell-max-px));
+  display: grid;
+  align-content: start;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 100%;
+  min-height: 200px;
+  padding-block: var(--section-pad-top-px) var(--section-pad-bottom-px);
+  grid-template-columns: minmax(0, 1fr) repeat(var(--cols), var(--cell-px)) minmax(0, 1fr);
+  grid-auto-rows: minmax(var(--row-px), auto);
+  gap: var(--row-gap-px) var(--col-gap-px);
+}
+
+.section-bg {
+  border-radius: inherit;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: var(--section-pad-top-px) 0 var(--section-pad-bottom-px);
+  left: var(--content-offset-px);
+  width: var(--content-w);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease-out;
+  z-index: 1;
+  background-image: linear-gradient(to right, #d6dae2 1px, transparent 1px);
+  background-size: calc(var(--cell-px) + var(--col-gap-px)) 100%;
+  background-position: calc(var(--cell-px) + var(--col-gap-px) / 2) 0;
+}
+
+.builder-grid--active .grid-overlay {
+  opacity: 1;
+}
+
+.grid-overlay__row-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #d6dae2;
+}
+
+@media (max-width: 640px) {
+  .canvas-wrap {
+    padding: 0;
+    --canvas-pad-x: 0px;
+  }
+}
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  border: 1px dashed #d6dae2;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #6b7280;
+}
+
+.canvas-empty button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d6dae2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.canvas-empty button:hover {
+  background: #f0f2f6;
+  border-color: #b9bfcb;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
