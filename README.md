@@ -491,7 +491,3 @@ npm run dev        # example app on http://localhost:5173
 npm run build      # library dist/
 npm run typecheck
 ```
-
-## License
-
-MIT
