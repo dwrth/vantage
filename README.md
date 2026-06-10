@@ -17,6 +17,17 @@ yarn link vantage
 yarn
 ```
 
+After that, add your path to vantage to the frontend package.json
+```json
+...
+    "ua-parser-js": "^2.0.0",
+    "uuid": "^11.1.0",
+    "vantage": "file:../../../../../Desktop/vantage",
+    "webpack": "^5.97.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+...
+```  
+
 ## Quick start
 
 Register your block kinds once, pass them to both the builder and the preview:
