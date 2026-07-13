@@ -268,6 +268,7 @@ export function SectionView({ section }: SectionViewProps) {
             <div
               ref={containerRef}
               className={`${builder['builder-grid']} ${isInteracting ? builder['builder-grid--active'] : ''}`}
+              data-vantage-section-frame={id}
               tabIndex={-1}
               onPointerDownCapture={onGridPointerDownCapture}
               style={

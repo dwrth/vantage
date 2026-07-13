@@ -69,6 +69,12 @@ export type SectionBackground = {
   imagePosition?: string;
   /** Maps to CSS background-repeat. Defaults to 'no-repeat'. */
   imageRepeat?: SectionBackgroundImageRepeat;
+  /** Focal point X (0–100). Used with object-fit placement when image is cover/contain. */
+  objectPositionX?: number;
+  /** Focal point Y (0–100). Used with object-fit placement when image is cover/contain. */
+  objectPositionY?: number;
+  /** Zoom factor for focal crop (0.4–1). */
+  cropScale?: number;
   /** Blur radius in px applied to the background layer (color + image). 0..200. */
   blur?: number;
   /** Opacity of the background layer (0..1). Defaults to 1. */

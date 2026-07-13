@@ -18,6 +18,7 @@ yarn
 ```
 
 After that, add your path to vantage to the frontend package.json
+
 ```json
 ...
     "ua-parser-js": "^2.0.0",
@@ -26,7 +27,7 @@ After that, add your path to vantage to the frontend package.json
     "webpack": "^5.97.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
 ...
-```  
+```
 
 ## Quick start
 

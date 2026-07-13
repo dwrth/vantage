@@ -1,5 +1,10 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { SectionBackground as SectionBackgroundType } from '../types';
+import {
+  getSectionBackgroundImageStyle,
+  usesLegacyBackgroundPosition,
+} from '../lib/backgroundDisplay';
 
 export type SectionBackgroundProps = {
   background?: SectionBackgroundType;
@@ -30,26 +35,65 @@ export function SectionBackground({
   className,
   layerClassName,
 }: SectionBackgroundProps) {
+  const layerRef = useRef<HTMLDivElement>(null);
+  const [layerSize, setLayerSize] = useState<{ width: number; height: number } | null>(null);
+  const [loadedImageSize, setLoadedImageSize] = useState<{
+    src: string;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const node = layerRef.current;
+    if (!node) return;
+
+    const update = () => {
+      const { width, height } = node.getBoundingClientRect();
+      if (width > 0 && height > 0) setLayerSize({ width, height });
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [background?.image, background?.blur]);
+
   if (!background || !hasAny(background)) return null;
 
   const blur = Math.max(0, background.blur ?? 0);
   const opacity = background.opacity ?? 1;
-  const imageSize = background.imageSize ?? 'cover';
-  const imagePosition = background.imagePosition ?? 'center';
+  const imageSizeMode = background.imageSize ?? 'cover';
   const imageRepeat = background.imageRepeat ?? 'no-repeat';
+  const legacyPosition = background.imagePosition ?? 'center';
+  const useFocalPlacement = Boolean(background.image) && !usesLegacyBackgroundPosition(background);
+  const imageSize =
+    loadedImageSize && loadedImageSize.src === background.image
+      ? { width: loadedImageSize.width, height: loadedImageSize.height }
+      : null;
 
   const layerStyle: CSSProperties = {
     position: 'absolute',
     inset: blur > 0 ? `${-blur * 2}px` : 0,
     backgroundColor: background.color,
-    backgroundImage: background.image ? `url("${background.image}")` : undefined,
-    backgroundSize: imageSize,
-    backgroundPosition: imagePosition,
-    backgroundRepeat: imageRepeat,
+    backgroundImage:
+      background.image && !useFocalPlacement ? `url("${background.image}")` : undefined,
+    backgroundSize: background.image && !useFocalPlacement ? imageSizeMode : undefined,
+    backgroundPosition: background.image && !useFocalPlacement ? legacyPosition : undefined,
+    backgroundRepeat: background.image && !useFocalPlacement ? imageRepeat : undefined,
     filter: blur > 0 ? `blur(${blur}px)` : undefined,
     opacity,
     pointerEvents: 'none',
+    overflow: useFocalPlacement ? 'hidden' : undefined,
   };
+
+  const imageStyle = useFocalPlacement
+    ? getSectionBackgroundImageStyle(
+        imageSizeMode,
+        background,
+        imageSize ?? undefined,
+        layerSize ?? undefined,
+      )
+    : undefined;
 
   const wrapStyle: CSSProperties = {
     position: 'absolute',
@@ -66,7 +110,27 @@ export function SectionBackground({
       style={wrapStyle}
       data-vantage-section-background=""
     >
-      <div className={layerClassName} style={layerStyle} />
+      <div ref={layerRef} className={layerClassName} style={layerStyle}>
+        {useFocalPlacement && background.image ? (
+          <img
+            key={background.image}
+            src={background.image}
+            alt=""
+            draggable={false}
+            style={imageStyle}
+            onLoad={(event) => {
+              const img = event.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setLoadedImageSize({
+                  src: background.image!,
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                });
+              }
+            }}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -45,9 +45,7 @@ export function resolveSelectedItem<TData = unknown>(
   if (!selection) return null;
   const section = layout.sections.find((s) => s.id === selection.sectionId);
   if (!section) return null;
-  const item = section.items.find((i) => i.id === selection.itemId) as
-    | GridItem<TData>
-    | undefined;
+  const item = section.items.find((i) => i.id === selection.itemId) as GridItem<TData> | undefined;
   if (!item) return null;
   const resolved = isResolvedRegistry(components) ? components : resolveRegistry(components);
   return {

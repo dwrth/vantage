@@ -101,6 +101,30 @@ function isValidBackground(raw: unknown): boolean {
   if (raw.imageSize !== undefined && !IMAGE_SIZES.has(raw.imageSize as string)) return false;
   if (raw.imagePosition !== undefined && typeof raw.imagePosition !== 'string') return false;
   if (raw.imageRepeat !== undefined && !IMAGE_REPEATS.has(raw.imageRepeat as string)) return false;
+  if (
+    raw.objectPositionX !== undefined &&
+    (!Number.isFinite(raw.objectPositionX) ||
+      (raw.objectPositionX as number) < 0 ||
+      (raw.objectPositionX as number) > 100)
+  ) {
+    return false;
+  }
+  if (
+    raw.objectPositionY !== undefined &&
+    (!Number.isFinite(raw.objectPositionY) ||
+      (raw.objectPositionY as number) < 0 ||
+      (raw.objectPositionY as number) > 100)
+  ) {
+    return false;
+  }
+  if (
+    raw.cropScale !== undefined &&
+    (!Number.isFinite(raw.cropScale) ||
+      (raw.cropScale as number) < 0.4 ||
+      (raw.cropScale as number) > 1)
+  ) {
+    return false;
+  }
   if (raw.blur !== undefined && (!Number.isFinite(raw.blur) || (raw.blur as number) < 0)) {
     return false;
   }
