@@ -23,7 +23,6 @@
   "scripts": {
     "dev": "vite --config example/vite.config.ts",
     "build": "vite build",
-    "prepare": "npm run build",
     "build:example": "vite build --config example/vite.config.ts",
     "typecheck": "tsc -p tsconfig.lib.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
