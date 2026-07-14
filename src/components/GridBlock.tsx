@@ -32,8 +32,16 @@ export function GridBlock({
   breakpoint,
   rowSteps,
 }: GridBlockProps) {
-  const { components, setInteracting, onItemContextMenu, selection, setSelection, renderEditButton } =
-    useBuilderContext();
+  const {
+    components,
+    setInteracting,
+    onItemContextMenu,
+    selection,
+    setSelection,
+    renderEditButton,
+    renderDragHandle,
+    renderDeleteButton,
+  } = useBuilderContext();
   const { resizeItem, removeItem } = useBuilderActions();
   const resizeStart = useRef({ w: placement.w, h: placement.h, x: 0, y: 0 });
   const cellXStep = getCellXStep(cellWidth, colGap);
@@ -179,22 +187,34 @@ export function GridBlock({
         style={chromeStyle}
         aria-hidden={!isSelected && !isDragging}
       >
-        <button
-          type="button"
-          className={chrome['grid-block__handle']}
-          aria-label={`Drag ${item.label ?? 'block'}`}
-          title={item.label ?? 'Drag'}
-          {...listeners}
-        >
-          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
-            <circle cx="5" cy="3" r="1.2" fill="currentColor" />
-            <circle cx="5" cy="8" r="1.2" fill="currentColor" />
-            <circle cx="5" cy="13" r="1.2" fill="currentColor" />
-            <circle cx="11" cy="3" r="1.2" fill="currentColor" />
-            <circle cx="11" cy="8" r="1.2" fill="currentColor" />
-            <circle cx="11" cy="13" r="1.2" fill="currentColor" />
-          </svg>
-        </button>
+        {renderDragHandle ? (
+          renderDragHandle({
+            sectionId,
+            item,
+            isSelected,
+            className: chrome['grid-block__handle'],
+            listeners,
+            attributes,
+          })
+        ) : (
+          <button
+            type="button"
+            className={chrome['grid-block__handle']}
+            aria-label={`Drag ${item.label ?? 'block'}`}
+            title={item.label ?? 'Drag'}
+            {...listeners}
+            {...attributes}
+          >
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+              <circle cx="5" cy="3" r="1.2" fill="currentColor" />
+              <circle cx="5" cy="8" r="1.2" fill="currentColor" />
+              <circle cx="5" cy="13" r="1.2" fill="currentColor" />
+              <circle cx="11" cy="3" r="1.2" fill="currentColor" />
+              <circle cx="11" cy="8" r="1.2" fill="currentColor" />
+              <circle cx="11" cy="13" r="1.2" fill="currentColor" />
+            </svg>
+          </button>
+        )}
         {renderEditButton ? (
           <div
             className={chrome['grid-block__edit']}
@@ -203,18 +223,28 @@ export function GridBlock({
             {renderEditButton({ sectionId, item, isSelected })}
           </div>
         ) : null}
-        <button
-          type="button"
-          className={chrome['grid-block__delete']}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            removeItem(sectionId, item.id);
-          }}
-          aria-label="Delete block"
-        >
-          ×
-        </button>
+        {renderDeleteButton ? (
+          renderDeleteButton({
+            sectionId,
+            item,
+            isSelected,
+            className: chrome['grid-block__delete'],
+            onDelete: () => removeItem(sectionId, item.id),
+          })
+        ) : (
+          <button
+            type="button"
+            className={chrome['grid-block__delete']}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              removeItem(sectionId, item.id);
+            }}
+            aria-label="Delete block"
+          >
+            ×
+          </button>
+        )}
         <div
           className={chrome['grid-block__resize']}
           onPointerDown={onResizePointerDown}

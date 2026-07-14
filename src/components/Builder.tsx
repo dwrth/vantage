@@ -1,3 +1,4 @@
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BuilderContext } from '../context/BuilderContext';
 import {
@@ -21,10 +22,23 @@ import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '.
 import '../styles/tokens.css';
 import { Canvas } from './Canvas';
 
-export type ItemEditButtonRenderProps = {
+export type ItemChromeRenderProps = {
   sectionId: string;
   item: GridItem;
   isSelected: boolean;
+};
+
+export type ItemEditButtonRenderProps = ItemChromeRenderProps;
+
+export type ItemDragHandleRenderProps = ItemChromeRenderProps & {
+  className: string;
+  listeners: DraggableSyntheticListeners | undefined;
+  attributes: DraggableAttributes;
+};
+
+export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
+  className: string;
+  onDelete: () => void;
 };
 
 export type VantageBuilderProps = {
@@ -42,6 +56,8 @@ export type VantageBuilderProps = {
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
+  renderDragHandle?: (ctx: ItemDragHandleRenderProps) => ReactNode;
+  renderDeleteButton?: (ctx: ItemDeleteButtonRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
   onItemAdded?: (ctx: ItemAddedEvent) => void;
   onItemRemoved?: (ctx: ItemRemovedEvent) => void;
@@ -74,6 +90,8 @@ export function VantageBuilder({
   renderSectionHeader,
   renderSectionFooter,
   renderEditButton,
+  renderDragHandle,
+  renderDeleteButton,
   onItemContextMenu,
   onItemAdded,
   onItemRemoved,
@@ -170,6 +188,8 @@ export function VantageBuilder({
         renderSectionHeader,
         renderSectionFooter,
         renderEditButton,
+        renderDragHandle,
+        renderDeleteButton,
         onItemContextMenu,
       }}
     >

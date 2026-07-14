@@ -1,7 +1,10 @@
 export { VantageBuilder } from './components/Builder';
 export type {
   VantageBuilderProps,
+  ItemChromeRenderProps,
   ItemEditButtonRenderProps,
+  ItemDragHandleRenderProps,
+  ItemDeleteButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
   SectionFooterRenderProps,

@@ -1,3 +1,4 @@
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
 import type {
   Breakpoint,
@@ -34,6 +35,21 @@ export type BuilderContextValue = {
   renderSectionHeader?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
   renderSectionFooter?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;
+  renderDragHandle?: (ctx: {
+    sectionId: string;
+    item: GridItem;
+    isSelected: boolean;
+    className: string;
+    listeners: DraggableSyntheticListeners | undefined;
+    attributes: DraggableAttributes;
+  }) => ReactNode;
+  renderDeleteButton?: (ctx: {
+    sectionId: string;
+    item: GridItem;
+    isSelected: boolean;
+    className: string;
+    onDelete: () => void;
+  }) => ReactNode;
   onItemContextMenu?: (event: MouseEvent, ctx: ItemContextMenuEvent) => void;
 };
 
