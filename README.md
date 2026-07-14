@@ -6,28 +6,19 @@ The demo app under `example/` is a working reference for everything below — to
 
 ## Install
 
+Add Vantage as a git dependency in your `package.json`. The repo is private — use a GitHub PAT with `repo` read access:
+
+```json
+"vantage": "git+https://github_pat_<YOUR_GITHUB_PAT>@github.com/stuzubi/vantage.git"
+```
+
+Then install:
+
 ```bash
-git clone https://github.com/stuzubi/vantage.git
-cd vantage/
-npm i
-npm run build
-yarn link
-cd <path-to-vystem-frontend>
-yarn link vantage
 yarn
 ```
 
-After that, add your path to vantage to the frontend package.json
-
-```json
-...
-    "ua-parser-js": "^2.0.0",
-    "uuid": "^11.1.0",
-    "vantage": "file:../../../../../Desktop/vantage",
-    "webpack": "^5.97.1",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
-...
-```
+The `prepare` script builds `dist/` on install, so no separate build step is needed in the consumer.
 
 ## Quick start
 
