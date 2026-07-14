@@ -188,14 +188,23 @@ export function GridBlock({
         aria-hidden={!isSelected && !isDragging}
       >
         {renderDragHandle ? (
-          renderDragHandle({
-            sectionId,
-            item,
-            isSelected,
-            className: chrome['grid-block__handle'],
-            listeners,
-            attributes,
-          })
+          <div
+            className={[
+              chrome['grid-block__handle-slot'],
+              isDragging ? chrome['grid-block__handle-slot--dragging'] : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {renderDragHandle({
+              sectionId,
+              item,
+              isSelected,
+              isDragging,
+              listeners,
+              attributes,
+            })}
+          </div>
         ) : (
           <button
             type="button"
@@ -224,13 +233,17 @@ export function GridBlock({
           </div>
         ) : null}
         {renderDeleteButton ? (
-          renderDeleteButton({
-            sectionId,
-            item,
-            isSelected,
-            className: chrome['grid-block__delete'],
-            onDelete: () => removeItem(sectionId, item.id),
-          })
+          <div
+            className={chrome['grid-block__delete-slot']}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {renderDeleteButton({
+              sectionId,
+              item,
+              isSelected,
+              onDelete: () => removeItem(sectionId, item.id),
+            })}
+          </div>
         ) : (
           <button
             type="button"

@@ -116,8 +116,30 @@
 .grid-block__body:hover + .grid-block__chrome .grid-block__handle,
 .grid-block__chrome:hover .grid-block__handle,
 .grid-block__chrome--active .grid-block__handle,
-.grid-block__body--dragging + .grid-block__chrome .grid-block__handle {
+.grid-block__body--dragging + .grid-block__chrome .grid-block__handle,
+.grid-block__body:hover + .grid-block__chrome .grid-block__handle-slot,
+.grid-block__chrome:hover .grid-block__handle-slot,
+.grid-block__chrome--active .grid-block__handle-slot,
+.grid-block__body--dragging + .grid-block__chrome .grid-block__handle-slot {
   opacity: 1;
+}
+
+.grid-block__handle-slot {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: inline-flex;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 120ms ease;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.grid-block__handle-slot--dragging {
+  cursor: grabbing;
 }
 
 .grid-block__delete {
@@ -161,8 +183,23 @@
 
 .grid-block__body:hover + .grid-block__chrome .grid-block__delete,
 .grid-block__chrome:hover .grid-block__delete,
-.grid-block__chrome--active .grid-block__delete {
+.grid-block__chrome--active .grid-block__delete,
+.grid-block__body:hover + .grid-block__chrome .grid-block__delete-slot,
+.grid-block__chrome:hover .grid-block__delete-slot,
+.grid-block__chrome--active .grid-block__delete-slot,
+.grid-block__body--dragging + .grid-block__chrome .grid-block__delete-slot {
   opacity: 1;
+}
+
+.grid-block__delete-slot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 120ms ease;
 }
 
 .grid-block__edit {

@@ -31,13 +31,12 @@ export type ItemChromeRenderProps = {
 export type ItemEditButtonRenderProps = ItemChromeRenderProps;
 
 export type ItemDragHandleRenderProps = ItemChromeRenderProps & {
-  className: string;
+  isDragging: boolean;
   listeners: DraggableSyntheticListeners | undefined;
   attributes: DraggableAttributes;
 };
 
 export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
-  className: string;
   onDelete: () => void;
 };
 

@@ -83,8 +83,8 @@ Everything past this point — breakpoints, overrides, layers, persistence — i
 | `renderSectionHeader`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section header chrome.         |
 | `renderSectionFooter`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section footer chrome.         |
 | `renderEditButton`         | no       | `({ sectionId, item, isSelected }) => ReactNode` slot for per-block settings/edit chrome.         |
-| `renderDragHandle`         | no       | `({ sectionId, item, isSelected, className, listeners, attributes }) => ReactNode` slot for custom drag-handle chrome. Falls back to the built-in handle when omitted. |
-| `renderDeleteButton`       | no       | `({ sectionId, item, isSelected, className, onDelete }) => ReactNode` slot for custom delete chrome. Falls back to the built-in delete button when omitted. |
+| `renderDragHandle`         | no       | `({ sectionId, item, isSelected, isDragging, listeners, attributes }) => ReactNode` slot for custom drag-handle chrome. Vantage positions the slot and applies grab/grabbing cursor styling; you style the inner control. Falls back to the built-in handle when omitted. |
+| `renderDeleteButton`       | no       | `({ sectionId, item, isSelected, onDelete }) => ReactNode` slot for custom delete chrome. Vantage positions the slot; you style the inner control. Falls back to the built-in delete button when omitted. |
 | `className`                | no       | Extra class on the root.                                                                          |
 | `children`                 | no       | Rendered above the canvas (use for inline toolbars; the demo uses a separate `Toolbar` instead).  |
 

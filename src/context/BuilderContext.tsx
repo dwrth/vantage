@@ -39,7 +39,7 @@ export type BuilderContextValue = {
     sectionId: string;
     item: GridItem;
     isSelected: boolean;
-    className: string;
+    isDragging: boolean;
     listeners: DraggableSyntheticListeners | undefined;
     attributes: DraggableAttributes;
   }) => ReactNode;
@@ -47,7 +47,6 @@ export type BuilderContextValue = {
     sectionId: string;
     item: GridItem;
     isSelected: boolean;
-    className: string;
     onDelete: () => void;
   }) => ReactNode;
   onItemContextMenu?: (event: MouseEvent, ctx: ItemContextMenuEvent) => void;
