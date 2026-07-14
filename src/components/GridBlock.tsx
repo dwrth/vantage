@@ -32,7 +32,7 @@ export function GridBlock({
   breakpoint,
   rowSteps,
 }: GridBlockProps) {
-  const { components, setInteracting, onItemContextMenu, selection, setSelection } =
+  const { components, setInteracting, onItemContextMenu, selection, setSelection, renderEditButton } =
     useBuilderContext();
   const { resizeItem, removeItem } = useBuilderActions();
   const resizeStart = useRef({ w: placement.w, h: placement.h, x: 0, y: 0 });
@@ -195,6 +195,14 @@ export function GridBlock({
             <circle cx="11" cy="13" r="1.2" fill="currentColor" />
           </svg>
         </button>
+        {renderEditButton ? (
+          <div
+            className={chrome['grid-block__edit']}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {renderEditButton({ sectionId, item, isSelected })}
+          </div>
+        ) : null}
         <button
           type="button"
           className={chrome['grid-block__delete']}

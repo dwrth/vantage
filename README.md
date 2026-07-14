@@ -82,6 +82,7 @@ Everything past this point — breakpoints, overrides, layers, persistence — i
 | `onItemContextMenu`        | no       | `(event, { sectionId, item }) => void` — right-click hook for layer menus, inspectors, deletions. |
 | `renderSectionHeader`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section header chrome.         |
 | `renderSectionFooter`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section footer chrome.         |
+| `renderEditButton`         | no       | `({ sectionId, item, isSelected }) => ReactNode` slot for per-block settings/edit chrome.         |
 | `className`                | no       | Extra class on the root.                                                                          |
 | `children`                 | no       | Rendered above the canvas (use for inline toolbars; the demo uses a separate `Toolbar` instead).  |
 

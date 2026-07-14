@@ -1,6 +1,7 @@
 export { VantageBuilder } from './components/Builder';
 export type {
   VantageBuilderProps,
+  ItemEditButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
   SectionFooterRenderProps,

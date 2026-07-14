@@ -17,9 +17,15 @@ import {
 } from '../lib/diff';
 import { resolveRegistry } from '../lib/registry';
 import type { ItemContextMenuEvent, SelectionRef } from '../context/BuilderContext';
-import type { Breakpoint, ComponentRegistry, Layout, Section } from '../types';
+import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
 import '../styles/tokens.css';
 import { Canvas } from './Canvas';
+
+export type ItemEditButtonRenderProps = {
+  sectionId: string;
+  item: GridItem;
+  isSelected: boolean;
+};
 
 export type VantageBuilderProps = {
   value: Layout;
@@ -35,6 +41,7 @@ export type VantageBuilderProps = {
   onActiveBreakpointChange?: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
+  renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
   onItemAdded?: (ctx: ItemAddedEvent) => void;
   onItemRemoved?: (ctx: ItemRemovedEvent) => void;
@@ -66,6 +73,7 @@ export function VantageBuilder({
   onActiveBreakpointChange,
   renderSectionHeader,
   renderSectionFooter,
+  renderEditButton,
   onItemContextMenu,
   onItemAdded,
   onItemRemoved,
@@ -161,6 +169,7 @@ export function VantageBuilder({
         setActiveBreakpoint,
         renderSectionHeader,
         renderSectionFooter,
+        renderEditButton,
         onItemContextMenu,
       }}
     >

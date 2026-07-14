@@ -165,6 +165,24 @@
   opacity: 1;
 }
 
+.grid-block__edit {
+  position: absolute;
+  top: 6px;
+  right: 34px;
+  z-index: 2;
+  display: inline-flex;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 120ms ease;
+}
+
+.grid-block__body:hover + .grid-block__chrome .grid-block__edit,
+.grid-block__chrome:hover .grid-block__edit,
+.grid-block__chrome--active .grid-block__edit,
+.grid-block__body--dragging + .grid-block__chrome .grid-block__edit {
+  opacity: 1;
+}
+
 .grid-block__resize {
   position: absolute;
   right: 5px;
