@@ -62,6 +62,7 @@ export function SectionView({ section }: SectionViewProps) {
     activeBreakpoint,
     breakpointPreviewWidths,
     renderSectionHeader,
+    renderSectionFooter,
   } = useBuilderContext();
   const { moveItem } = useBuilderActions();
 
@@ -310,6 +311,7 @@ export function SectionView({ section }: SectionViewProps) {
             </div>
           </div>
         </div>
+        {renderSectionFooter ? renderSectionFooter({ section, activeBreakpoint }) : null}
       </section>
     </DndContext>
   );

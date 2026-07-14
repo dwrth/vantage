@@ -81,6 +81,7 @@ Everything past this point — breakpoints, overrides, layers, persistence — i
 | `onActiveBreakpointChange` | no       | Fires when the active breakpoint changes (selection click on a non-active breakpoint, code, etc). |
 | `onItemContextMenu`        | no       | `(event, { sectionId, item }) => void` — right-click hook for layer menus, inspectors, deletions. |
 | `renderSectionHeader`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section header chrome.         |
+| `renderSectionFooter`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section footer chrome.         |
 | `className`                | no       | Extra class on the root.                                                                          |
 | `children`                 | no       | Rendered above the canvas (use for inline toolbars; the demo uses a separate `Toolbar` instead).  |
 
@@ -95,7 +96,7 @@ Everything past this point — breakpoints, overrides, layers, persistence — i
 
 Preview has no drag system, no chrome, no selection. It is safe to render at any size — render it inside an iframe, on a separate route (the demo uses `/preview`), or inline next to the builder.
 
-Builder canvas ships without section header chrome by default; the demo wires its own controls with `renderSectionHeader`.
+Builder canvas ships without section header/footer chrome by default; the demo wires its own controls with `renderSectionHeader` and `renderSectionFooter`.
 
 ### `defineKind`
 

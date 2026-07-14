@@ -1,5 +1,10 @@
 export { VantageBuilder } from './components/Builder';
-export type { VantageBuilderProps, SectionHeaderRenderProps } from './components/Builder';
+export type {
+  VantageBuilderProps,
+  SectionChromeRenderProps,
+  SectionHeaderRenderProps,
+  SectionFooterRenderProps,
+} from './components/Builder';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
 

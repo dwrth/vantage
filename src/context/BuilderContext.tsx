@@ -32,6 +32,7 @@ export type BuilderContextValue = {
   activeBreakpoint: Breakpoint;
   setActiveBreakpoint: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
+  renderSectionFooter?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
   onItemContextMenu?: (event: MouseEvent, ctx: ItemContextMenuEvent) => void;
 };
 

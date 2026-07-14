@@ -34,6 +34,7 @@ export type VantageBuilderProps = {
   defaultActiveBreakpoint?: Breakpoint;
   onActiveBreakpointChange?: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
+  renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
   onItemAdded?: (ctx: ItemAddedEvent) => void;
   onItemRemoved?: (ctx: ItemRemovedEvent) => void;
@@ -43,10 +44,13 @@ export type VantageBuilderProps = {
   onSectionRemoved?: (ctx: SectionRemovedEvent) => void;
 };
 
-export type SectionHeaderRenderProps = {
+export type SectionChromeRenderProps = {
   section: Section;
   activeBreakpoint: Breakpoint;
 };
+
+export type SectionHeaderRenderProps = SectionChromeRenderProps;
+export type SectionFooterRenderProps = SectionChromeRenderProps;
 
 export function VantageBuilder({
   value,
@@ -61,6 +65,7 @@ export function VantageBuilder({
   defaultActiveBreakpoint = 'desktop',
   onActiveBreakpointChange,
   renderSectionHeader,
+  renderSectionFooter,
   onItemContextMenu,
   onItemAdded,
   onItemRemoved,
@@ -155,6 +160,7 @@ export function VantageBuilder({
         activeBreakpoint,
         setActiveBreakpoint,
         renderSectionHeader,
+        renderSectionFooter,
         onItemContextMenu,
       }}
     >
