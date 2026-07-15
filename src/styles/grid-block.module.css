@@ -7,7 +7,6 @@
   min-height: 0;
   background: #eaf2ff;
   border: 2px solid transparent;
-  border-radius: 8px;
   transition: border-color 120ms ease;
   overflow: hidden;
   touch-action: none;
@@ -54,7 +53,6 @@
   position: absolute;
   inset: 0;
   border: 2px solid #2563eb;
-  border-radius: 8px;
   pointer-events: none;
 }
 
@@ -64,7 +62,6 @@
   position: absolute;
   inset: 0;
   border: 2px solid #2563eb;
-  border-radius: 8px;
   pointer-events: none;
 }
 
