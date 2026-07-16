@@ -1,10 +1,15 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { SectionBackground as SectionBackgroundType } from '../types';
 import {
   getSectionBackgroundImageStyle,
   usesLegacyBackgroundPosition,
 } from '../lib/backgroundDisplay';
+
+/** Extra vertical size (fraction of section height) so translate doesn't show gaps. */
+const PARALLAX_OVERFLOW = 0.25;
+/** Max shift as a fraction of section height. */
+const PARALLAX_STRENGTH = 0.2;
 
 export type SectionBackgroundProps = {
   background?: SectionBackgroundType;
@@ -24,10 +29,29 @@ export type SectionBackgroundProps = {
 function hasAny(background: SectionBackgroundType): boolean {
   return Boolean(
     background.color ||
-    background.image ||
-    typeof background.blur === 'number' ||
-    typeof background.opacity === 'number',
+      background.image ||
+      typeof background.blur === 'number' ||
+      typeof background.opacity === 'number',
   );
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function collectScrollRoots(node: HTMLElement): Array<Element | Window> {
+  const roots: Array<Element | Window> = [window];
+  let current: HTMLElement | null = node.parentElement;
+  while (current) {
+    const style = getComputedStyle(current);
+    const overflow = `${style.overflow}${style.overflowY}${style.overflowX}`;
+    if (/(auto|scroll|overlay)/.test(overflow)) {
+      roots.push(current);
+    }
+    current = current.parentElement;
+  }
+  return roots;
 }
 
 export function SectionBackground({
@@ -35,6 +59,7 @@ export function SectionBackground({
   className,
   layerClassName,
 }: SectionBackgroundProps) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const [layerSize, setLayerSize] = useState<{ width: number; height: number } | null>(null);
   const [loadedImageSize, setLoadedImageSize] = useState<{
@@ -42,6 +67,8 @@ export function SectionBackground({
     width: number;
     height: number;
   } | null>(null);
+
+  const parallaxEnabled = Boolean(background?.parallax && background?.image);
 
   useLayoutEffect(() => {
     const node = layerRef.current;
@@ -56,7 +83,40 @@ export function SectionBackground({
     const observer = new ResizeObserver(update);
     observer.observe(node);
     return () => observer.disconnect();
-  }, [background?.image, background?.blur]);
+  }, [background?.image, background?.blur, parallaxEnabled]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const layer = layerRef.current;
+    if (!wrap || !layer || !parallaxEnabled || prefersReducedMotion()) {
+      if (layer) layer.style.transform = '';
+      return;
+    }
+
+    const update = () => {
+      const rect = wrap.getBoundingClientRect();
+      if (rect.height <= 0) return;
+      const viewH = window.innerHeight || 1;
+      const offset = (rect.top + rect.height / 2 - viewH / 2) / viewH;
+      const shift = offset * rect.height * PARALLAX_STRENGTH;
+      layer.style.transform = `translate3d(0, ${shift}px, 0)`;
+    };
+
+    update();
+    const roots = collectScrollRoots(wrap);
+    for (const root of roots) {
+      root.addEventListener('scroll', update, { passive: true });
+    }
+    window.addEventListener('resize', update, { passive: true });
+
+    return () => {
+      for (const root of roots) {
+        root.removeEventListener('scroll', update);
+      }
+      window.removeEventListener('resize', update);
+      layer.style.transform = '';
+    };
+  }, [parallaxEnabled, background?.image]);
 
   if (!background || !hasAny(background)) return null;
 
@@ -73,7 +133,17 @@ export function SectionBackground({
 
   const layerStyle: CSSProperties = {
     position: 'absolute',
-    inset: blur > 0 ? `${-blur * 2}px` : 0,
+    ...(parallaxEnabled
+      ? {
+          top: `${-PARALLAX_OVERFLOW * 100}%`,
+          bottom: `${-PARALLAX_OVERFLOW * 100}%`,
+          left: blur > 0 ? `${-blur * 2}px` : 0,
+          right: blur > 0 ? `${-blur * 2}px` : 0,
+          willChange: 'transform',
+        }
+      : {
+          inset: blur > 0 ? `${-blur * 2}px` : 0,
+        }),
     backgroundColor: background.color,
     backgroundImage:
       background.image && !useFocalPlacement ? `url("${background.image}")` : undefined,
@@ -105,10 +175,12 @@ export function SectionBackground({
 
   return (
     <div
+      ref={wrapRef}
       aria-hidden="true"
       className={className}
       style={wrapStyle}
       data-vantage-section-background=""
+      data-vantage-section-parallax={parallaxEnabled ? '' : undefined}
     >
       <div ref={layerRef} className={layerClassName} style={layerStyle}>
         {useFocalPlacement && background.image ? (

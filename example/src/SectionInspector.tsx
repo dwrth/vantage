@@ -69,7 +69,8 @@ function hasAnyBackgroundKey(bg: SectionBackground): boolean {
     bg.imagePosition !== undefined ||
     bg.imageRepeat !== undefined ||
     bg.blur !== undefined ||
-    bg.opacity !== undefined
+    bg.opacity !== undefined ||
+    bg.parallax !== undefined
   );
 }
 
@@ -413,6 +414,18 @@ export function SectionInspector({
                 value={bg.opacity ?? 1}
                 onChange={(e) => patch({ opacity: Number(e.target.value) })}
               />
+            </label>
+
+            <label className={s.field}>
+              <span className={s.fieldLabelRow}>
+                <span>Parallax</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(bg.parallax)}
+                  disabled={!bg.image}
+                  onChange={(e) => patch({ parallax: e.target.checked || undefined })}
+                />
+              </span>
             </label>
 
             <button type="button" className={s.clearButton} onClick={clearAll}>

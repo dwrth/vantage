@@ -134,6 +134,9 @@ function isValidBackground(raw: unknown): boolean {
   ) {
     return false;
   }
+  if (raw.parallax !== undefined && typeof raw.parallax !== 'boolean') {
+    return false;
+  }
   return true;
 }
 

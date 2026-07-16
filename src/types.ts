@@ -79,6 +79,11 @@ export type SectionBackground = {
   blur?: number;
   /** Opacity of the background layer (0..1). Defaults to 1. */
   opacity?: number;
+  /**
+   * When true and an image is set, the background layer shifts slower than scroll
+   * (parallax). Honors prefers-reduced-motion.
+   */
+  parallax?: boolean;
 };
 
 export type Section<TData = unknown> = {

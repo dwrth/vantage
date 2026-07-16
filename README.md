@@ -326,6 +326,7 @@ type SectionBackground = {
   imageRepeat?: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
   blur?: number; // 0..200 px
   opacity?: number; // 0..1
+  parallax?: boolean; // scroll parallax when image is set
 };
 ```
 
