@@ -7,6 +7,7 @@ import {
   createEmptyLayout,
   getEnabledBreakpoints,
   importLayout,
+  isValidLayout,
   resolveItemData,
   sendItemBackward,
   sendItemToBack,
@@ -55,8 +56,8 @@ function loadStoredLayout(): Layout {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createEmptyLayout();
-    const parsed = JSON.parse(raw) as Layout;
-    if (!parsed?.sections || !parsed?.breakpoints) return createEmptyLayout();
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidLayout(parsed)) return createEmptyLayout();
     return importLayout(parsed);
   } catch {
     return createEmptyLayout();

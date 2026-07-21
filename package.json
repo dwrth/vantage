@@ -1,6 +1,6 @@
 {
   "name": "vantage",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Controlled grid layout builder for React",
   "type": "module",
   "main": "./dist/vantage.cjs.js",

@@ -212,6 +212,25 @@ function isValidBreakpointWidths(
   return true;
 }
 
+function hasUniqueLayoutIds(sections: unknown[]): boolean {
+  const sectionIds = new Set<string>();
+  const itemIds = new Set<string>();
+
+  for (const section of sections) {
+    if (!isPlainObject(section) || typeof section.id !== 'string') return false;
+    if (sectionIds.has(section.id)) return false;
+    sectionIds.add(section.id);
+    if (!Array.isArray(section.items)) return false;
+    for (const item of section.items) {
+      if (!isPlainObject(item) || typeof item.id !== 'string') return false;
+      if (itemIds.has(item.id)) return false;
+      itemIds.add(item.id);
+    }
+  }
+
+  return true;
+}
+
 export function isValidLayout(data: unknown): data is Layout {
   if (!isPlainObject(data)) return false;
   if (!isValidMeta(data.meta)) return false;
@@ -220,5 +239,6 @@ export function isValidLayout(data: unknown): data is Layout {
   if (!isValidBreakpointWidths(data.breakpointWidths, breakpoints, true)) return false;
   if (!isValidBreakpointWidths(data.breakpointPreviewWidths, breakpoints, false)) return false;
   if (!Array.isArray(data.sections)) return false;
+  if (!hasUniqueLayoutIds(data.sections)) return false;
   return data.sections.every(isValidSection);
 }

@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import type { SectionBackground as SectionBackgroundType } from '../types';
 import {
   getSectionBackgroundImageStyle,
+  toCssUrl,
   usesLegacyBackgroundPosition,
 } from '../lib/backgroundDisplay';
 
@@ -29,9 +30,9 @@ export type SectionBackgroundProps = {
 function hasAny(background: SectionBackgroundType): boolean {
   return Boolean(
     background.color ||
-      background.image ||
-      typeof background.blur === 'number' ||
-      typeof background.opacity === 'number',
+    background.image ||
+    typeof background.blur === 'number' ||
+    typeof background.opacity === 'number',
   );
 }
 
@@ -146,7 +147,7 @@ export function SectionBackground({
         }),
     backgroundColor: background.color,
     backgroundImage:
-      background.image && !useFocalPlacement ? `url("${background.image}")` : undefined,
+      background.image && !useFocalPlacement ? toCssUrl(background.image) : undefined,
     backgroundSize: background.image && !useFocalPlacement ? imageSizeMode : undefined,
     backgroundPosition: background.image && !useFocalPlacement ? legacyPosition : undefined,
     backgroundRepeat: background.image && !useFocalPlacement ? imageRepeat : undefined,

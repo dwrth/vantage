@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
-import { createElement, Fragment, useCallback, useEffect, useRef } from 'react';
+import { createElement, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { getCellXStep, pxToCell } from '../lib/grid';
@@ -44,8 +44,12 @@ export function GridBlock({
   } = useBuilderContext();
   const { resizeItem, removeItem } = useBuilderActions();
   const resizeStart = useRef({ w: placement.w, h: placement.h, x: 0, y: 0 });
+  const pendingResize = useRef<{ w: number; h: number } | null>(null);
+  const [resizeDraft, setResizeDraft] = useState<{ w: number; h: number } | null>(null);
   const cellXStep = getCellXStep(cellWidth, colGap);
   const cellStepRef = useRef({ x: cellXStep, y: cellHeight });
+  const displayedPlacement =
+    resizeDraft !== null ? { ...placement, w: resizeDraft.w, h: resizeDraft.h } : placement;
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
@@ -73,8 +77,8 @@ export function GridBlock({
         : 0;
 
   const gridPlacement: React.CSSProperties = {
-    gridColumn: `${placement.x + 2} / span ${placement.w}`,
-    gridRow: `${placement.y + 1} / span ${placement.h}`,
+    gridColumn: `${displayedPlacement.x + 2} / span ${displayedPlacement.w}`,
+    gridRow: `${displayedPlacement.y + 1} / span ${displayedPlacement.h}`,
   };
 
   const dragTransform = transform ? `translate3d(${snappedX}px, ${snappedY}px, 0)` : undefined;
@@ -97,9 +101,9 @@ export function GridBlock({
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       setInteracting(true);
 
-      const onMove = (ev: PointerEvent) => {
-        const dx = ev.clientX - resizeStart.current.x;
-        const dy = ev.clientY - resizeStart.current.y;
+      const computeResize = (clientX: number, clientY: number) => {
+        const dx = clientX - resizeStart.current.x;
+        const dy = clientY - resizeStart.current.y;
         const dw = pxToCell(dx, cellStepRef.current.x);
         const dh = rowSteps
           ? closestRowForOffset(
@@ -111,19 +115,37 @@ export function GridBlock({
             placement.y -
             resizeStart.current.h
           : pxToCell(dy, cellStepRef.current.y);
-        const newW = Math.max(1, Math.min(resizeStart.current.w + dw, columns - placement.x));
-        const newH = Math.max(1, resizeStart.current.h + dh);
-        resizeItem(sectionId, item.id, newW, newH, breakpoint);
+        const w = Math.max(1, Math.min(resizeStart.current.w + dw, columns - placement.x));
+        const h = Math.max(1, resizeStart.current.h + dh);
+        return { w, h };
+      };
+
+      const onMove = (ev: PointerEvent) => {
+        const next = computeResize(ev.clientX, ev.clientY);
+        pendingResize.current = next;
+        setResizeDraft(next);
+      };
+
+      const finishResize = () => {
+        const next = pendingResize.current;
+        pendingResize.current = null;
+        setResizeDraft(null);
+        setInteracting(false);
+        if (next && (next.w !== placement.w || next.h !== placement.h)) {
+          resizeItem(sectionId, item.id, next.w, next.h, breakpoint);
+        }
       };
 
       const onUp = () => {
-        setInteracting(false);
+        finishResize();
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
       };
 
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     },
     [
       sectionId,
@@ -225,10 +247,7 @@ export function GridBlock({
           </button>
         )}
         {renderEditButton ? (
-          <div
-            className={chrome['grid-block__edit']}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
+          <div className={chrome['grid-block__edit']} onPointerDown={(e) => e.stopPropagation()}>
             {renderEditButton({ sectionId, item, isSelected })}
           </div>
         ) : null}

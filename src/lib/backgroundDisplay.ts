@@ -15,6 +15,11 @@ export function clampPercent(value: number) {
   return Math.min(100, Math.max(0, value));
 }
 
+/** Safe `url(...)` for CSS `background-image` (escapes quotes, backslashes, etc.). */
+export function toCssUrl(url: string): string {
+  return `url(${JSON.stringify(url)})`;
+}
+
 export function clampCropScale(value: number) {
   return Math.min(1, Math.max(MIN_CROP_SCALE, value));
 }

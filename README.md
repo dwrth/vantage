@@ -68,25 +68,25 @@ Everything past this point — breakpoints, overrides, layers, persistence — i
 
 ### `VantageBuilder`
 
-| Prop                       | Required | Description                                                                                       |
-| -------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `value`                    | yes      | `Layout` to render.                                                                               |
-| `onChange`                 | yes      | Called with the next `Layout` after every mutation.                                               |
-| `components`               | yes      | `ComponentRegistry` mapping `kind` → renderer.                                                    |
-| `selectedItem`             | no       | Controlled selection `{ sectionId, itemId }` or `null`. Omit for uncontrolled.                    |
-| `defaultSelectedItem`      | no       | Initial selection when uncontrolled.                                                              |
-| `onSelectionChange`        | no       | Fires when the user clicks a block, drags, or right-clicks.                                       |
-| `activeBreakpoint`         | no       | Controlled breakpoint (`'desktop' \| 'tablet' \| 'mobile'`). Omit for uncontrolled.               |
-| `defaultActiveBreakpoint`  | no       | Initial breakpoint when uncontrolled. Defaults to `'desktop'`.                                    |
-| `onActiveBreakpointChange` | no       | Fires when the active breakpoint changes (selection click on a non-active breakpoint, code, etc). |
-| `onItemContextMenu`        | no       | `(event, { sectionId, item }) => void` — right-click hook for layer menus, inspectors, deletions. |
-| `renderSectionHeader`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section header chrome.         |
-| `renderSectionFooter`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section footer chrome.         |
-| `renderEditButton`         | no       | `({ sectionId, item, isSelected }) => ReactNode` slot for per-block settings/edit chrome.         |
+| Prop                       | Required | Description                                                                                                                                                                                                                                                               |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`                    | yes      | `Layout` to render.                                                                                                                                                                                                                                                       |
+| `onChange`                 | yes      | Called with the next `Layout` after every mutation.                                                                                                                                                                                                                       |
+| `components`               | yes      | `ComponentRegistry` mapping `kind` → renderer.                                                                                                                                                                                                                            |
+| `selectedItem`             | no       | Controlled selection `{ sectionId, itemId }` or `null`. Omit for uncontrolled.                                                                                                                                                                                            |
+| `defaultSelectedItem`      | no       | Initial selection when uncontrolled.                                                                                                                                                                                                                                      |
+| `onSelectionChange`        | no       | Fires when the user clicks a block, drags, or right-clicks.                                                                                                                                                                                                               |
+| `activeBreakpoint`         | no       | Controlled breakpoint (`'desktop' \| 'tablet' \| 'mobile'`). Omit for uncontrolled.                                                                                                                                                                                       |
+| `defaultActiveBreakpoint`  | no       | Initial breakpoint when uncontrolled. Defaults to `'desktop'`.                                                                                                                                                                                                            |
+| `onActiveBreakpointChange` | no       | Fires when the active breakpoint changes (selection click on a non-active breakpoint, code, etc).                                                                                                                                                                         |
+| `onItemContextMenu`        | no       | `(event, { sectionId, item }) => void` — right-click hook for layer menus, inspectors, deletions.                                                                                                                                                                         |
+| `renderSectionHeader`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section header chrome.                                                                                                                                                                                 |
+| `renderSectionFooter`      | no       | `({ section, activeBreakpoint }) => ReactNode` slot for custom per-section footer chrome.                                                                                                                                                                                 |
+| `renderEditButton`         | no       | `({ sectionId, item, isSelected }) => ReactNode` slot for per-block settings/edit chrome.                                                                                                                                                                                 |
 | `renderDragHandle`         | no       | `({ sectionId, item, isSelected, isDragging, listeners, attributes }) => ReactNode` slot for custom drag-handle chrome. Vantage positions the slot and applies grab/grabbing cursor styling; you style the inner control. Falls back to the built-in handle when omitted. |
-| `renderDeleteButton`       | no       | `({ sectionId, item, isSelected, onDelete }) => ReactNode` slot for custom delete chrome. Vantage positions the slot; you style the inner control. Falls back to the built-in delete button when omitted. |
-| `className`                | no       | Extra class on the root.                                                                          |
-| `children`                 | no       | Rendered above the canvas (use for inline toolbars; the demo uses a separate `Toolbar` instead).  |
+| `renderDeleteButton`       | no       | `({ sectionId, item, isSelected, onDelete }) => ReactNode` slot for custom delete chrome. Vantage positions the slot; you style the inner control. Falls back to the built-in delete button when omitted.                                                                 |
+| `className`                | no       | Extra class on the root.                                                                                                                                                                                                                                                  |
+| `children`                 | no       | Rendered above the canvas (use for inline toolbars; the demo uses a separate `Toolbar` instead).                                                                                                                                                                          |
 
 ### `VantagePreview`
 

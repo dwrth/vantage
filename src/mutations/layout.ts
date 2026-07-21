@@ -444,7 +444,7 @@ export function addItem(
       if (nextId && existingIds.has(nextId)) {
         if (typeof console !== 'undefined' && typeof console.warn === 'function') {
           console.warn(
-            `[mango] addItem: id "${nextId}" collides in section "${section.id}"; falling back to createId()`,
+            `[vantage] addItem: id "${nextId}" collides in section "${section.id}"; falling back to createId()`,
           );
         }
         nextId = undefined;
