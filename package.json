@@ -21,15 +21,15 @@
     "**/*.css"
   ],
   "scripts": {
-    "dev": "vite --config example/vite.config.ts",
+    "dev": "vite --config demo/vite.config.ts",
     "build": "vite build",
     "prepare": "npm run build",
-    "build:example": "vite build --config example/vite.config.ts",
+    "build:demo": "vite build --config demo/vite.config.ts",
     "typecheck": "tsc -p tsconfig.lib.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "vite preview --config example/vite.config.ts"
+    "preview": "vite preview --config demo/vite.config.ts"
   },
   "peerDependencies": {
     "@dnd-kit/core": "^6.0.0",
