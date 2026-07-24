@@ -26,6 +26,7 @@ export const cardKind = defineKind<CardData>({
     },
   },
   displayName: 'Card',
-  editWrapperClass: 'bg-base-100!',
-  previewWrapperClass: 'bg-base-100! rounded-box overflow-hidden',
+  // Match text: opt out of library `contain: size` so content can grow CSS tracks.
+  editWrapperClass: 'bg-base-100! contain-none!',
+  previewWrapperClass: 'bg-base-100! rounded-box overflow-hidden contain-none!',
 });

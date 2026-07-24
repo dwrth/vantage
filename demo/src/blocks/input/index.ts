@@ -16,6 +16,6 @@ export const inputKind = defineKind<InputData>({
     data: { title: 'Email address', placeholder: 'you@example.com' },
   },
   displayName: 'Input',
-  editWrapperClass: 'bg-base-100!',
-  previewWrapperClass: 'bg-base-100! rounded-box p-3',
+  editWrapperClass: 'bg-base-100! contain-none!',
+  previewWrapperClass: 'bg-base-100! rounded-box p-3 contain-none!',
 });

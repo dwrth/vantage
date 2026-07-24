@@ -77,7 +77,7 @@ updateSection(layout, sectionId, { columns: 16, colGap: 4, paddingTop: 48 });
 ```ts
 addItem(layout, sectionId, 'hero', heroKind.defaults);   // pass the kind's defaults
 moveItem(layout, sectionId, itemId, x, y, breakpoint?);
-resizeItem(layout, sectionId, itemId, w, h, breakpoint?);
+resizeItem(layout, sectionId, itemId, x, y, w, h, breakpoint?);
 removeItem(layout, sectionId, itemId);                   // also strips per-breakpoint overrides
 updateItemData<HeroData>(layout, sectionId, itemId, { title: 'New' }, breakpoint?); // shallow merge into data
 reorderItemAtIndex(layout, sectionId, fromIndex, toIndex); // for layers-panel DnD

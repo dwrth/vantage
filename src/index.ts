@@ -168,10 +168,13 @@ export {
   overlaps,
   pointerHitsItem,
   itemsAtPointer,
+  resizeByHandle,
+  resizeEdgeAxes,
   CELL_MAX_PX,
   ROW_MAX_PX,
   MOBILE_BREAKPOINT_PX,
 } from './lib/grid';
+export type { ResizeEdge, PlacementRect } from './lib/grid';
 
 export {
   DEFAULT_VANTAGE_TOKENS,

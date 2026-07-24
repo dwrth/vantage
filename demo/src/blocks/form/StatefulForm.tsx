@@ -30,7 +30,7 @@ export function StatefulForm({ item }: StatefulFormProps) {
 
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-3 ${
+      className={`flex flex-col gap-2 p-3 ${
         overlay ? 'text-white [text-shadow:0_1px_2px_rgb(0_0_0_/_0.45)]' : ''
       }`}
     >

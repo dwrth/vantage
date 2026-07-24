@@ -17,6 +17,6 @@ export const formKind = defineKind<FormData>({
     },
   },
   displayName: 'Form',
-  editWrapperClass: 'bg-base-100!',
-  previewWrapperClass: 'bg-base-100! rounded-box',
+  editWrapperClass: 'bg-base-100! contain-none!',
+  previewWrapperClass: 'bg-base-100! rounded-box contain-none!',
 });

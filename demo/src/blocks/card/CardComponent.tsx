@@ -5,7 +5,7 @@ function CardBody({ item }: { item: PreviewRendererProps<CardData>['item'] }) {
   const data = item.data ?? {};
 
   return (
-    <div className="card card-sm h-full w-full bg-base-100 shadow-none">
+    <div className="card card-sm w-full bg-base-100 shadow-none">
       {data.image ? (
         <figure className="m-0 overflow-hidden rounded-t-box">
           <img
@@ -20,7 +20,7 @@ function CardBody({ item }: { item: PreviewRendererProps<CardData>['item'] }) {
         {data.title ? <h3 className="card-title text-base">{data.title}</h3> : null}
         {data.content ? <p className="text-sm text-base-content/70">{data.content}</p> : null}
         {data.cta ? (
-          <div className="card-actions mt-auto">
+          <div className="card-actions">
             <button type="button" className="btn btn-sm btn-primary">
               {data.cta}
             </button>

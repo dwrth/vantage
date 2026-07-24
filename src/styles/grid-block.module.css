@@ -237,18 +237,83 @@
 
 .grid-block__resize {
   position: absolute;
-  right: 5px;
-  bottom: 5px;
-  z-index: 2;
-  width: 12px;
-  height: 12px;
+  /* Below drag/delete (z-index 2) so chrome buttons stay clickable if hit areas graze. */
+  z-index: 1;
   background: #2563eb;
   border-radius: 3px;
-  cursor: se-resize;
   touch-action: none;
   opacity: 0;
   pointer-events: auto;
   transition: opacity 120ms ease;
+}
+
+/* Corners sit outside the selection border — clear of inset drag/delete. */
+.grid-block__resize--se,
+.grid-block__resize--sw,
+.grid-block__resize--ne,
+.grid-block__resize--nw {
+  width: 10px;
+  height: 10px;
+}
+
+.grid-block__resize--se {
+  right: -5px;
+  bottom: -5px;
+  cursor: se-resize;
+}
+
+.grid-block__resize--sw {
+  left: -5px;
+  bottom: -5px;
+  cursor: sw-resize;
+}
+
+.grid-block__resize--ne {
+  right: -5px;
+  top: -5px;
+  cursor: ne-resize;
+}
+
+.grid-block__resize--nw {
+  left: -5px;
+  top: -5px;
+  cursor: nw-resize;
+}
+
+.grid-block__resize--e,
+.grid-block__resize--w {
+  top: 50%;
+  width: 6px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 2px;
+  cursor: ew-resize;
+}
+
+.grid-block__resize--e {
+  right: -3px;
+}
+
+.grid-block__resize--w {
+  left: -3px;
+}
+
+.grid-block__resize--n,
+.grid-block__resize--s {
+  left: 50%;
+  width: 18px;
+  height: 6px;
+  margin-left: -9px;
+  border-radius: 2px;
+  cursor: ns-resize;
+}
+
+.grid-block__resize--n {
+  top: -3px;
+}
+
+.grid-block__resize--s {
+  bottom: -3px;
 }
 
 .grid-block__body:hover + .grid-block__chrome .grid-block__resize,

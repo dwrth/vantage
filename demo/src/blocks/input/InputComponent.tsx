@@ -5,7 +5,7 @@ function InputBody({ item }: { item: PreviewRendererProps<InputData>['item'] }) 
   const data = item.data ?? {};
 
   return (
-    <label className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-hidden p-3">
+    <label className="flex flex-col justify-center gap-1.5 p-3">
       <span className="text-xs font-medium tracking-wide text-base-content/60 uppercase">
         {data.title ?? 'Label'}
       </span>

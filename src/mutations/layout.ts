@@ -597,6 +597,8 @@ export function resizeItem(
   layout: Layout,
   sectionId: string,
   itemId: string,
+  x: number,
+  y: number,
   w: number,
   h: number,
   breakpoint: Breakpoint = 'desktop',
@@ -608,8 +610,8 @@ export function resizeItem(
         ...section,
         items: section.items.map((item) => {
           if (item.id !== itemId) return item;
-          const clamped = clampItem({ ...item, w, h }, section.columns);
-          return { ...item, w: clamped.w, h: clamped.h };
+          const clamped = clampItem({ ...item, x, y, w, h }, section.columns);
+          return { ...item, x: clamped.x, y: clamped.y, w: clamped.w, h: clamped.h };
         }),
       })),
     };
@@ -617,7 +619,7 @@ export function resizeItem(
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (section) =>
-      writeItemOverride(section, itemId, breakpoint, { w, h }),
+      writeItemOverride(section, itemId, breakpoint, { x, y, w, h }),
     ),
   };
 }
