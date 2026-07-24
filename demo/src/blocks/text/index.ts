@@ -1,13 +1,14 @@
 import { defineKind } from 'vantage';
 import { LOREM_PARAGRAPH, LOREM_TITLE } from '../constants';
-import { TextComponent } from './TextComponent';
+import { TextEdit, TextPreview } from './TextComponent';
 import { TextInspector } from './TextInspector';
 import type { TextData } from './types';
 
 export type { TextData, TextAlign, TextFontSize, TextFontWeight, TextVariant } from './types';
 
 export const textKind = defineKind<TextData>({
-  component: TextComponent,
+  component: TextPreview,
+  editComponent: TextEdit,
   inspector: TextInspector,
   defaults: {
     w: 4,

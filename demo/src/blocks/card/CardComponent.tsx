@@ -1,12 +1,11 @@
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { CardData } from './index';
 
-export function CardComponent({ item, mode, interactive }: ItemRendererProps<CardData>) {
+function CardBody({ item }: { item: PreviewRendererProps<CardData>['item'] }) {
   const data = item.data ?? {};
-  const stop = mode === 'edit' && interactive;
 
   return (
-    <div className="card card-sm h-full w-full bg-base-100 shadow-none">
+    <div className="card card-sm w-full bg-base-100 shadow-none">
       {data.image ? (
         <figure className="m-0 overflow-hidden rounded-t-box">
           <img
@@ -21,13 +20,8 @@ export function CardComponent({ item, mode, interactive }: ItemRendererProps<Car
         {data.title ? <h3 className="card-title text-base">{data.title}</h3> : null}
         {data.content ? <p className="text-sm text-base-content/70">{data.content}</p> : null}
         {data.cta ? (
-          <div className="card-actions mt-auto">
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={stop ? (e) => e.stopPropagation() : undefined}
-              onPointerDown={stop ? (e) => e.stopPropagation() : undefined}
-            >
+          <div className="card-actions">
+            <button type="button" className="btn btn-sm btn-primary">
               {data.cta}
             </button>
           </div>
@@ -35,4 +29,12 @@ export function CardComponent({ item, mode, interactive }: ItemRendererProps<Car
       </div>
     </div>
   );
+}
+
+export function CardPreview({ item }: PreviewRendererProps<CardData>) {
+  return <CardBody item={item} />;
+}
+
+export function CardEdit({ item }: EditRendererProps<CardData>) {
+  return <CardBody item={item} />;
 }

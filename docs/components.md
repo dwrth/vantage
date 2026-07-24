@@ -5,7 +5,7 @@
 | Prop                       | Required | Description                                                                                                                                                                                                                                                               |
 | -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `value`                    | yes      | `Layout` to render.                                                                                                                                                                                                                                                       |
-| `onChange`                 | yes      | Called with the next `Layout` after every mutation.                                                                                                                                                                                                                       |
+| `onChange`                 | yes      | `(next, changeset) => void` after every mutation.                                                                                                                                                                                                                         |
 | `components`               | yes      | `ComponentRegistry` mapping `kind` → renderer.                                                                                                                                                                                                                            |
 | `selectedItem`             | no       | Controlled selection `{ sectionId, itemId }` or `null`. Omit for uncontrolled.                                                                                                                                                                                            |
 | `defaultSelectedItem`      | no       | Initial selection when uncontrolled.                                                                                                                                                                                                                                      |
@@ -35,13 +35,38 @@ Builder canvas ships without section header/footer chrome by default; the demo w
 
 Preview has no drag system, no chrome, no selection. Safe at any size — iframe, separate route (demo uses `/preview`), or inline next to the builder.
 
+## `VantageInspector`
+
+Mounts the selected item's kind `inspector` and writes via `updateItemData`. Place it beside `VantageBuilder` (same controlled `layout` / `selection` / `activeBreakpoint`).
+
+| Prop               | Required | Description                                                                                                 |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `layout`           | yes      | Current `Layout`.                                                                                           |
+| `onChange`         | yes      | `(next, changeset) => void` after each inspector patch.                                                     |
+| `components`       | yes      | Same `ComponentRegistry` as the builder.                                                                    |
+| `selection`        | yes      | `{ sectionId, itemId }` or `null`.                                                                          |
+| `activeBreakpoint` | yes      | Breakpoint used for resolve + `scope: 'active'` writes.                                                     |
+| `onItemDataChange` | no       | `(event) => void` — granular patch signal (`sectionId`, `itemId`, `patch`, `breakpoint`, `scope`, `dirty`). |
+| `className`        | no       | Root class.                                                                                                 |
+| `emptyState`       | no       | Shown when nothing is selected.                                                                             |
+| `renderHeader`     | no       | `({ section, item, … }) => ReactNode` chrome above the kind panel.                                          |
+
+Kind panels receive `InspectorProps` and call `onChange(patch, { scope?, dirty? })`. Library maps scope → breakpoint, applies `updateItemData`, then fires layout `onChange(next, changeset)` + optional `onItemDataChange`.
+
+Chrome is unstyled — skin with `className` / `renderHeader`. Kind field UIs stay host-authored on `defineKind`.
+
+See [Host panels](panels.md).
+
 ## `defineKind`
 
-Bundles a renderer with the defaults used when the user clicks **+ Add** for that kind.
+Bundles preview/edit renderers with the defaults used when the user clicks **+ Add** for that kind.
 
 ```ts
 defineKind<TData>({
-  component,             // FC<ItemRendererProps<TData>>
+  component,             // FC<PreviewRendererProps<TData>> — always mounted in preview
+  editComponent?,        // FC<EditRendererProps<TData>> — builder; omit → reuse component with { item }
+  editPlaceholder?,      // FC<PreviewRendererProps<TData>> — builder shell until selected
+  inspector?,            // FC<InspectorProps<TData>> — mounted by VantageInspector
   defaults: {            // applied on add
     w, h,                // initial grid size in columns × rows
     label?,              // shown in the add menu and layers list
@@ -53,12 +78,8 @@ defineKind<TData>({
 });
 ```
 
-Wrappers are useful for transparent text cells, drop shadows, or overlay variants. The demo passes Tailwind / daisyUI classes via `editWrapperClass` / `previewWrapperClass` so kinds can opt into different cell-level styling in each mode.
+Wrappers are useful for transparent text cells, drop shadows, or overlay variants. The demo passes Tailwind / daisyUI classes via `editWrapperClass` / `previewWrapperClass` so kinds can opt into different cell-level styling per surface.
 
-You can also register a bare function instead of a descriptor — fallback size is 3×2 and `data` starts `undefined`:
-
-```ts
-const components = { divider: ({ mode }) => <hr data-mode={mode} /> };
-```
+Every registry entry must be a `KindDescriptor` from `defineKind`. Bare function entries are not supported.
 
 See [Custom blocks](blocks.md) for full patterns.

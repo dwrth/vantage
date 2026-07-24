@@ -12,16 +12,14 @@ export type FormData = {
 
 type StatefulFormProps = {
   item: GridItem<FormData>;
-  interactive?: boolean;
 };
 
-export function StatefulForm({ item, interactive = false }: StatefulFormProps) {
+export function StatefulForm({ item }: StatefulFormProps) {
   const data = item.data ?? {};
   const [value, setValue] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const trimmed = value.trim();
   const isValidEmail = /.+@.+\..+/.test(trimmed);
-  const stop = interactive ? (e: React.SyntheticEvent) => e.stopPropagation() : undefined;
   const overlay = data.variant === 'overlay';
 
   const onSubmit = (e: React.FormEvent) => {
@@ -32,7 +30,7 @@ export function StatefulForm({ item, interactive = false }: StatefulFormProps) {
 
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-3 ${
+      className={`flex flex-col gap-2 p-3 ${
         overlay ? 'text-white [text-shadow:0_1px_2px_rgb(0_0_0_/_0.45)]' : ''
       }`}
     >
@@ -55,9 +53,7 @@ export function StatefulForm({ item, interactive = false }: StatefulFormProps) {
           <button
             type="button"
             className="btn btn-sm"
-            onPointerDown={stop}
-            onClick={(e) => {
-              stop?.(e);
+            onClick={() => {
               setSubmitted(false);
               setValue('');
             }}
@@ -73,15 +69,11 @@ export function StatefulForm({ item, interactive = false }: StatefulFormProps) {
             placeholder={data.placeholder ?? 'you@example.com'}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            onPointerDown={stop}
-            onClick={stop}
           />
           <button
             type="submit"
             className="btn btn-sm btn-primary join-item"
             disabled={!isValidEmail}
-            onPointerDown={stop}
-            onClick={stop}
           >
             {data.cta ?? 'Submit'}
           </button>

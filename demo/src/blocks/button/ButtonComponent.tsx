@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './index';
 
 const H_ALIGN: Record<ButtonAlign, CSSProperties['justifyContent']> = {
@@ -14,9 +14,8 @@ const V_ALIGN: Record<ButtonVAlign, CSSProperties['alignItems']> = {
   bottom: 'flex-end',
 };
 
-export function ButtonComponent({ item, mode, interactive }: ItemRendererProps<ButtonData>) {
+function ButtonBody({ item }: { item: PreviewRendererProps<ButtonData>['item'] }) {
   const data = item.data ?? {};
-  const stop = mode === 'edit' && interactive;
 
   return (
     <div
@@ -28,12 +27,22 @@ export function ButtonComponent({ item, mode, interactive }: ItemRendererProps<B
     >
       <button
         type="button"
-        className="btn btn-sm btn-primary"
-        onClick={stop ? (e) => e.stopPropagation() : undefined}
-        onPointerDown={stop ? (e) => e.stopPropagation() : undefined}
+        className="btn btn-sm border-0"
+        style={{
+          backgroundColor: 'var(--vantage-kind-accent)',
+          color: 'var(--vantage-kind-accent-fg, #fff)',
+        }}
       >
         {data.cta ?? item.label ?? 'Button'}
       </button>
     </div>
   );
+}
+
+export function ButtonPreview({ item }: PreviewRendererProps<ButtonData>) {
+  return <ButtonBody item={item} />;
+}
+
+export function ButtonEdit({ item }: EditRendererProps<ButtonData>) {
+  return <ButtonBody item={item} />;
 }

@@ -25,7 +25,7 @@ const [active, setActive] = useState<Breakpoint>('desktop');
 
 <VantageBuilder
   value={layout}
-  onChange={setLayout}
+  onChange={(next) => setLayout(next)}
   components={components}
   activeBreakpoint={active}
   onActiveBreakpointChange={setActive}
@@ -54,11 +54,14 @@ clearItemOverride(layout, sectionId, 'mobile', itemId);
 ```ts
 resolveSection(section, 'mobile'); // { columns, colGap, rowGap, paddingTop, paddingBottom }
 resolveItem(item, section, 'mobile'); // { x, y, w, h, hidden }
-resolveItemData<HeroData>(item, section, 'mobile'); // item.data merged with the breakpoint's data override
+mergeBreakpointItemData<HeroData>(item, section, 'mobile'); // base data ∪ BP override (not entity resolve)
+resolveEffectiveItemData(item, section, 'mobile', enabled, entityData); // entity ∪ layout/BP
 hasItemOverride(item, section, 'mobile'); // boolean
 resolveBreakpointFromWidth(width, layout); // for custom preview surfaces
 resolveBreakpointFromLayout(width, layout); // alias used by VantagePreview internally
 defaultColumnsForBreakpoint('mobile', baseColumns); // 4 by default for mobile, 2/3 of base for tablet
 ```
+
+Entity resolve is a separate host function (`ResolveItemData`) passed to `ItemDataProvider` — not `mergeBreakpointItemData`. See [Persistence](persistence.md).
 
 The sample layout (`demo/src/sampleLayout.ts`) shows the data shape: a `Hero` section with `columns: 12` desktop and a mobile `overrides.mobile` block setting `columns: 4` plus a per-item `{ x, y, w, h }` map.

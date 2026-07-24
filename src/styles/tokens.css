@@ -1,17 +1,16 @@
 :where(.vantage-root) {
   --vantage-cell-max-px: 96px;
   --vantage-row-max-px: 48px;
+  --vantage-color: #1f2430;
+  --vantage-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vantage-line-height: 1.5;
+  --vantage-font-weight: 400;
 }
 
 .vantage-root {
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #1f2430;
+  font-family: var(--vantage-font-family);
+  line-height: var(--vantage-line-height);
+  font-weight: var(--vantage-font-weight);
+  color: var(--vantage-color);
   -webkit-font-smoothing: antialiased;
 }

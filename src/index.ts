@@ -7,10 +7,12 @@ export type {
   ItemDeleteButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
-  SectionFooterRenderProps,
 } from './components/Builder';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
+export { VantageInspector } from './components/VantageInspector';
+export type { VantageInspectorProps } from './components/VantageInspector';
+export { VantageInteractive } from './components/VantageInteractive';
 
 export type {
   Layout,
@@ -24,12 +26,15 @@ export type {
   BreakpointWidths,
   GridItem,
   ComponentRegistry,
-  ItemRendererProps,
+  PreviewRendererProps,
+  EditRendererProps,
   KindDescriptor,
-  KindEntry,
   KindDefaults,
   InspectorScope,
+  InspectorChangeOpts,
   InspectorProps,
+  ItemDataChangeEvent,
+  ResolveItemData,
   ResolvedComponentRegistry,
   ResolvedKindDescriptor,
 } from './types';
@@ -49,10 +54,17 @@ export {
 export {
   defineKind,
   resolveRegistry,
-  resolveDescriptor,
   resolveRenderer,
   resolveDescriptorForKind,
 } from './lib/registry';
+export type { RenderSurface } from './lib/registry';
+
+export {
+  VANTAGE_INTERACTIVE_ATTR,
+  VANTAGE_DRAG_HANDLE_ATTR,
+  isVantageInteractiveTarget,
+  shouldPreventDragActivation,
+} from './lib/interactive';
 
 export {
   createEmptyLayout,
@@ -86,15 +98,33 @@ export {
 
 export type { SelectionRef } from './context/BuilderContext';
 export { useSelection, useSelectedItem } from './hooks/useSelection';
+export {
+  useVantageHistory,
+  type VantageHistory,
+  type VantageHistoryOptions,
+} from './hooks/useVantageHistory';
+export {
+  ItemDataProvider,
+  useItemData,
+  useResolveItemData,
+  type ItemDataProviderProps,
+} from './hooks/useItemData';
 
 export type { AddItemDefaults } from './mutations/layout';
 
 export { isValidLayout } from './lib/validate';
 
 export {
+  stripData,
+  hydrate,
+  mergeEntityAndLayoutData,
+  resolveEffectiveItemData,
+} from './lib/entities';
+
+export {
   resolveSection,
   resolveItem,
-  resolveItemData,
+  mergeBreakpointItemData,
   resolveBreakpointFromWidth,
   resolveBreakpointFromLayout,
   defaultColumnsForBreakpoint,
@@ -112,13 +142,17 @@ export type { ResolvedSelection } from './lib/inspector';
 
 export {
   diffLayouts,
+  emitLayoutChange,
   type LayoutChangeset,
   type ItemAddedEvent,
   type ItemRemovedEvent,
   type ItemUpdatedEvent,
   type ItemMovedEvent,
+  type ItemsReorderedEvent,
   type SectionAddedEvent,
   type SectionRemovedEvent,
+  type SectionUpdatedEvent,
+  type LayoutUpdatedEvent,
 } from './lib/diff';
 
 export {
@@ -134,7 +168,21 @@ export {
   overlaps,
   pointerHitsItem,
   itemsAtPointer,
+  resizeByHandle,
+  resizeEdgeAxes,
   CELL_MAX_PX,
   ROW_MAX_PX,
   MOBILE_BREAKPOINT_PX,
 } from './lib/grid';
+export type { ResizeEdge, PlacementRect } from './lib/grid';
+
+export {
+  DEFAULT_VANTAGE_TOKENS,
+  mergeVantageTokens,
+  tokensToStyle,
+  parsePxToken,
+  type VantageTokens,
+} from './theme/tokens';
+export { VantageThemeProvider, type VantageThemeProviderProps } from './theme/VantageThemeProvider';
+export { useVantageTokens } from './theme/useVantageTokens';
+export { vantageRootProps, type VantageRootProps } from './theme/applyRoot';

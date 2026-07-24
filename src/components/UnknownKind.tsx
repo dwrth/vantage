@@ -1,6 +1,6 @@
-import type { ItemRendererProps } from '../types';
+import type { PreviewRendererProps } from '../types';
 
-export function UnknownKind({ item }: ItemRendererProps) {
+export function UnknownKind({ item }: PreviewRendererProps) {
   return (
     <div
       style={{

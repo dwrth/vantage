@@ -3,11 +3,12 @@ import {
   getEnabledBreakpoints,
   resolveBreakpointFromLayout,
   resolveItem,
-  resolveItemData,
   resolveSection,
 } from '../lib/breakpoint';
+import { resolveEffectiveItemData } from '../lib/entities';
 import { resolveRenderer, resolveRegistry } from '../lib/registry';
 import { useContainerWidth } from '../hooks/useContainerWidth';
+import { useResolveItemData } from '../hooks/useItemData';
 import type {
   Breakpoint,
   ComponentRegistry,
@@ -16,6 +17,8 @@ import type {
   ResolvedComponentRegistry,
   Section,
 } from '../types';
+import { vantageRootProps } from '../theme/applyRoot';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import preview from '../styles/preview.module.css';
 import { SectionBackground } from './SectionBackground';
@@ -30,12 +33,31 @@ export type VantagePreviewProps = {
 
 type PreviewItemProps = {
   item: GridItem;
+  section: Section;
+  breakpoint: Breakpoint;
+  enabledBreakpoints: Breakpoint[];
   placement: ReturnType<typeof resolveItem>;
   components: ResolvedComponentRegistry;
 };
 
-function PreviewItem({ item, placement, components }: PreviewItemProps) {
-  const Renderer = resolveRenderer(components, item);
+function PreviewItem({
+  item,
+  section,
+  breakpoint,
+  enabledBreakpoints,
+  placement,
+  components,
+}: PreviewItemProps) {
+  const resolveEntity = useResolveItemData();
+  const data = resolveEffectiveItemData(
+    item,
+    section,
+    breakpoint,
+    enabledBreakpoints,
+    resolveEntity?.(item),
+  );
+  const resolvedItem = { ...item, data };
+  const Renderer = resolveRenderer(components, resolvedItem, 'preview');
   const descriptor = components[item.kind];
   const kindClass = descriptor?.previewWrapperClass ?? '';
 
@@ -46,7 +68,7 @@ function PreviewItem({ item, placement, components }: PreviewItemProps) {
 
   return (
     <div className={[preview['preview-block'], kindClass].filter(Boolean).join(' ')} style={style}>
-      {createElement(Renderer, { item, mode: 'preview' })}
+      {createElement(Renderer, { item: resolvedItem })}
     </div>
   );
 }
@@ -87,14 +109,13 @@ function PreviewSection({
         {section.items.map((item) => {
           const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
           if (placement.hidden) return null;
-          const resolvedItem = {
-            ...item,
-            data: resolveItemData(item, section, breakpoint, enabledBreakpoints),
-          };
           return (
             <PreviewItem
               key={item.id}
-              item={resolvedItem}
+              item={item}
+              section={section}
+              breakpoint={breakpoint}
+              enabledBreakpoints={enabledBreakpoints}
               placement={placement}
               components={components}
             />
@@ -119,12 +140,11 @@ export function VantagePreview({
     breakpointProp && enabledBreakpoints.includes(breakpointProp) ? breakpointProp : autoBreakpoint;
 
   const registryEmpty = Object.keys(components).length === 0;
+  const tokens = useVantageTokens();
+  const root = vantageRootProps(tokens, [preview.preview, className].filter(Boolean).join(' '));
 
   return (
-    <div
-      ref={containerRef}
-      className={['vantage-root', preview.preview, className].filter(Boolean).join(' ')}
-    >
+    <div ref={containerRef} className={root.className} style={root.style}>
       {registryEmpty ? (
         <div className={preview['preview-empty']}>
           <p>No components registered.</p>

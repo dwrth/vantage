@@ -2,31 +2,59 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   VantageBuilder,
   VantagePreview,
+  VantageInspector,
+  VantageThemeProvider,
+  ItemDataProvider,
   bringItemForward,
   bringItemToFront,
+  emitLayoutChange,
+  exportLayout,
   getEnabledBreakpoints,
+  hydrate,
   importLayout,
   isValidLayout,
-  resolveItemData,
+  resolveEffectiveItemData,
   sendItemBackward,
   sendItemToBack,
+  stripData,
   updateItemData,
+  useVantageHistory,
+  type GridItem,
+  type ItemDataChangeEvent,
   type Layout,
   type SelectionRef,
   type Breakpoint,
+  type VantageTokens,
 } from 'vantage';
 import { LayersPanel } from './LayersPanel';
 import { createSampleLayout } from './sampleLayout';
 import { demoComponents } from './blocks';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './blocks/button';
 import { ContextMenu, type ContextMenuItem } from './ContextMenu';
-import { ItemInspector } from './ItemInspector';
+import { DEMO_ENTITIES, ENTITIES_STORAGE_KEY, loadStoredEntities } from './demoEntities';
 import { SectionHeader } from './SectionHeader';
 import { SectionInspector } from './SectionInspector';
+import { ThemeEditor } from './ThemeEditor';
+import { DEMO_TOKEN_DEFAULTS } from './demoTokens';
 import { Toolbar } from './Toolbar';
 
-const STORAGE_KEY = 'vantage.layout.demo.v5';
+const STORAGE_KEY = 'vantage.layout.demo.v7';
 const BREAKPOINT_STORAGE_KEY = 'vantage.breakpoint.demo.v3';
+const THEME_STORAGE_KEY = 'vantage.theme.demo.v1';
+
+function loadStoredTokens(): VantageTokens {
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    if (!raw) return { ...DEMO_TOKEN_DEFAULTS };
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { ...DEMO_TOKEN_DEFAULTS };
+    }
+    return { ...DEMO_TOKEN_DEFAULTS, ...(parsed as VantageTokens) };
+  } catch {
+    return { ...DEMO_TOKEN_DEFAULTS };
+  }
+}
 
 function clampBreakpoint(layout: Layout, next: Breakpoint): Breakpoint {
   return getEnabledBreakpoints(layout).includes(next) ? next : 'desktop';
@@ -50,22 +78,23 @@ type LayerMenuState = {
   itemId: string;
 };
 
-type PanelTab = 'layers' | 'item' | 'section';
+type PanelTab = 'layers' | 'item' | 'section' | 'theme';
 
-function loadStoredLayout(): Layout {
+function loadStoredLayout(entities: Record<string, unknown>): Layout {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createSampleLayout();
+    if (!raw) return hydrate(createSampleLayout(), entities);
     const parsed: unknown = JSON.parse(raw);
-    if (!isValidLayout(parsed)) return createSampleLayout();
-    return importLayout(parsed);
+    if (!isValidLayout(parsed)) return hydrate(createSampleLayout(), entities);
+    return hydrate(importLayout(parsed, demoComponents), entities);
   } catch {
-    return createSampleLayout();
+    return hydrate(createSampleLayout(), entities);
   }
 }
 
 function App() {
-  const initialLayout = useMemo(() => loadStoredLayout(), []);
+  const [entities, setEntities] = useState<Record<string, unknown>>(loadStoredEntities);
+  const initialLayout = useMemo(() => loadStoredLayout(loadStoredEntities()), []);
   const [layout, setLayout] = useState<Layout>(initialLayout);
   const [storedBreakpoint, setActiveBreakpoint] = useState<Breakpoint>(() =>
     loadStoredBreakpoint(initialLayout),
@@ -75,14 +104,40 @@ function App() {
   const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
   const [inspectedSectionId, setInspectedSectionId] = useState<string | null>(null);
   const [panelTab, setPanelTab] = useState<PanelTab>('layers');
+  const [tokens, setTokens] = useState<VantageTokens>(loadStoredTokens);
+
+  const {
+    reset,
+    onChange: pushLayoutChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useVantageHistory(layout, (next) => setLayout(next));
+
+  const resolveItemData = useCallback(
+    (item: GridItem) => (item.ref ? entities[item.ref] : undefined),
+    [entities],
+  );
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(exportLayout(stripData(layout), demoComponents)),
+    );
   }, [layout]);
+
+  useEffect(() => {
+    localStorage.setItem(ENTITIES_STORAGE_KEY, JSON.stringify(entities));
+  }, [entities]);
 
   useEffect(() => {
     localStorage.setItem(BREAKPOINT_STORAGE_KEY, activeBreakpoint);
   }, [activeBreakpoint]);
+
+  useEffect(() => {
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(tokens));
+  }, [tokens]);
 
   const handleSelectionChange = useCallback((next: SelectionRef | null) => {
     setSelection(next);
@@ -97,9 +152,34 @@ function App() {
     return layout.sections.some((sec) => sec.id === inspectedSectionId) ? inspectedSectionId : null;
   }, [inspectedSectionId, layout.sections]);
 
+  const applyBaseline = useCallback(
+    (next: Layout) => {
+      reset(next);
+      setLayout(next);
+    },
+    [reset],
+  );
+
   const loadSample = useCallback(() => {
-    setLayout(createSampleLayout());
-  }, []);
+    setEntities({ ...DEMO_ENTITIES });
+    applyBaseline(hydrate(createSampleLayout(), DEMO_ENTITIES));
+  }, [applyBaseline]);
+
+  const handleItemDataChange = useCallback(
+    (event: ItemDataChangeEvent) => {
+      const section = layout.sections.find((s) => s.id === event.sectionId);
+      const item = section?.items.find((i) => i.id === event.itemId);
+      if (!item?.ref) return;
+      setEntities((prev) => {
+        const current = (prev[item.ref!] ?? {}) as Record<string, unknown>;
+        return {
+          ...prev,
+          [item.ref!]: { ...current, ...event.patch },
+        };
+      });
+    },
+    [layout.sections],
+  );
 
   const layerMenuIndex = useMemo(() => {
     if (!layerMenu) return -1;
@@ -120,32 +200,44 @@ function App() {
     if (!section || !item) return null;
     return {
       ...item,
-      data: resolveItemData(item, section, activeBreakpoint, layout.breakpoints),
+      data: resolveEffectiveItemData(
+        item,
+        section,
+        activeBreakpoint,
+        layout.breakpoints,
+        item.ref ? entities[item.ref] : undefined,
+      ),
     };
-  }, [activeBreakpoint, layout, layerMenu]);
+  }, [activeBreakpoint, entities, layout, layerMenu]);
 
   const applyLayer = useCallback(
     (mutate: (layout: Layout, sectionId: string, itemId: string) => Layout) => {
       if (!layerMenu) return;
-      setLayout((prev) => mutate(prev, layerMenu.sectionId, layerMenu.itemId));
+      emitLayoutChange(
+        layout,
+        mutate(layout, layerMenu.sectionId, layerMenu.itemId),
+        pushLayoutChange,
+      );
     },
-    [layerMenu],
+    [layerMenu, layout, pushLayoutChange],
   );
 
   const applyButtonAlignment = useCallback(
     (patch: Partial<ButtonData>) => {
       if (!layerMenu) return;
-      setLayout((prev) =>
+      emitLayoutChange(
+        layout,
         updateItemData<ButtonData>(
-          prev,
+          layout,
           layerMenu.sectionId,
           layerMenu.itemId,
           patch,
           activeBreakpoint,
         ),
+        pushLayoutChange,
       );
     },
-    [activeBreakpoint, layerMenu],
+    [activeBreakpoint, layerMenu, layout, pushLayoutChange],
   );
 
   const atBack = layerMenuIndex <= 0;
@@ -211,133 +303,174 @@ function App() {
 
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/preview')) {
     return (
-      <div className="min-h-full bg-base-100">
-        <VantagePreview value={layout} components={demoComponents} />
-      </div>
+      <VantageThemeProvider tokens={tokens}>
+        <ItemDataProvider resolveItemData={resolveItemData}>
+          <div className="min-h-full bg-base-100">
+            <VantagePreview value={layout} components={demoComponents} />
+          </div>
+        </ItemDataProvider>
+      </VantageThemeProvider>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <Toolbar
-        layout={layout}
-        onChange={setLayout}
-        onLoadSample={loadSample}
-        activeBreakpoint={activeBreakpoint}
-        onActiveBreakpointChange={setActiveBreakpoint}
-      />
+    <VantageThemeProvider tokens={tokens}>
+      <ItemDataProvider resolveItemData={resolveItemData}>
+        <div className="flex h-full min-h-0 flex-col">
+          <Toolbar
+            layout={layout}
+            components={demoComponents}
+            entities={entities}
+            onChange={pushLayoutChange}
+            onBaselineChange={applyBaseline}
+            onLoadSample={loadSample}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            activeBreakpoint={activeBreakpoint}
+            onActiveBreakpointChange={setActiveBreakpoint}
+          />
 
-      <div className="drawer drawer-end lg:drawer-open min-h-0 flex-1">
-        <input id="vantage-drawer" type="checkbox" className="drawer-toggle" />
+          <div className="drawer drawer-end lg:drawer-open min-h-0 flex-1">
+            <input id="vantage-drawer" type="checkbox" className="drawer-toggle" />
 
-        <div className="drawer-content flex min-h-0 flex-col">
-          <div className="flex items-center justify-between gap-2 border-b border-base-300/40 px-3 py-1.5 lg:hidden">
-            <span className="font-mono text-xs text-base-content/50">
-              bp:<span className="text-primary">{activeBreakpoint}</span>
-            </span>
-            <label htmlFor="vantage-drawer" className="btn btn-ghost btn-sm drawer-button">
-              Panels
-            </label>
+            <div className="drawer-content flex min-h-0 flex-col">
+              <div className="flex items-center justify-between gap-2 border-b border-base-300/40 px-3 py-1.5 lg:hidden">
+                <span className="font-mono text-xs text-base-content/50">
+                  bp:<span className="text-primary">{activeBreakpoint}</span>
+                </span>
+                <label htmlFor="vantage-drawer" className="btn btn-ghost btn-sm drawer-button">
+                  Panels
+                </label>
+              </div>
+
+              <main className="animate-fade-up min-h-0 flex-1 overflow-auto p-3 md:p-4">
+                <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
+                  <VantageBuilder
+                    value={layout}
+                    onChange={pushLayoutChange}
+                    components={demoComponents}
+                    className="min-h-[70vh]"
+                    renderSectionHeader={(ctx) => (
+                      <SectionHeader
+                        layout={layout}
+                        onChange={pushLayoutChange}
+                        components={demoComponents}
+                        {...ctx}
+                      />
+                    )}
+                    selectedItem={selection}
+                    onSelectionChange={handleSelectionChange}
+                    activeBreakpoint={activeBreakpoint}
+                    onActiveBreakpointChange={setActiveBreakpoint}
+                    onItemContextMenu={(e, { sectionId, item }) => {
+                      handleSelectionChange({ sectionId, itemId: item.id });
+                      setLayerMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        sectionId,
+                        itemId: item.id,
+                      });
+                    }}
+                  />
+                </div>
+              </main>
+            </div>
+
+            <div className="drawer-side z-40 is-drawer-close:overflow-visible">
+              <label
+                htmlFor="vantage-drawer"
+                aria-label="close sidebar"
+                className="drawer-overlay"
+              />
+              <aside className="flex h-full w-80 flex-col border-l border-base-300/60 bg-base-200/95 backdrop-blur-md">
+                <div role="tablist" className="tabs tabs-box tabs-sm m-2">
+                  {(
+                    [
+                      ['layers', 'Layers'],
+                      ['item', 'Item'],
+                      ['section', 'Section'],
+                      ['theme', 'Theme'],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      className={`tab flex-1 ${panelTab === id ? 'tab-active' : ''}`}
+                      onClick={() => setPanelTab(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  {panelTab === 'layers' ? (
+                    <LayersPanel
+                      layout={layout}
+                      onChange={pushLayoutChange}
+                      selection={selection}
+                      onSelectionChange={handleSelectionChange}
+                      activeBreakpoint={activeBreakpoint}
+                    />
+                  ) : null}
+                  {panelTab === 'item' ? (
+                    <VantageInspector
+                      layout={layout}
+                      onChange={pushLayoutChange}
+                      onItemDataChange={handleItemDataChange}
+                      components={demoComponents}
+                      selection={selection}
+                      activeBreakpoint={activeBreakpoint}
+                      className="flex h-full min-h-0 flex-col"
+                      emptyState={
+                        <div className="flex h-full items-center justify-center p-4 text-center text-sm text-base-content/50">
+                          Select a block to inspect settings.
+                        </div>
+                      }
+                      renderHeader={({ item }) => (
+                        <div className="flex items-center justify-between border-b border-base-300/50 px-3 py-2">
+                          <span className="text-xs font-semibold tracking-wider text-base-content/60 uppercase">
+                            Item
+                          </span>
+                          <span className="badge badge-soft badge-sm font-mono">
+                            {item.kind}
+                            {item.ref ? ` · ${item.ref}` : ''}
+                          </span>
+                        </div>
+                      )}
+                    />
+                  ) : null}
+                  {panelTab === 'section' ? (
+                    <SectionInspector
+                      layout={layout}
+                      onChange={pushLayoutChange}
+                      selectedSectionId={effectiveInspectedSectionId}
+                      onSelectSection={setInspectedSectionId}
+                      activeBreakpoint={activeBreakpoint}
+                    />
+                  ) : null}
+                  {panelTab === 'theme' ? (
+                    <ThemeEditor tokens={tokens} onChange={setTokens} />
+                  ) : null}
+                </div>
+              </aside>
+            </div>
           </div>
 
-          <main className="animate-fade-up min-h-0 flex-1 overflow-auto p-3 md:p-4">
-            <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
-              <VantageBuilder
-                value={layout}
-                onChange={setLayout}
-                components={demoComponents}
-                className="min-h-[70vh]"
-                renderSectionHeader={(ctx) => (
-                  <SectionHeader
-                    layout={layout}
-                    onChange={setLayout}
-                    components={demoComponents}
-                    {...ctx}
-                  />
-                )}
-                selectedItem={selection}
-                onSelectionChange={handleSelectionChange}
-                activeBreakpoint={activeBreakpoint}
-                onActiveBreakpointChange={setActiveBreakpoint}
-                onItemContextMenu={(e, { sectionId, item }) => {
-                  handleSelectionChange({ sectionId, itemId: item.id });
-                  setLayerMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    sectionId,
-                    itemId: item.id,
-                  });
-                }}
-              />
-            </div>
-          </main>
+          {layerMenu ? (
+            <ContextMenu
+              x={layerMenu.x}
+              y={layerMenu.y}
+              onClose={() => setLayerMenu(null)}
+              items={contextMenuItems}
+            />
+          ) : null}
         </div>
-
-        <div className="drawer-side z-40 is-drawer-close:overflow-visible">
-          <label htmlFor="vantage-drawer" aria-label="close sidebar" className="drawer-overlay" />
-          <aside className="flex h-full w-80 flex-col border-l border-base-300/60 bg-base-200/95 backdrop-blur-md">
-            <div role="tablist" className="tabs tabs-box tabs-sm m-2">
-              {(
-                [
-                  ['layers', 'Layers'],
-                  ['item', 'Item'],
-                  ['section', 'Section'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  className={`tab flex-1 ${panelTab === id ? 'tab-active' : ''}`}
-                  onClick={() => setPanelTab(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-hidden">
-              {panelTab === 'layers' ? (
-                <LayersPanel
-                  layout={layout}
-                  onChange={setLayout}
-                  selection={selection}
-                  onSelectionChange={handleSelectionChange}
-                  activeBreakpoint={activeBreakpoint}
-                />
-              ) : null}
-              {panelTab === 'item' ? (
-                <ItemInspector
-                  layout={layout}
-                  onChange={setLayout}
-                  components={demoComponents}
-                  selection={selection}
-                  activeBreakpoint={activeBreakpoint}
-                />
-              ) : null}
-              {panelTab === 'section' ? (
-                <SectionInspector
-                  layout={layout}
-                  onChange={setLayout}
-                  selectedSectionId={effectiveInspectedSectionId}
-                  onSelectSection={setInspectedSectionId}
-                  activeBreakpoint={activeBreakpoint}
-                />
-              ) : null}
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      {layerMenu ? (
-        <ContextMenu
-          x={layerMenu.x}
-          y={layerMenu.y}
-          onClose={() => setLayerMenu(null)}
-          items={contextMenuItems}
-        />
-      ) : null}
-    </div>
+      </ItemDataProvider>
+    </VantageThemeProvider>
   );
 }
 

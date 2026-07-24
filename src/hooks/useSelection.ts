@@ -1,5 +1,6 @@
 import { useBuilderContext } from '../context/BuilderContext';
-import { resolveItemData } from '../lib/breakpoint';
+import { resolveEffectiveItemData } from '../lib/entities';
+import { useResolveItemData } from './useItemData';
 
 export function useSelection() {
   const { selection, setSelection } = useBuilderContext();
@@ -14,6 +15,7 @@ export function useSelection() {
 
 export function useSelectedItem() {
   const { selection, layout, components, activeBreakpoint } = useBuilderContext();
+  const resolveEntity = useResolveItemData();
   if (!selection) return null;
   const section = layout.sections.find((s) => s.id === selection.sectionId);
   if (!section) return null;
@@ -22,7 +24,13 @@ export function useSelectedItem() {
   return {
     section,
     item,
-    resolvedData: resolveItemData(item, section, activeBreakpoint, layout.breakpoints),
+    resolvedData: resolveEffectiveItemData(
+      item,
+      section,
+      activeBreakpoint,
+      layout.breakpoints,
+      resolveEntity?.(item),
+    ),
     descriptor: components[item.kind],
     activeBreakpoint,
   };

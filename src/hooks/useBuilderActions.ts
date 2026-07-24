@@ -101,12 +101,23 @@ export function useBuilderActions() {
       resizeItem: (
         sectionId: string,
         itemId: string,
+        x: number,
+        y: number,
         w: number,
         h: number,
         breakpoint?: Breakpoint,
       ) =>
         apply(
-          mutations.resizeItem(layout, sectionId, itemId, w, h, breakpoint ?? activeBreakpoint),
+          mutations.resizeItem(
+            layout,
+            sectionId,
+            itemId,
+            x,
+            y,
+            w,
+            h,
+            breakpoint ?? activeBreakpoint,
+          ),
         ),
       removeItem: (sectionId: string, itemId: string) =>
         apply(mutations.removeItem(layout, sectionId, itemId)),
@@ -118,7 +129,7 @@ export function useBuilderActions() {
         apply(mutations.bringItemToFront(layout, sectionId, itemId)),
       sendItemToBack: (sectionId: string, itemId: string) =>
         apply(mutations.sendItemToBack(layout, sectionId, itemId)),
-      importLayout: (data: Layout) => apply(mutations.importLayout(data)),
+      importLayout: (data: Layout) => apply(mutations.importLayout(data, components)),
       clear: () => apply(mutations.clearLayout()),
     }),
     [layout, apply, components, activeBreakpoint],

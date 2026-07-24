@@ -1,5 +1,5 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { BuilderContext } from '../context/BuilderContext';
 import {
   getBreakpointPreviewWidths,
@@ -7,18 +7,12 @@ import {
   getEnabledBreakpoints,
   isBreakpointEnabled,
 } from '../lib/breakpoint';
-import {
-  diffLayouts,
-  type ItemAddedEvent,
-  type ItemMovedEvent,
-  type ItemRemovedEvent,
-  type ItemUpdatedEvent,
-  type SectionAddedEvent,
-  type SectionRemovedEvent,
-} from '../lib/diff';
+import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveRegistry } from '../lib/registry';
 import type { ItemContextMenuEvent, SelectionRef } from '../context/BuilderContext';
 import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
+import { vantageRootProps } from '../theme/applyRoot';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import { Canvas } from './Canvas';
 
@@ -42,7 +36,7 @@ export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
 
 export type VantageBuilderProps = {
   value: Layout;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   components: ComponentRegistry;
   className?: string;
   children?: ReactNode;
@@ -58,12 +52,6 @@ export type VantageBuilderProps = {
   renderDragHandle?: (ctx: ItemDragHandleRenderProps) => ReactNode;
   renderDeleteButton?: (ctx: ItemDeleteButtonRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
-  onItemAdded?: (ctx: ItemAddedEvent) => void;
-  onItemRemoved?: (ctx: ItemRemovedEvent) => void;
-  onItemUpdated?: (ctx: ItemUpdatedEvent) => void;
-  onItemMoved?: (ctx: ItemMovedEvent) => void;
-  onSectionAdded?: (ctx: SectionAddedEvent) => void;
-  onSectionRemoved?: (ctx: SectionRemovedEvent) => void;
 };
 
 export type SectionChromeRenderProps = {
@@ -92,12 +80,6 @@ export function VantageBuilder({
   renderDragHandle,
   renderDeleteButton,
   onItemContextMenu,
-  onItemAdded,
-  onItemRemoved,
-  onItemUpdated,
-  onItemMoved,
-  onSectionAdded,
-  onSectionRemoved,
 }: VantageBuilderProps) {
   const enabledBreakpoints = useMemo(() => getEnabledBreakpoints(value), [value]);
   const breakpointWidths = useMemo(() => getBreakpointWidths(value), [value]);
@@ -145,29 +127,14 @@ export function VantageBuilder({
     [isBreakpointControlled, onActiveBreakpointChange, value],
   );
 
-  const registryEmpty = Object.keys(components).length === 0;
-  const prevLayoutRef = useRef<Layout | null>(null);
+  const emitChange = useCallback(
+    (next: Layout) => onChange(next, diffLayouts(value, next)),
+    [onChange, value],
+  );
 
-  useEffect(() => {
-    const prev = prevLayoutRef.current;
-    prevLayoutRef.current = value;
-    if (prev === null || prev === value) return;
-    const changeset = diffLayouts(prev, value);
-    changeset.sectionsAdded.forEach((ctx) => onSectionAdded?.(ctx));
-    changeset.sectionsRemoved.forEach((ctx) => onSectionRemoved?.(ctx));
-    changeset.itemsAdded.forEach((ctx) => onItemAdded?.(ctx));
-    changeset.itemsRemoved.forEach((ctx) => onItemRemoved?.(ctx));
-    changeset.itemsMoved.forEach((ctx) => onItemMoved?.(ctx));
-    changeset.itemsUpdated.forEach((ctx) => onItemUpdated?.(ctx));
-  }, [
-    value,
-    onItemAdded,
-    onItemRemoved,
-    onItemUpdated,
-    onItemMoved,
-    onSectionAdded,
-    onSectionRemoved,
-  ]);
+  const registryEmpty = Object.keys(components).length === 0;
+  const tokens = useVantageTokens();
+  const root = vantageRootProps(tokens, className);
 
   return (
     <BuilderContext.Provider
@@ -176,7 +143,7 @@ export function VantageBuilder({
         enabledBreakpoints,
         breakpointWidths,
         breakpointPreviewWidths,
-        onChange,
+        onChange: emitChange,
         components,
         isInteracting,
         setInteracting,
@@ -192,7 +159,7 @@ export function VantageBuilder({
         onItemContextMenu,
       }}
     >
-      <div className={['vantage-root', className].filter(Boolean).join(' ')}>
+      <div className={root.className} style={root.style}>
         {children}
         {registryEmpty ? (
           <div

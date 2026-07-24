@@ -8,9 +8,14 @@ export type GridItem<TData = unknown> = {
   h: number;
   kind: string;
   label?: string;
+  /** External entity id. Layout may omit `data` when host resolves via `ref`. */
+  ref?: string;
   data?: TData;
   meta?: Record<string, unknown>;
 };
+
+/** Sync host resolver for entity payloads keyed by `item.ref`. */
+export type ResolveItemData = (item: GridItem) => unknown | undefined;
 
 export type SectionBackgroundImageSize = 'cover' | 'contain' | 'auto';
 
@@ -112,10 +117,12 @@ export type Layout<TData = unknown> = {
   meta?: Record<string, unknown>;
 };
 
-export type ItemRendererProps<TData = unknown> = {
+export type PreviewRendererProps<TData = unknown> = {
   item: GridItem<TData>;
-  mode: 'edit' | 'preview';
-  interactive?: boolean;
+};
+
+export type EditRendererProps<TData = unknown> = {
+  item: GridItem<TData>;
 };
 
 export type KindDefaults<TData = unknown> = {
@@ -127,16 +134,37 @@ export type KindDefaults<TData = unknown> = {
 
 export type InspectorScope = 'base' | 'active';
 
+export type InspectorChangeOpts = {
+  scope?: InspectorScope;
+  /** Host dirty-tracking signal. Defaults to `true` when omitted by the kind panel. */
+  dirty?: boolean;
+};
+
 export type InspectorProps<TData = unknown> = {
   item: GridItem<TData>;
   resolvedData: TData;
   section: Section<TData>;
   activeBreakpoint: Breakpoint;
-  onChange: (patch: Partial<TData>, opts?: { scope?: InspectorScope }) => void;
+  onChange: (patch: Partial<TData>, opts?: InspectorChangeOpts) => void;
+};
+
+export type ItemDataChangeEvent<TData = unknown> = {
+  sectionId: string;
+  itemId: string;
+  patch: Partial<TData>;
+  /** Breakpoint already mapped from inspector scope. */
+  breakpoint: Breakpoint;
+  scope: InspectorScope;
+  dirty: boolean;
 };
 
 export type KindDescriptor<TData = unknown> = {
-  component: FC<ItemRendererProps<TData>>;
+  /** Preview / published surface. Always mounted by `VantagePreview`. */
+  component: FC<PreviewRendererProps<TData>>;
+  /** Builder surface. When omitted, builder mounts `component` with `{ item }` only. */
+  editComponent?: FC<EditRendererProps<TData>>;
+  /** Builder shell until the item is selected. When omitted, always mounts edit renderer. */
+  editPlaceholder?: FC<PreviewRendererProps<TData>>;
   inspector?: FC<InspectorProps<TData>>;
   defaults: KindDefaults<TData>;
   displayName?: string;
@@ -144,13 +172,17 @@ export type KindDescriptor<TData = unknown> = {
   editWrapperClass?: string;
   /** Applied to the preview grid cell wrapper. */
   previewWrapperClass?: string;
+  /** Map in-memory kind data to wire/storage shape on export. */
+  toPersistedData?(data: TData): unknown;
+  /** Map wire/storage shape to in-memory kind data on import. */
+  fromPersistedData?(raw: unknown): TData;
+  /** Return `void` or empty array when valid; non-empty `string[]` fails import. */
+  validate?(data: TData): void | string[];
 };
 
 // Per-kind data types differ inside a registry; `any` preserves each entry's component/data pairing.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type KindEntry<TData = any> = KindDescriptor<TData> | FC<ItemRendererProps<TData>>;
-
-export type ComponentRegistry = Record<string, KindEntry>;
+export type ComponentRegistry = Record<string, KindDescriptor<any>>;
 
 export type ResolvedKindDescriptor<TData = unknown> = KindDescriptor<TData>;
 

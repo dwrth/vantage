@@ -32,19 +32,35 @@ import {
   createEmptyLayout,
   defineKind,
   type Layout,
+  type PreviewRendererProps,
+  type EditRendererProps,
 } from 'vantage';
 import 'vantage/style.css';
 
 type HeroData = { title: string; body: string };
 
-const heroKind = defineKind<HeroData>({
-  component: ({ item, mode }) => (
+function HeroPreview({ item }: PreviewRendererProps<HeroData>) {
+  return (
     <div>
       <h2>{item.data?.title}</h2>
       <p>{item.data?.body}</p>
-      {mode === 'edit' && <span>Editing</span>}
     </div>
-  ),
+  );
+}
+
+function HeroEdit({ item }: EditRendererProps<HeroData>) {
+  return (
+    <div>
+      <h2>{item.data?.title}</h2>
+      <p>{item.data?.body}</p>
+      <span>Editing</span>
+    </div>
+  );
+}
+
+const heroKind = defineKind<HeroData>({
+  component: HeroPreview,
+  editComponent: HeroEdit,
   defaults: { w: 6, h: 4, label: 'Hero', data: { title: 'Hello', body: 'World' } },
   displayName: 'Hero',
 });
@@ -55,7 +71,7 @@ function App() {
   const [layout, setLayout] = useState<Layout>(createEmptyLayout);
   return (
     <>
-      <VantageBuilder value={layout} onChange={setLayout} components={components} />
+      <VantageBuilder value={layout} onChange={(next) => setLayout(next)} components={components} />
       <VantagePreview value={layout} components={components} />
     </>
   );
@@ -73,9 +89,11 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Breakpoints](docs/breakpoints.md)         | Responsive overrides, resolution helpers             |
 | [Selection](docs/selection.md)             | Controlled / uncontrolled selection                  |
 | [Section backgrounds](docs/backgrounds.md) | Color, image, blur, focal crop, parallax             |
-| [Persistence](docs/persistence.md)         | localStorage, file I/O, preview route                |
+| [Persistence](docs/persistence.md)         | `ref`, strip/hydrate, kind persist hooks, file I/O   |
+| [Undo / history](docs/history.md)          | `useVantageHistory`, coalesce, reset                 |
 | [Custom blocks](docs/blocks.md)            | `defineKind` patterns, interactivity, pitfalls       |
-| [Host panels](docs/panels.md)              | Layers, inspectors, toolbars (demo patterns)         |
+| [Theme / tokens](docs/theme.md)            | `VantageThemeProvider`, opaque CSS token maps        |
+| [Host panels](docs/panels.md)              | `VantageInspector`, layers, toolbars (demo patterns) |
 
 ## Development
 

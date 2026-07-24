@@ -1,6 +1,10 @@
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import { StatefulForm, type FormData } from './StatefulForm';
 
-export function FormComponent({ item, mode, interactive }: ItemRendererProps<FormData>) {
-  return <StatefulForm item={item} interactive={mode === 'edit' ? interactive : false} />;
+export function FormPreview({ item }: PreviewRendererProps<FormData>) {
+  return <StatefulForm item={item} />;
+}
+
+export function FormEdit({ item }: EditRendererProps<FormData>) {
+  return <StatefulForm item={item} />;
 }

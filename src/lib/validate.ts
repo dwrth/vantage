@@ -30,6 +30,7 @@ function isValidItem(raw: unknown): raw is GridItem {
     return false;
   }
   if (raw.label !== undefined && typeof raw.label !== 'string') return false;
+  if (raw.ref !== undefined && typeof raw.ref !== 'string') return false;
   if (raw.data !== undefined && !isPlainObject(raw.data)) return false;
   if (!isValidMeta(raw.meta)) return false;
   return true;

@@ -1,7 +1,10 @@
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { resolveItem, resolveItemData, resolveSection } from '../lib/breakpoint';
+import { resolveItem, resolveSection } from '../lib/breakpoint';
+import { resolveEffectiveItemData } from '../lib/entities';
 import {
+  CELL_MAX_PX,
+  ROW_MAX_PX,
   deltaToGrid,
   getCellHeight,
   getCellWidth,
@@ -11,9 +14,13 @@ import {
   itemsAtPointer,
 } from '../lib/grid';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
+import { VantagePointerSensor } from '../lib/pointerSensor';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useContainerWidth } from '../hooks/useContainerWidth';
+import { useResolveItemData } from '../hooks/useItemData';
+import { parsePxToken } from '../theme/tokens';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import type { BreakpointWidths, GridItem, Section } from '../types';
 import builder from '../styles/builder.module.css';
 import { GridBlock } from './GridBlock';
@@ -55,6 +62,7 @@ function editorCanvasMaxWidth(
 export function SectionView({ section }: SectionViewProps) {
   const { id, items, background } = section;
   const {
+    layout,
     isInteracting,
     setInteracting,
     selection,
@@ -65,10 +73,12 @@ export function SectionView({ section }: SectionViewProps) {
     renderSectionFooter,
   } = useBuilderContext();
   const { moveItem } = useBuilderActions();
+  const resolveEntity = useResolveItemData();
+  const enabledBreakpoints = layout.breakpoints;
 
   const resolved = useMemo(
-    () => resolveSection(section, activeBreakpoint),
-    [section, activeBreakpoint],
+    () => resolveSection(section, activeBreakpoint, enabledBreakpoints),
+    [section, activeBreakpoint, enabledBreakpoints],
   );
   const { columns, colGap, rowGap, paddingTop, paddingBottom } = resolved;
 
@@ -78,22 +88,31 @@ export function SectionView({ section }: SectionViewProps) {
         .map((item) => ({
           item: {
             ...item,
-            data: resolveItemData(item, section, activeBreakpoint),
+            data: resolveEffectiveItemData(
+              item,
+              section,
+              activeBreakpoint,
+              enabledBreakpoints,
+              resolveEntity?.(item),
+            ),
           },
-          placement: resolveItem(item, section, activeBreakpoint),
+          placement: resolveItem(item, section, activeBreakpoint, enabledBreakpoints),
         }))
         .filter(({ placement }) => !placement.hidden),
-    [items, section, activeBreakpoint],
+    [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
   );
 
   const { containerRef, containerWidth } = useContainerWidth<HTMLDivElement>();
   const [measuredRowSteps, setMeasuredRowSteps] = useState<number[]>([]);
+  const tokens = useVantageTokens();
+  const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
+  const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
 
-  const cellWidth = getCellWidth(containerWidth, columns, colGap);
-  const flexRowPx = getFlexRowHeight(containerWidth, columns, colGap);
+  const cellWidth = getCellWidth(containerWidth, columns, colGap, cellMaxPx);
+  const flexRowPx = getFlexRowHeight(containerWidth, columns, colGap, rowMaxPx, cellMaxPx);
   const cellHeight = getCellHeight(flexRowPx, rowGap);
   const cellXStep = getCellXStep(cellWidth, colGap);
-  const contentOffsetX = getGridContentOffset(containerWidth, columns, colGap);
+  const contentOffsetX = getGridContentOffset(containerWidth, columns, colGap, cellMaxPx);
   const rowSteps = measuredRowSteps.length > 0 ? measuredRowSteps : null;
 
   useLayoutEffect(() => {
@@ -135,7 +154,9 @@ export function SectionView({ section }: SectionViewProps) {
     [resolvedItems],
   );
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(VantagePointerSensor, { activationConstraint: { distance: 4 } }),
+  );
 
   const onDragStart = useCallback(() => {
     setInteracting(true);
@@ -284,14 +305,23 @@ export function SectionView({ section }: SectionViewProps) {
             >
               <SectionBackground background={background} className={builder['section-bg']} />
               {rowSteps ? (
-                <div className={builder['grid-overlay']} aria-hidden="true">
-                  {rowSteps.map((_, index) => (
-                    <span
-                      key={index}
-                      className={builder['grid-overlay__row-line']}
-                      style={{ top: `${getRowStart(index, rowSteps, cellHeight)}px` }}
-                    />
-                  ))}
+                <div
+                  className={builder['grid-overlay']}
+                  aria-hidden="true"
+                  style={
+                    {
+                      gridTemplateColumns: `repeat(${columns}, var(--cell-px))`,
+                      gridTemplateRows: rowSteps
+                        .map((step) => `${Math.max(0, step - rowGap)}px`)
+                        .join(' '),
+                    } as React.CSSProperties
+                  }
+                >
+                  {rowSteps.flatMap((_, row) =>
+                    Array.from({ length: columns }, (_, col) => (
+                      <span key={`${row}-${col}`} className={builder['grid-overlay__cell']} />
+                    )),
+                  )}
                 </div>
               ) : null}
               {resolvedItems.map(({ item, placement }) => (

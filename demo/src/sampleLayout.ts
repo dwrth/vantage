@@ -142,10 +142,7 @@ const SAMPLE_SECTIONS = [
         w: 5,
         h: 8,
         label: 'Hero visual',
-        data: {
-          content: 'https://picsum.photos/seed/vantage-hero-panel/900/1200',
-          label: 'Product surface',
-        },
+        ref: 'entity-hero-visual',
       },
     ],
     overrides: {

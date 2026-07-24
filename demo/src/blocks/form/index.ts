@@ -1,9 +1,10 @@
 import { defineKind } from 'vantage';
 import type { FormData } from './StatefulForm';
-import { FormComponent } from './FormComponent';
+import { FormEdit, FormPreview } from './FormComponent';
 
 export const formKind = defineKind<FormData>({
-  component: FormComponent,
+  component: FormPreview,
+  editComponent: FormEdit,
   defaults: {
     w: 6,
     h: 5,
@@ -16,6 +17,6 @@ export const formKind = defineKind<FormData>({
     },
   },
   displayName: 'Form',
-  editWrapperClass: 'bg-base-100!',
-  previewWrapperClass: 'bg-base-100! rounded-box',
+  editWrapperClass: 'bg-base-100! contain-none!',
+  previewWrapperClass: 'bg-base-100! rounded-box contain-none!',
 });

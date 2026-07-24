@@ -62,6 +62,58 @@ export function clampItem(
   return { x, y, w, h };
 }
 
+export type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+export type PlacementRect = Pick<GridItem, 'x' | 'y' | 'w' | 'h'>;
+
+/** Whether this edge moves the east / west / north / south side of the rect. */
+export function resizeEdgeAxes(edge: ResizeEdge): {
+  moveE: boolean;
+  moveW: boolean;
+  moveN: boolean;
+  moveS: boolean;
+} {
+  return {
+    moveE: edge === 'e' || edge === 'ne' || edge === 'se',
+    moveW: edge === 'w' || edge === 'nw' || edge === 'sw',
+    moveN: edge === 'n' || edge === 'ne' || edge === 'nw',
+    moveS: edge === 's' || edge === 'se' || edge === 'sw',
+  };
+}
+
+/**
+ * Apply cell-snapped `dw` / `dh` from a resize handle, anchoring the opposite edge(s).
+ * Pass deltas already snapped to the grid (incl. rowSteps for vertical).
+ */
+export function resizeByHandle(
+  start: PlacementRect,
+  edge: ResizeEdge,
+  dw: number,
+  dh: number,
+  columns: number,
+): PlacementRect {
+  const { moveE, moveW, moveN, moveS } = resizeEdgeAxes(edge);
+  let { x, y, w, h } = start;
+
+  if (moveE) {
+    w = Math.max(1, Math.min(start.w + dw, columns - start.x));
+  } else if (moveW) {
+    const right = start.x + start.w;
+    x = Math.max(0, Math.min(start.x + dw, right - 1));
+    w = right - x;
+  }
+
+  if (moveS) {
+    h = Math.max(1, start.h + dh);
+  } else if (moveN) {
+    const bottom = start.y + start.h;
+    y = Math.max(0, Math.min(start.y + dh, bottom - 1));
+    h = bottom - y;
+  }
+
+  return clampItem({ x, y, w, h }, columns);
+}
+
 export function overlaps(a: GridItem, b: GridItem): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }

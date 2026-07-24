@@ -2,16 +2,21 @@ import { useRef } from 'react';
 import {
   BREAKPOINTS,
   clearLayout,
+  emitLayoutChange,
   exportLayout,
   getBreakpointPreviewWidths,
   getBreakpointWidths,
+  hydrate,
   importLayout,
   isValidLayout,
   setBreakpointPreviewWidth,
   setBreakpointWidth,
   setLayoutBreakpoints,
+  stripData,
   type Breakpoint,
+  type ComponentRegistry,
   type Layout,
+  type LayoutChangeset,
 } from 'vantage';
 
 const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
@@ -22,16 +27,31 @@ const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
 
 type ToolbarProps = {
   layout: Layout;
-  onChange: (layout: Layout) => void;
+  components: ComponentRegistry;
+  entities: Record<string, unknown>;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
+  /** Clear / Sample / Import — bypasses history stack (host calls `reset`). */
+  onBaselineChange: (next: Layout) => void;
   onLoadSample: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
   activeBreakpoint: Breakpoint;
   onActiveBreakpointChange: (next: Breakpoint) => void;
 };
 
 export function Toolbar({
   layout,
+  components,
+  entities,
   onChange,
+  onBaselineChange,
   onLoadSample,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   activeBreakpoint,
   onActiveBreakpointChange,
 }: ToolbarProps) {
@@ -42,7 +62,7 @@ export function Toolbar({
   const previewWidths = getBreakpointPreviewWidths(layout);
 
   const handleExport = () => {
-    const blob = new Blob([JSON.stringify(exportLayout(layout), null, 2)], {
+    const blob = new Blob([JSON.stringify(exportLayout(stripData(layout), components), null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
@@ -64,9 +84,9 @@ export function Toolbar({
           alert('Invalid layout JSON');
           return;
         }
-        onChange(importLayout(data as Layout));
-      } catch {
-        alert('Failed to parse JSON');
+        onBaselineChange(hydrate(importLayout(data as Layout, components), entities));
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Failed to parse JSON');
       }
     };
     reader.readAsText(file);
@@ -78,7 +98,7 @@ export function Toolbar({
     const next: Breakpoint[] = hasTablet
       ? enabledBreakpoints.filter((bp) => bp !== 'tablet')
       : [...enabledBreakpoints, 'tablet'];
-    onChange(setLayoutBreakpoints(layout, next));
+    emitLayoutChange(layout, setLayoutBreakpoints(layout, next), onChange);
   };
 
   return (
@@ -120,7 +140,8 @@ export function Toolbar({
                 value={breakpointWidths.mobile ?? 640}
                 onChange={(e) => {
                   const num = Number(e.target.value);
-                  if (Number.isFinite(num)) onChange(setBreakpointWidth(layout, 'mobile', num));
+                  if (Number.isFinite(num))
+                    emitLayoutChange(layout, setBreakpointWidth(layout, 'mobile', num), onChange);
                 }}
               />
             </label>
@@ -134,7 +155,11 @@ export function Toolbar({
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   if (Number.isFinite(num))
-                    onChange(setBreakpointPreviewWidth(layout, 'mobile', num));
+                    emitLayoutChange(
+                      layout,
+                      setBreakpointPreviewWidth(layout, 'mobile', num),
+                      onChange,
+                    );
                 }}
               />
             </label>
@@ -152,7 +177,8 @@ export function Toolbar({
                 value={breakpointWidths.tablet ?? 1023}
                 onChange={(e) => {
                   const num = Number(e.target.value);
-                  if (Number.isFinite(num)) onChange(setBreakpointWidth(layout, 'tablet', num));
+                  if (Number.isFinite(num))
+                    emitLayoutChange(layout, setBreakpointWidth(layout, 'tablet', num), onChange);
                 }}
               />
             </label>
@@ -166,7 +192,11 @@ export function Toolbar({
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   if (Number.isFinite(num))
-                    onChange(setBreakpointPreviewWidth(layout, 'tablet', num));
+                    emitLayoutChange(
+                      layout,
+                      setBreakpointPreviewWidth(layout, 'tablet', num),
+                      onChange,
+                    );
                 }}
               />
             </label>
@@ -189,7 +219,27 @@ export function Toolbar({
           <button
             type="button"
             className="btn btn-ghost btn-sm join-item"
-            onClick={() => onChange(clearLayout())}
+            disabled={!canUndo}
+            onClick={onUndo}
+            aria-label="Undo"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm join-item"
+            disabled={!canRedo}
+            onClick={onRedo}
+            aria-label="Redo"
+          >
+            Redo
+          </button>
+        </div>
+        <div className="join">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm join-item"
+            onClick={() => onBaselineChange(clearLayout())}
           >
             Clear
           </button>

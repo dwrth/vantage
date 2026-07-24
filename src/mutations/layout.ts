@@ -9,8 +9,10 @@ import {
   NON_DESKTOP_BREAKPOINTS,
   type Breakpoint,
   type BreakpointWidths,
+  type ComponentRegistry,
   type GridItem,
   type ItemOverride,
+  type KindDescriptor,
   type Layout,
   type Section,
   type SectionOverride,
@@ -19,6 +21,8 @@ import {
 export type AddItemDefaults = {
   /** Optional external stable id (for example Mongo `_id.toString()`). */
   id?: string;
+  /** External entity id for host-resolved payloads. */
+  ref?: string;
   w?: number;
   h?: number;
   label?: string;
@@ -212,6 +216,98 @@ function writeItemOverride(
   });
 }
 
+function descriptorForKind(registry: ComponentRegistry, kind: string): KindDescriptor | undefined {
+  return registry[kind];
+}
+
+function mapItemDataForExport(item: GridItem, registry: ComponentRegistry): GridItem {
+  if (item.data === undefined) return item;
+  const toPersisted = descriptorForKind(registry, item.kind)?.toPersistedData;
+  if (!toPersisted) return item;
+  return { ...item, data: toPersisted(item.data) };
+}
+
+function mapItemDataForImport(item: GridItem, registry: ComponentRegistry): GridItem {
+  const descriptor = descriptorForKind(registry, item.kind);
+  let data = item.data;
+  if (data !== undefined && descriptor?.fromPersistedData) {
+    data = descriptor.fromPersistedData(data);
+  }
+  if (data !== undefined && descriptor?.validate) {
+    const errors = descriptor.validate(data);
+    if (Array.isArray(errors) && errors.length > 0) {
+      throw new Error(
+        `[vantage] importLayout: kind "${item.kind}" item "${item.id}" invalid: ${errors.join('; ')}`,
+      );
+    }
+  }
+  return data === item.data ? item : { ...item, data };
+}
+
+function mapOverrideDataForExport(
+  kind: string,
+  data: unknown,
+  registry: ComponentRegistry,
+): unknown {
+  const toPersisted = descriptorForKind(registry, kind)?.toPersistedData;
+  if (!toPersisted || data === undefined) return data;
+  return toPersisted(data);
+}
+
+function mapOverrideDataForImport(
+  kind: string,
+  data: unknown,
+  registry: ComponentRegistry,
+): unknown {
+  const descriptor = descriptorForKind(registry, kind);
+  let next = data;
+  if (next !== undefined && descriptor?.fromPersistedData) {
+    next = descriptor.fromPersistedData(next);
+  }
+  if (next !== undefined && descriptor?.validate) {
+    const errors = descriptor.validate(next);
+    if (Array.isArray(errors) && errors.length > 0) {
+      throw new Error(
+        `[vantage] importLayout: kind "${kind}" override invalid: ${errors.join('; ')}`,
+      );
+    }
+  }
+  return next;
+}
+
+function mapOverridesData(
+  overrides: Section['overrides'],
+  items: GridItem[],
+  registry: ComponentRegistry,
+  mode: 'export' | 'import',
+): Section['overrides'] {
+  if (!overrides) return overrides;
+  const kindById = new Map(items.map((item) => [item.id, item.kind]));
+  const next: NonNullable<Section['overrides']> = {};
+  for (const [bp, ovr] of Object.entries(overrides)) {
+    if (!ovr) continue;
+    if (!ovr.items) {
+      next[bp as keyof typeof next] = ovr;
+      continue;
+    }
+    const mappedItems: Record<string, ItemOverride> = {};
+    for (const [id, itemOvr] of Object.entries(ovr.items)) {
+      const kind = kindById.get(id);
+      if (itemOvr.data === undefined || !kind) {
+        mappedItems[id] = itemOvr;
+        continue;
+      }
+      const data =
+        mode === 'export'
+          ? mapOverrideDataForExport(kind, itemOvr.data, registry)
+          : mapOverrideDataForImport(kind, itemOvr.data, registry);
+      mappedItems[id] = data === itemOvr.data ? itemOvr : { ...itemOvr, data };
+    }
+    next[bp as keyof typeof next] = { ...ovr, items: mappedItems };
+  }
+  return next;
+}
+
 export function createEmptyLayout(): Layout {
   const breakpoints: Breakpoint[] = ['desktop', 'mobile'];
   return {
@@ -222,12 +318,14 @@ export function createEmptyLayout(): Layout {
   };
 }
 
-export function exportLayout(layout: Layout): Layout {
+export function exportLayout(layout: Layout, registry: ComponentRegistry): Layout {
   const { breakpoints, breakpointWidths, breakpointPreviewWidths } =
     withNormalizedBreakpointConfig(layout);
   return {
     sections: layout.sections.map((section) => ({
       ...section,
+      items: section.items.map((item) => mapItemDataForExport(item, registry)),
+      overrides: mapOverridesData(section.overrides, section.items, registry, 'export'),
       meta: section.meta,
     })),
     breakpoints,
@@ -457,6 +555,7 @@ export function addItem(
         h,
         kind,
         label: `${baseLabel} ${sameKindCount + 1}`,
+        ref: defaults.ref,
         data: defaults.data,
         meta: defaults.meta,
       };
@@ -498,6 +597,8 @@ export function resizeItem(
   layout: Layout,
   sectionId: string,
   itemId: string,
+  x: number,
+  y: number,
   w: number,
   h: number,
   breakpoint: Breakpoint = 'desktop',
@@ -509,8 +610,8 @@ export function resizeItem(
         ...section,
         items: section.items.map((item) => {
           if (item.id !== itemId) return item;
-          const clamped = clampItem({ ...item, w, h }, section.columns);
-          return { ...item, w: clamped.w, h: clamped.h };
+          const clamped = clampItem({ ...item, x, y, w, h }, section.columns);
+          return { ...item, x: clamped.x, y: clamped.y, w: clamped.w, h: clamped.h };
         }),
       })),
     };
@@ -518,7 +619,7 @@ export function resizeItem(
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (section) =>
-      writeItemOverride(section, itemId, breakpoint, { w, h }),
+      writeItemOverride(section, itemId, breakpoint, { x, y, w, h }),
     ),
   };
 }
@@ -628,7 +729,7 @@ export function reorderItemAtIndex(
   };
 }
 
-export function importLayout(data: Layout): Layout {
+export function importLayout(data: Layout, registry: ComponentRegistry): Layout {
   const { breakpoints, breakpointWidths, breakpointPreviewWidths } = withNormalizedBreakpointConfig(
     {
       breakpoints: data.breakpoints ?? ['desktop'],
@@ -645,10 +746,14 @@ export function importLayout(data: Layout): Layout {
     sections: data.sections.map((section) => {
       let next: Section = {
         ...section,
-        items: section.items.map((item) => ({
-          ...item,
-          ...clampItem(item, section.columns),
-        })),
+        items: section.items.map((item) => {
+          const mapped = mapItemDataForImport(item, registry);
+          return {
+            ...mapped,
+            ...clampItem(mapped, section.columns),
+          };
+        }),
+        overrides: mapOverridesData(section.overrides, section.items, registry, 'import'),
       };
       for (const bp of NON_DESKTOP_BREAKPOINTS) {
         if (!enabled.has(bp)) {

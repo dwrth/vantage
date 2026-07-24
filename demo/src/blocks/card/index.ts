@@ -1,5 +1,5 @@
 import { defineKind } from 'vantage';
-import { CardComponent } from './CardComponent';
+import { CardEdit, CardPreview } from './CardComponent';
 
 export type CardData = {
   image?: string;
@@ -10,7 +10,8 @@ export type CardData = {
 };
 
 export const cardKind = defineKind<CardData>({
-  component: CardComponent,
+  component: CardPreview,
+  editComponent: CardEdit,
   defaults: {
     w: 4,
     h: 7,
@@ -25,6 +26,7 @@ export const cardKind = defineKind<CardData>({
     },
   },
   displayName: 'Card',
-  editWrapperClass: 'bg-base-100!',
-  previewWrapperClass: 'bg-base-100! rounded-box overflow-hidden',
+  // Match text: opt out of library `contain: size` so content can grow CSS tracks.
+  editWrapperClass: 'bg-base-100! contain-none!',
+  previewWrapperClass: 'bg-base-100! rounded-box overflow-hidden contain-none!',
 });

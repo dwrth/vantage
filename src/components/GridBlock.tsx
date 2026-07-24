@@ -2,12 +2,43 @@ import { useDraggable } from '@dnd-kit/core';
 import { createElement, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
-import { getCellXStep, pxToCell } from '../lib/grid';
+import {
+  getCellXStep,
+  pxToCell,
+  resizeByHandle,
+  resizeEdgeAxes,
+  type PlacementRect,
+  type ResizeEdge,
+} from '../lib/grid';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
-import { resolveRenderer } from '../hooks/useItemRenderer';
+import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
 import type { Breakpoint, GridItem } from '../types';
 import chrome from '../styles/grid-block.module.css';
+
+const RESIZE_EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+
+const RESIZE_EDGE_CLASS: Record<ResizeEdge, string> = {
+  n: 'grid-block__resize--n',
+  s: 'grid-block__resize--s',
+  e: 'grid-block__resize--e',
+  w: 'grid-block__resize--w',
+  ne: 'grid-block__resize--ne',
+  nw: 'grid-block__resize--nw',
+  se: 'grid-block__resize--se',
+  sw: 'grid-block__resize--sw',
+};
+
+const RESIZE_EDGE_LABEL: Record<ResizeEdge, string> = {
+  n: 'Resize north',
+  s: 'Resize south',
+  e: 'Resize east',
+  w: 'Resize west',
+  ne: 'Resize northeast',
+  nw: 'Resize northwest',
+  se: 'Resize southeast',
+  sw: 'Resize southwest',
+};
 
 type GridBlockProps = {
   sectionId: string;
@@ -20,6 +51,8 @@ type GridBlockProps = {
   breakpoint: Breakpoint;
   rowSteps: number[] | null;
 };
+
+type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
 
 export function GridBlock({
   sectionId,
@@ -43,13 +76,12 @@ export function GridBlock({
     renderDeleteButton,
   } = useBuilderContext();
   const { resizeItem, removeItem } = useBuilderActions();
-  const resizeStart = useRef({ w: placement.w, h: placement.h, x: 0, y: 0 });
-  const pendingResize = useRef<{ w: number; h: number } | null>(null);
-  const [resizeDraft, setResizeDraft] = useState<{ w: number; h: number } | null>(null);
+  const resizeStart = useRef<ResizeStart | null>(null);
+  const pendingResize = useRef<PlacementRect | null>(null);
+  const [resizeDraft, setResizeDraft] = useState<PlacementRect | null>(null);
   const cellXStep = getCellXStep(cellWidth, colGap);
   const cellStepRef = useRef({ x: cellXStep, y: cellHeight });
-  const displayedPlacement =
-    resizeDraft !== null ? { ...placement, w: resizeDraft.w, h: resizeDraft.h } : placement;
+  const displayedPlacement = resizeDraft !== null ? { ...placement, ...resizeDraft } : placement;
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
@@ -94,30 +126,56 @@ export function GridBlock({
   };
 
   const onResizePointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (edge: ResizeEdge, e: React.PointerEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      resizeStart.current = { w: placement.w, h: placement.h, x: e.clientX, y: e.clientY };
+      const start: ResizeStart = {
+        x: placement.x,
+        y: placement.y,
+        w: placement.w,
+        h: placement.h,
+        pointerX: e.clientX,
+        pointerY: e.clientY,
+        edge,
+      };
+      resizeStart.current = start;
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       setInteracting(true);
 
-      const computeResize = (clientX: number, clientY: number) => {
-        const dx = clientX - resizeStart.current.x;
-        const dy = clientY - resizeStart.current.y;
-        const dw = pxToCell(dx, cellStepRef.current.x);
-        const dh = rowSteps
-          ? closestRowForOffset(
-              getRowStart(placement.y + resizeStart.current.h, rowSteps, cellStepRef.current.y) +
-                dy,
-              rowSteps,
-              cellStepRef.current.y,
-            ) -
-            placement.y -
-            resizeStart.current.h
-          : pxToCell(dy, cellStepRef.current.y);
-        const w = Math.max(1, Math.min(resizeStart.current.w + dw, columns - placement.x));
-        const h = Math.max(1, resizeStart.current.h + dh);
-        return { w, h };
+      const computeResize = (clientX: number, clientY: number): PlacementRect => {
+        const current = resizeStart.current!;
+        const { moveE, moveW, moveN, moveS } = resizeEdgeAxes(current.edge);
+        const dx = clientX - current.pointerX;
+        const dy = clientY - current.pointerY;
+
+        const dw = moveE || moveW ? pxToCell(dx, cellStepRef.current.x) : 0;
+
+        let dh = 0;
+        if (moveS || moveN) {
+          if (rowSteps) {
+            if (moveS) {
+              dh =
+                closestRowForOffset(
+                  getRowStart(current.y + current.h, rowSteps, cellStepRef.current.y) + dy,
+                  rowSteps,
+                  cellStepRef.current.y,
+                ) -
+                current.y -
+                current.h;
+            } else {
+              dh =
+                closestRowForOffset(
+                  getRowStart(current.y, rowSteps, cellStepRef.current.y) + dy,
+                  rowSteps,
+                  cellStepRef.current.y,
+                ) - current.y;
+            }
+          } else {
+            dh = pxToCell(dy, cellStepRef.current.y);
+          }
+        }
+
+        return resizeByHandle(current, current.edge, dw, dh, columns);
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -128,11 +186,17 @@ export function GridBlock({
 
       const finishResize = () => {
         const next = pendingResize.current;
+        const start = resizeStart.current;
         pendingResize.current = null;
+        resizeStart.current = null;
         setResizeDraft(null);
         setInteracting(false);
-        if (next && (next.w !== placement.w || next.h !== placement.h)) {
-          resizeItem(sectionId, item.id, next.w, next.h, breakpoint);
+        if (
+          next &&
+          start &&
+          (next.x !== start.x || next.y !== start.y || next.w !== start.w || next.h !== start.h)
+        ) {
+          resizeItem(sectionId, item.id, next.x, next.y, next.w, next.h, breakpoint);
         }
       };
 
@@ -162,7 +226,6 @@ export function GridBlock({
     ],
   );
 
-  const Renderer = resolveRenderer(components, item);
   const descriptor = components[item.kind];
   const wrapperClass = descriptor?.editWrapperClass ?? '';
 
@@ -176,6 +239,16 @@ export function GridBlock({
   );
 
   const isSelected = selection?.sectionId === sectionId && selection?.itemId === item.id;
+  const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !isSelected;
+
+  let body: React.ReactNode;
+  if (usePlaceholder) {
+    body = createElement(descriptor!.editPlaceholder!, { item });
+  } else if (descriptor?.editComponent) {
+    body = createElement(descriptor.editComponent, { item });
+  } else {
+    body = createElement(resolveRenderer(components, item, 'preview'), { item });
+  }
 
   const onPointerDownCapture = useCallback(() => {
     setSelection({ sectionId, itemId: item.id });
@@ -197,7 +270,7 @@ export function GridBlock({
         onContextMenu={onItemContextMenu ? onContextMenu : undefined}
         {...attributes}
       >
-        {createElement(Renderer, { item, mode: 'edit', interactive: true })}
+        {body}
       </div>
       <div
         className={[
@@ -233,6 +306,7 @@ export function GridBlock({
             className={chrome['grid-block__handle']}
             aria-label={`Drag ${item.label ?? 'block'}`}
             title={item.label ?? 'Drag'}
+            data-vantage-drag-handle=""
             {...listeners}
             {...attributes}
           >
@@ -277,11 +351,17 @@ export function GridBlock({
             ×
           </button>
         )}
-        <div
-          className={chrome['grid-block__resize']}
-          onPointerDown={onResizePointerDown}
-          aria-label="Resize block"
-        />
+        {RESIZE_EDGES.map((edge) => (
+          <div
+            key={edge}
+            className={[chrome['grid-block__resize'], chrome[RESIZE_EDGE_CLASS[edge]]]
+              .filter(Boolean)
+              .join(' ')}
+            data-edge={edge}
+            onPointerDown={(e) => onResizePointerDown(edge, e)}
+            aria-label={RESIZE_EDGE_LABEL[edge]}
+          />
+        ))}
       </div>
     </Fragment>
   );
