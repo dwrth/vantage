@@ -35,6 +35,28 @@ Builder canvas ships without section header/footer chrome by default; the demo w
 
 Preview has no drag system, no chrome, no selection. Safe at any size — iframe, separate route (demo uses `/preview`), or inline next to the builder.
 
+## `VantageInspector`
+
+Mounts the selected item's kind `inspector` and writes via `updateItemData`. Place it beside `VantageBuilder` (same controlled `layout` / `selection` / `activeBreakpoint`).
+
+| Prop               | Required | Description                                                                                                 |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `layout`           | yes      | Current `Layout`.                                                                                           |
+| `onChange`         | yes      | Called with the next `Layout` after each inspector patch.                                                   |
+| `components`       | yes      | Same `ComponentRegistry` as the builder.                                                                    |
+| `selection`        | yes      | `{ sectionId, itemId }` or `null`.                                                                          |
+| `activeBreakpoint` | yes      | Breakpoint used for resolve + `scope: 'active'` writes.                                                     |
+| `onItemDataChange` | no       | `(event) => void` — granular patch signal (`sectionId`, `itemId`, `patch`, `breakpoint`, `scope`, `dirty`). |
+| `className`        | no       | Root class.                                                                                                 |
+| `emptyState`       | no       | Shown when nothing is selected.                                                                             |
+| `renderHeader`     | no       | `({ section, item, … }) => ReactNode` chrome above the kind panel.                                          |
+
+Kind panels receive `InspectorProps` and call `onChange(patch, { scope?, dirty? })`. Library maps scope → breakpoint, applies `updateItemData`, then fires `onChange` + optional `onItemDataChange`.
+
+Chrome is unstyled — skin with `className` / `renderHeader`. Kind field UIs stay host-authored on `defineKind`.
+
+See [Host panels](panels.md).
+
 ## `defineKind`
 
 Bundles preview/edit renderers with the defaults used when the user clicks **+ Add** for that kind.
@@ -44,7 +66,7 @@ defineKind<TData>({
   component,             // FC<PreviewRendererProps<TData>> — always mounted in preview
   editComponent?,        // FC<EditRendererProps<TData>> — builder; omit → reuse component with { item }
   editPlaceholder?,      // FC<PreviewRendererProps<TData>> — builder shell until selected
-  inspector?,            // FC<InspectorProps<TData>> — host-rendered settings panel
+  inspector?,            // FC<InspectorProps<TData>> — mounted by VantageInspector
   defaults: {            // applied on add
     w, h,                // initial grid size in columns × rows
     label?,              // shown in the add menu and layers list

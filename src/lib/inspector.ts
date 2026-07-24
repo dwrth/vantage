@@ -19,15 +19,6 @@ export type ResolvedSelection<TData = unknown> = {
   activeBreakpoint: Breakpoint;
 };
 
-function isResolvedRegistry(
-  components: ComponentRegistry | ResolvedComponentRegistry,
-): components is ResolvedComponentRegistry {
-  for (const entry of Object.values(components)) {
-    if (typeof entry === 'function') return false;
-  }
-  return true;
-}
-
 /**
  * Pure resolver. Returns the section/item bundle for a selection ref, plus the
  * matching kind descriptor and breakpoint-resolved data. Returns null if the
@@ -47,7 +38,7 @@ export function resolveSelectedItem<TData = unknown>(
   if (!section) return null;
   const item = section.items.find((i) => i.id === selection.itemId) as GridItem<TData> | undefined;
   if (!item) return null;
-  const resolved = isResolvedRegistry(components) ? components : resolveRegistry(components);
+  const resolved = resolveRegistry(components);
   return {
     section,
     item,

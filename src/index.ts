@@ -11,6 +11,8 @@ export type {
 } from './components/Builder';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
+export { VantageInspector } from './components/VantageInspector';
+export type { VantageInspectorProps } from './components/VantageInspector';
 
 export type {
   Layout,
@@ -29,7 +31,9 @@ export type {
   KindDescriptor,
   KindDefaults,
   InspectorScope,
+  InspectorChangeOpts,
   InspectorProps,
+  ItemDataChangeEvent,
   ResolvedComponentRegistry,
   ResolvedKindDescriptor,
 } from './types';

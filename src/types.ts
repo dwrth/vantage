@@ -130,12 +130,28 @@ export type KindDefaults<TData = unknown> = {
 
 export type InspectorScope = 'base' | 'active';
 
+export type InspectorChangeOpts = {
+  scope?: InspectorScope;
+  /** Host dirty-tracking signal. Defaults to `true` when omitted by the kind panel. */
+  dirty?: boolean;
+};
+
 export type InspectorProps<TData = unknown> = {
   item: GridItem<TData>;
   resolvedData: TData;
   section: Section<TData>;
   activeBreakpoint: Breakpoint;
-  onChange: (patch: Partial<TData>, opts?: { scope?: InspectorScope }) => void;
+  onChange: (patch: Partial<TData>, opts?: InspectorChangeOpts) => void;
+};
+
+export type ItemDataChangeEvent<TData = unknown> = {
+  sectionId: string;
+  itemId: string;
+  patch: Partial<TData>;
+  /** Breakpoint already mapped from inspector scope. */
+  breakpoint: Breakpoint;
+  scope: InspectorScope;
+  dirty: boolean;
 };
 
 export type KindDescriptor<TData = unknown> = {

@@ -96,7 +96,7 @@ The seven kinds in `demo/src/blocks/` cover the common shapes:
 - **Form controls** — `input` is a stateless label + input; the host controls the value. The edit renderer calls `stopPropagation` on `onPointerDown` / `onClick` only when `interactive` is true so dnd-kit doesn't capture the gesture.
 - **Stateful blocks** — `form` keeps its own `useState` for the email value and a `submitted` flag. `item.data` is read-only from the block's perspective; for persisted state, lift to the host and call `updateItemData`. See `demo/src/blocks/form/StatefulForm.tsx`.
 - **Edit-only chrome** — `block` uses `component: () => null` and `editComponent` that shows `{w}×{h} @ (x,y)`, useful as a debugging or spacer block.
-- **Inspectors** — `text`, `button`, and `image` register an `inspector` on `defineKind`. The demo's `ItemInspector` resolves the selected item and renders that panel. Image and section backgrounds also ship a focal-point cropper for `cover` images.
+- **Inspectors** — `text`, `button`, and `image` register an `inspector` on `defineKind`. `<VantageInspector>` resolves the selected item and mounts that panel. Image and section backgrounds also ship a focal-point cropper for `cover` images.
 
 ## Interactivity inside edit mode
 

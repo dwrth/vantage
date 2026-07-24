@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   VantageBuilder,
   VantagePreview,
+  VantageInspector,
   bringItemForward,
   bringItemToFront,
   getEnabledBreakpoints,
@@ -20,7 +21,6 @@ import { createSampleLayout } from './sampleLayout';
 import { demoComponents } from './blocks';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './blocks/button';
 import { ContextMenu, type ContextMenuItem } from './ContextMenu';
-import { ItemInspector } from './ItemInspector';
 import { SectionHeader } from './SectionHeader';
 import { SectionInspector } from './SectionInspector';
 import { Toolbar } from './Toolbar';
@@ -307,12 +307,26 @@ function App() {
                 />
               ) : null}
               {panelTab === 'item' ? (
-                <ItemInspector
+                <VantageInspector
                   layout={layout}
                   onChange={setLayout}
                   components={demoComponents}
                   selection={selection}
                   activeBreakpoint={activeBreakpoint}
+                  className="flex h-full min-h-0 flex-col"
+                  emptyState={
+                    <div className="flex h-full items-center justify-center p-4 text-center text-sm text-base-content/50">
+                      Select a block to inspect settings.
+                    </div>
+                  }
+                  renderHeader={({ item }) => (
+                    <div className="flex items-center justify-between border-b border-base-300/50 px-3 py-2">
+                      <span className="text-xs font-semibold tracking-wider text-base-content/60 uppercase">
+                        Item
+                      </span>
+                      <span className="badge badge-soft badge-sm font-mono">{item.kind}</span>
+                    </div>
+                  )}
                 />
               ) : null}
               {panelTab === 'section' ? (
