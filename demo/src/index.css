@@ -129,14 +129,6 @@ body {
   background: var(--color-primary);
 }
 
-.vantage-root [class*='grid-overlay'] {
-  background-image: linear-gradient(
-    to right,
-    color-mix(in oklab, var(--color-primary) 20%, transparent) 1px,
-    transparent 1px
-  );
-}
-
-.vantage-root [class*='grid-overlay__row-line'] {
-  background: color-mix(in oklab, var(--color-primary) 20%, transparent);
+.vantage-root [class*='grid-overlay__cell'] {
+  background: color-mix(in oklab, var(--color-primary) 35%, transparent);
 }

@@ -305,14 +305,26 @@ export function SectionView({ section }: SectionViewProps) {
             >
               <SectionBackground background={background} className={builder['section-bg']} />
               {rowSteps ? (
-                <div className={builder['grid-overlay']} aria-hidden="true">
-                  {rowSteps.map((_, index) => (
-                    <span
-                      key={index}
-                      className={builder['grid-overlay__row-line']}
-                      style={{ top: `${getRowStart(index, rowSteps, cellHeight)}px` }}
-                    />
-                  ))}
+                <div
+                  className={builder['grid-overlay']}
+                  aria-hidden="true"
+                  style={
+                    {
+                      gridTemplateColumns: `repeat(${columns}, var(--cell-px))`,
+                      gridTemplateRows: rowSteps
+                        .map((step) => `${Math.max(0, step - rowGap)}px`)
+                        .join(' '),
+                    } as React.CSSProperties
+                  }
+                >
+                  {rowSteps.flatMap((_, row) =>
+                    Array.from({ length: columns }, (_, col) => (
+                      <span
+                        key={`${row}-${col}`}
+                        className={builder['grid-overlay__cell']}
+                      />
+                    )),
+                  )}
                 </div>
               ) : null}
               {resolvedItems.map(({ item, placement }) => (
