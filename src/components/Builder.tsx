@@ -11,6 +11,8 @@ import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveRegistry } from '../lib/registry';
 import type { ItemContextMenuEvent, SelectionRef } from '../context/BuilderContext';
 import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
+import { vantageRootProps } from '../theme/applyRoot';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import { Canvas } from './Canvas';
 
@@ -131,6 +133,8 @@ export function VantageBuilder({
   );
 
   const registryEmpty = Object.keys(components).length === 0;
+  const tokens = useVantageTokens();
+  const root = vantageRootProps(tokens, className);
 
   return (
     <BuilderContext.Provider
@@ -155,7 +159,7 @@ export function VantageBuilder({
         onItemContextMenu,
       }}
     >
-      <div className={['vantage-root', className].filter(Boolean).join(' ')}>
+      <div className={root.className} style={root.style}>
         {children}
         {registryEmpty ? (
           <div

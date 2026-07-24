@@ -133,6 +133,6 @@ function StageEdit({ item }: EditRendererProps<StageData>) {
 - **No layout CSS on your root.** Do not set `gridColumn`, `gridRow`, `position: absolute/fixed`, `transform`, or `inset` on your component's root element. Vantage owns cell placement; these styles break drag/resize math.
 - **Handle `item.data === undefined`.** After `importLayout` or for kinds without `defaults.data`, `data` may be missing. Always destructure with a fallback: `const data = item.data ?? {}`.
 - **Split surfaces on `defineKind`.** Preview and edit are different FCs. Don't branch on a `mode` prop — it does not exist.
-- **Library CSS is chrome only.** `vantage/style.css` styles the grid, drag handles, and section controls — not your content. Ship your own styles per block.
+- **Library CSS is chrome only.** `vantage/style.css` styles the grid, drag handles, and section controls — not your content. Ship your own styles per block. For shared kind tokens (`--vantage-kind-*`), see [Theme / tokens](theme.md).
 - **`kind` is your stable identifier.** Once layouts are persisted, renaming a `kind` orphans existing items. Treat it like a schema migration.
 - **Generic types stay sharp.** `defineKind<HeroData>(...)` makes `item.data` typed as `HeroData | undefined` inside the renderer. Don't widen to `unknown` unless you mean it.

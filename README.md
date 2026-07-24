@@ -91,6 +91,7 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Section backgrounds](docs/backgrounds.md) | Color, image, blur, focal crop, parallax             |
 | [Persistence](docs/persistence.md)         | localStorage, file I/O, preview route                |
 | [Custom blocks](docs/blocks.md)            | `defineKind` patterns, interactivity, pitfalls       |
+| [Theme / tokens](docs/theme.md)            | `VantageThemeProvider`, opaque CSS token maps        |
 | [Host panels](docs/panels.md)              | `VantageInspector`, layers, toolbars (demo patterns) |
 
 ## Development

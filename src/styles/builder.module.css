@@ -13,8 +13,8 @@
 }
 
 .builder-grid {
-  --cell-max-px: 96px;
-  --row-max-px: 48px;
+  --cell-max-px: var(--vantage-cell-max-px);
+  --row-max-px: var(--vantage-row-max-px);
   --max-section-w: calc(var(--cols) * var(--cell-max-px));
   --content-w: min(
     max(0px, calc(100cqi - var(--canvas-pad-x) - var(--col-gap-px) - var(--col-gap-px))),

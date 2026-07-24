@@ -3,6 +3,9 @@ import type { SelectionRef } from '../context/BuilderContext';
 import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveSelectedItem, type ResolvedSelection } from '../lib/inspector';
 import { updateItemData } from '../mutations/layout';
+import { vantageRootProps } from '../theme/applyRoot';
+import { useVantageTokens } from '../theme/useVantageTokens';
+import '../styles/tokens.css';
 import type {
   Breakpoint,
   ComponentRegistry,
@@ -34,14 +37,16 @@ export function VantageInspector({
   emptyState,
   renderHeader,
 }: VantageInspectorProps) {
+  const tokens = useVantageTokens();
   const resolved = useMemo(
     () => resolveSelectedItem(layout, selection, components, activeBreakpoint),
     [layout, selection, components, activeBreakpoint],
   );
 
   if (!resolved) {
+    const root = vantageRootProps(tokens, className);
     return (
-      <div className={className}>
+      <div className={root.className} style={root.style}>
         {emptyState ?? (
           <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', opacity: 0.6 }}>
             Select a block to inspect settings.
@@ -59,11 +64,15 @@ export function VantageInspector({
     <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', opacity: 0.7 }}>{item.kind}</div>
   );
 
+  const root = vantageRootProps(tokens, className, {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    minHeight: 0,
+  });
+
   return (
-    <div
-      className={className}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
-    >
+    <div className={root.className} style={root.style}>
       {header}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0.75rem' }}>
         {Inspector ? (

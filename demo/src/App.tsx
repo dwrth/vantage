@@ -3,6 +3,7 @@ import {
   VantageBuilder,
   VantagePreview,
   VantageInspector,
+  VantageThemeProvider,
   bringItemForward,
   bringItemToFront,
   getEnabledBreakpoints,
@@ -15,6 +16,7 @@ import {
   type Layout,
   type SelectionRef,
   type Breakpoint,
+  type VantageTokens,
 } from 'vantage';
 import { LayersPanel } from './LayersPanel';
 import { createSampleLayout } from './sampleLayout';
@@ -23,10 +25,27 @@ import type { ButtonAlign, ButtonData, ButtonVAlign } from './blocks/button';
 import { ContextMenu, type ContextMenuItem } from './ContextMenu';
 import { SectionHeader } from './SectionHeader';
 import { SectionInspector } from './SectionInspector';
+import { ThemeEditor } from './ThemeEditor';
+import { DEMO_TOKEN_DEFAULTS } from './demoTokens';
 import { Toolbar } from './Toolbar';
 
 const STORAGE_KEY = 'vantage.layout.demo.v5';
 const BREAKPOINT_STORAGE_KEY = 'vantage.breakpoint.demo.v3';
+const THEME_STORAGE_KEY = 'vantage.theme.demo.v1';
+
+function loadStoredTokens(): VantageTokens {
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    if (!raw) return { ...DEMO_TOKEN_DEFAULTS };
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { ...DEMO_TOKEN_DEFAULTS };
+    }
+    return { ...DEMO_TOKEN_DEFAULTS, ...(parsed as VantageTokens) };
+  } catch {
+    return { ...DEMO_TOKEN_DEFAULTS };
+  }
+}
 
 function clampBreakpoint(layout: Layout, next: Breakpoint): Breakpoint {
   return getEnabledBreakpoints(layout).includes(next) ? next : 'desktop';
@@ -50,7 +69,7 @@ type LayerMenuState = {
   itemId: string;
 };
 
-type PanelTab = 'layers' | 'item' | 'section';
+type PanelTab = 'layers' | 'item' | 'section' | 'theme';
 
 function loadStoredLayout(): Layout {
   try {
@@ -75,6 +94,7 @@ function App() {
   const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
   const [inspectedSectionId, setInspectedSectionId] = useState<string | null>(null);
   const [panelTab, setPanelTab] = useState<PanelTab>('layers');
+  const [tokens, setTokens] = useState<VantageTokens>(loadStoredTokens);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
@@ -83,6 +103,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(BREAKPOINT_STORAGE_KEY, activeBreakpoint);
   }, [activeBreakpoint]);
+
+  useEffect(() => {
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(tokens));
+  }, [tokens]);
 
   const handleSelectionChange = useCallback((next: SelectionRef | null) => {
     setSelection(next);
@@ -215,147 +239,153 @@ function App() {
 
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/preview')) {
     return (
-      <div className="min-h-full bg-base-100">
-        <VantagePreview value={layout} components={demoComponents} />
-      </div>
+      <VantageThemeProvider tokens={tokens}>
+        <div className="min-h-full bg-base-100">
+          <VantagePreview value={layout} components={demoComponents} />
+        </div>
+      </VantageThemeProvider>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <Toolbar
-        layout={layout}
-        onChange={handleLayoutChange}
-        onLoadSample={loadSample}
-        activeBreakpoint={activeBreakpoint}
-        onActiveBreakpointChange={setActiveBreakpoint}
-      />
+    <VantageThemeProvider tokens={tokens}>
+      <div className="flex h-full min-h-0 flex-col">
+        <Toolbar
+          layout={layout}
+          onChange={handleLayoutChange}
+          onLoadSample={loadSample}
+          activeBreakpoint={activeBreakpoint}
+          onActiveBreakpointChange={setActiveBreakpoint}
+        />
 
-      <div className="drawer drawer-end lg:drawer-open min-h-0 flex-1">
-        <input id="vantage-drawer" type="checkbox" className="drawer-toggle" />
+        <div className="drawer drawer-end lg:drawer-open min-h-0 flex-1">
+          <input id="vantage-drawer" type="checkbox" className="drawer-toggle" />
 
-        <div className="drawer-content flex min-h-0 flex-col">
-          <div className="flex items-center justify-between gap-2 border-b border-base-300/40 px-3 py-1.5 lg:hidden">
-            <span className="font-mono text-xs text-base-content/50">
-              bp:<span className="text-primary">{activeBreakpoint}</span>
-            </span>
-            <label htmlFor="vantage-drawer" className="btn btn-ghost btn-sm drawer-button">
-              Panels
-            </label>
+          <div className="drawer-content flex min-h-0 flex-col">
+            <div className="flex items-center justify-between gap-2 border-b border-base-300/40 px-3 py-1.5 lg:hidden">
+              <span className="font-mono text-xs text-base-content/50">
+                bp:<span className="text-primary">{activeBreakpoint}</span>
+              </span>
+              <label htmlFor="vantage-drawer" className="btn btn-ghost btn-sm drawer-button">
+                Panels
+              </label>
+            </div>
+
+            <main className="animate-fade-up min-h-0 flex-1 overflow-auto p-3 md:p-4">
+              <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
+                <VantageBuilder
+                  value={layout}
+                  onChange={handleLayoutChange}
+                  components={demoComponents}
+                  className="min-h-[70vh]"
+                  renderSectionHeader={(ctx) => (
+                    <SectionHeader
+                      layout={layout}
+                      onChange={handleLayoutChange}
+                      components={demoComponents}
+                      {...ctx}
+                    />
+                  )}
+                  selectedItem={selection}
+                  onSelectionChange={handleSelectionChange}
+                  activeBreakpoint={activeBreakpoint}
+                  onActiveBreakpointChange={setActiveBreakpoint}
+                  onItemContextMenu={(e, { sectionId, item }) => {
+                    handleSelectionChange({ sectionId, itemId: item.id });
+                    setLayerMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      sectionId,
+                      itemId: item.id,
+                    });
+                  }}
+                />
+              </div>
+            </main>
           </div>
 
-          <main className="animate-fade-up min-h-0 flex-1 overflow-auto p-3 md:p-4">
-            <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
-              <VantageBuilder
-                value={layout}
-                onChange={handleLayoutChange}
-                components={demoComponents}
-                className="min-h-[70vh]"
-                renderSectionHeader={(ctx) => (
-                  <SectionHeader
+          <div className="drawer-side z-40 is-drawer-close:overflow-visible">
+            <label htmlFor="vantage-drawer" aria-label="close sidebar" className="drawer-overlay" />
+            <aside className="flex h-full w-80 flex-col border-l border-base-300/60 bg-base-200/95 backdrop-blur-md">
+              <div role="tablist" className="tabs tabs-box tabs-sm m-2">
+                {(
+                  [
+                    ['layers', 'Layers'],
+                    ['item', 'Item'],
+                    ['section', 'Section'],
+                    ['theme', 'Theme'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    className={`tab flex-1 ${panelTab === id ? 'tab-active' : ''}`}
+                    onClick={() => setPanelTab(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {panelTab === 'layers' ? (
+                  <LayersPanel
+                    layout={layout}
+                    onChange={handleLayoutChange}
+                    selection={selection}
+                    onSelectionChange={handleSelectionChange}
+                    activeBreakpoint={activeBreakpoint}
+                  />
+                ) : null}
+                {panelTab === 'item' ? (
+                  <VantageInspector
                     layout={layout}
                     onChange={handleLayoutChange}
                     components={demoComponents}
-                    {...ctx}
+                    selection={selection}
+                    activeBreakpoint={activeBreakpoint}
+                    className="flex h-full min-h-0 flex-col"
+                    emptyState={
+                      <div className="flex h-full items-center justify-center p-4 text-center text-sm text-base-content/50">
+                        Select a block to inspect settings.
+                      </div>
+                    }
+                    renderHeader={({ item }) => (
+                      <div className="flex items-center justify-between border-b border-base-300/50 px-3 py-2">
+                        <span className="text-xs font-semibold tracking-wider text-base-content/60 uppercase">
+                          Item
+                        </span>
+                        <span className="badge badge-soft badge-sm font-mono">{item.kind}</span>
+                      </div>
+                    )}
                   />
-                )}
-                selectedItem={selection}
-                onSelectionChange={handleSelectionChange}
-                activeBreakpoint={activeBreakpoint}
-                onActiveBreakpointChange={setActiveBreakpoint}
-                onItemContextMenu={(e, { sectionId, item }) => {
-                  handleSelectionChange({ sectionId, itemId: item.id });
-                  setLayerMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    sectionId,
-                    itemId: item.id,
-                  });
-                }}
-              />
-            </div>
-          </main>
+                ) : null}
+                {panelTab === 'section' ? (
+                  <SectionInspector
+                    layout={layout}
+                    onChange={handleLayoutChange}
+                    selectedSectionId={effectiveInspectedSectionId}
+                    onSelectSection={setInspectedSectionId}
+                    activeBreakpoint={activeBreakpoint}
+                  />
+                ) : null}
+                {panelTab === 'theme' ? <ThemeEditor tokens={tokens} onChange={setTokens} /> : null}
+              </div>
+            </aside>
+          </div>
         </div>
 
-        <div className="drawer-side z-40 is-drawer-close:overflow-visible">
-          <label htmlFor="vantage-drawer" aria-label="close sidebar" className="drawer-overlay" />
-          <aside className="flex h-full w-80 flex-col border-l border-base-300/60 bg-base-200/95 backdrop-blur-md">
-            <div role="tablist" className="tabs tabs-box tabs-sm m-2">
-              {(
-                [
-                  ['layers', 'Layers'],
-                  ['item', 'Item'],
-                  ['section', 'Section'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  className={`tab flex-1 ${panelTab === id ? 'tab-active' : ''}`}
-                  onClick={() => setPanelTab(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-hidden">
-              {panelTab === 'layers' ? (
-                <LayersPanel
-                  layout={layout}
-                  onChange={handleLayoutChange}
-                  selection={selection}
-                  onSelectionChange={handleSelectionChange}
-                  activeBreakpoint={activeBreakpoint}
-                />
-              ) : null}
-              {panelTab === 'item' ? (
-                <VantageInspector
-                  layout={layout}
-                  onChange={handleLayoutChange}
-                  components={demoComponents}
-                  selection={selection}
-                  activeBreakpoint={activeBreakpoint}
-                  className="flex h-full min-h-0 flex-col"
-                  emptyState={
-                    <div className="flex h-full items-center justify-center p-4 text-center text-sm text-base-content/50">
-                      Select a block to inspect settings.
-                    </div>
-                  }
-                  renderHeader={({ item }) => (
-                    <div className="flex items-center justify-between border-b border-base-300/50 px-3 py-2">
-                      <span className="text-xs font-semibold tracking-wider text-base-content/60 uppercase">
-                        Item
-                      </span>
-                      <span className="badge badge-soft badge-sm font-mono">{item.kind}</span>
-                    </div>
-                  )}
-                />
-              ) : null}
-              {panelTab === 'section' ? (
-                <SectionInspector
-                  layout={layout}
-                  onChange={handleLayoutChange}
-                  selectedSectionId={effectiveInspectedSectionId}
-                  onSelectSection={setInspectedSectionId}
-                  activeBreakpoint={activeBreakpoint}
-                />
-              ) : null}
-            </div>
-          </aside>
-        </div>
+        {layerMenu ? (
+          <ContextMenu
+            x={layerMenu.x}
+            y={layerMenu.y}
+            onClose={() => setLayerMenu(null)}
+            items={contextMenuItems}
+          />
+        ) : null}
       </div>
-
-      {layerMenu ? (
-        <ContextMenu
-          x={layerMenu.x}
-          y={layerMenu.y}
-          onClose={() => setLayerMenu(null)}
-          items={contextMenuItems}
-        />
-      ) : null}
-    </div>
+    </VantageThemeProvider>
   );
 }
 

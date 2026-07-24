@@ -25,7 +25,14 @@ function ButtonBody({ item }: { item: PreviewRendererProps<ButtonData>['item'] }
         alignItems: V_ALIGN[data.vAlign ?? 'center'],
       }}
     >
-      <button type="button" className="btn btn-sm btn-primary">
+      <button
+        type="button"
+        className="btn btn-sm border-0"
+        style={{
+          backgroundColor: 'var(--vantage-kind-accent)',
+          color: 'var(--vantage-kind-accent-fg, #fff)',
+        }}
+      >
         {data.cta ?? item.label ?? 'Button'}
       </button>
     </div>

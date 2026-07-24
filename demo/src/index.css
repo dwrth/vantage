@@ -78,10 +78,6 @@ body {
 }
 
 /* Align Vantage cell chrome with active daisyUI theme */
-.vantage-root {
-  color: var(--color-base-content);
-}
-
 .vantage-root [class*='grid-block__body'] {
   background: var(--color-base-200);
   color: var(--color-base-content);

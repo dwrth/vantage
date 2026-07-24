@@ -2,6 +2,8 @@ import { DndContext, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/c
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { resolveItem, resolveItemData, resolveSection } from '../lib/breakpoint';
 import {
+  CELL_MAX_PX,
+  ROW_MAX_PX,
   deltaToGrid,
   getCellHeight,
   getCellWidth,
@@ -15,6 +17,8 @@ import { VantagePointerSensor } from '../lib/pointerSensor';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useContainerWidth } from '../hooks/useContainerWidth';
+import { parsePxToken } from '../theme/tokens';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import type { BreakpointWidths, GridItem, Section } from '../types';
 import builder from '../styles/builder.module.css';
 import { GridBlock } from './GridBlock';
@@ -89,12 +93,15 @@ export function SectionView({ section }: SectionViewProps) {
 
   const { containerRef, containerWidth } = useContainerWidth<HTMLDivElement>();
   const [measuredRowSteps, setMeasuredRowSteps] = useState<number[]>([]);
+  const tokens = useVantageTokens();
+  const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
+  const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
 
-  const cellWidth = getCellWidth(containerWidth, columns, colGap);
-  const flexRowPx = getFlexRowHeight(containerWidth, columns, colGap);
+  const cellWidth = getCellWidth(containerWidth, columns, colGap, cellMaxPx);
+  const flexRowPx = getFlexRowHeight(containerWidth, columns, colGap, rowMaxPx, cellMaxPx);
   const cellHeight = getCellHeight(flexRowPx, rowGap);
   const cellXStep = getCellXStep(cellWidth, colGap);
-  const contentOffsetX = getGridContentOffset(containerWidth, columns, colGap);
+  const contentOffsetX = getGridContentOffset(containerWidth, columns, colGap, cellMaxPx);
   const rowSteps = measuredRowSteps.length > 0 ? measuredRowSteps : null;
 
   useLayoutEffect(() => {

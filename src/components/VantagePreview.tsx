@@ -16,6 +16,8 @@ import type {
   ResolvedComponentRegistry,
   Section,
 } from '../types';
+import { vantageRootProps } from '../theme/applyRoot';
+import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import preview from '../styles/preview.module.css';
 import { SectionBackground } from './SectionBackground';
@@ -119,12 +121,11 @@ export function VantagePreview({
     breakpointProp && enabledBreakpoints.includes(breakpointProp) ? breakpointProp : autoBreakpoint;
 
   const registryEmpty = Object.keys(components).length === 0;
+  const tokens = useVantageTokens();
+  const root = vantageRootProps(tokens, [preview.preview, className].filter(Boolean).join(' '));
 
   return (
-    <div
-      ref={containerRef}
-      className={['vantage-root', preview.preview, className].filter(Boolean).join(' ')}
-    >
+    <div ref={containerRef} className={root.className} style={root.style}>
       {registryEmpty ? (
         <div className={preview['preview-empty']}>
           <p>No components registered.</p>

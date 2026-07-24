@@ -149,3 +149,14 @@ export {
   ROW_MAX_PX,
   MOBILE_BREAKPOINT_PX,
 } from './lib/grid';
+
+export {
+  DEFAULT_VANTAGE_TOKENS,
+  mergeVantageTokens,
+  tokensToStyle,
+  parsePxToken,
+  type VantageTokens,
+} from './theme/tokens';
+export { VantageThemeProvider, type VantageThemeProviderProps } from './theme/VantageThemeProvider';
+export { useVantageTokens } from './theme/useVantageTokens';
+export { vantageRootProps, type VantageRootProps } from './theme/applyRoot';
