@@ -59,7 +59,12 @@ export {
 } from './lib/registry';
 export type { RenderSurface } from './lib/registry';
 
-export { VANTAGE_INTERACTIVE_ATTR, isVantageInteractiveTarget } from './lib/interactive';
+export {
+  VANTAGE_INTERACTIVE_ATTR,
+  VANTAGE_DRAG_HANDLE_ATTR,
+  isVantageInteractiveTarget,
+  shouldPreventDragActivation,
+} from './lib/interactive';
 
 export {
   createEmptyLayout,

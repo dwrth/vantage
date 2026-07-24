@@ -1,26 +1,25 @@
 import { PointerSensor, type PointerSensorOptions } from '@dnd-kit/core';
 import type { PointerEvent } from 'react';
-import { isVantageInteractiveTarget } from './interactive';
+import { shouldPreventDragActivation } from './interactive';
 
 /**
  * PointerSensor that refuses activation when the event target is an interactive
- * control (native form elements / links / contenteditable / data-vantage-interactive).
+ * content control — but still allows drag when the activator is the handle
+ * itself (built-in handle is a `<button>`).
  */
 export class VantagePointerSensor extends PointerSensor {
   static activators = [
     {
       eventName: 'onPointerDown' as const,
-      handler: (
-        { nativeEvent: event }: PointerEvent,
-        { onActivation }: PointerSensorOptions,
-      ): boolean => {
-        if (!event.isPrimary || event.button !== 0) {
+      handler: (event: PointerEvent, { onActivation }: PointerSensorOptions): boolean => {
+        const { nativeEvent } = event;
+        if (!nativeEvent.isPrimary || nativeEvent.button !== 0) {
           return false;
         }
-        if (isVantageInteractiveTarget(event.target)) {
+        if (shouldPreventDragActivation(nativeEvent.target, event.currentTarget)) {
           return false;
         }
-        onActivation?.({ event });
+        onActivation?.({ event: nativeEvent });
         return true;
       },
     },

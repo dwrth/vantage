@@ -104,6 +104,7 @@ Drag starts from the **cell handle only**, not from content. The builder `Pointe
 
 - Native: `a`, `button`, `input`, `textarea`, `select`, `label`, `contenteditable`
 - Custom: `[data-vantage-interactive]` or wrap with `<VantageInteractive>`
+- Exception: drag handle — built-in handle is a `<button data-vantage-drag-handle>`; sensor allows activator nodes that are themselves interactive
 
 Kinds must **not** call `stopPropagation` for dnd. Preview has no drag system — mount `component` with normal interactive elements.
 

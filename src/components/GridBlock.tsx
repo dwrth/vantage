@@ -242,6 +242,7 @@ export function GridBlock({
             className={chrome['grid-block__handle']}
             aria-label={`Drag ${item.label ?? 'block'}`}
             title={item.label ?? 'Drag'}
+            data-vantage-drag-handle=""
             {...listeners}
             {...attributes}
           >
