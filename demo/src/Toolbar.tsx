@@ -25,7 +25,13 @@ const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
 type ToolbarProps = {
   layout: Layout;
   onChange: (next: Layout, changeset: LayoutChangeset) => void;
+  /** Clear / Sample / Import — bypasses history stack (host calls `reset`). */
+  onBaselineChange: (next: Layout) => void;
   onLoadSample: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
   activeBreakpoint: Breakpoint;
   onActiveBreakpointChange: (next: Breakpoint) => void;
 };
@@ -33,7 +39,12 @@ type ToolbarProps = {
 export function Toolbar({
   layout,
   onChange,
+  onBaselineChange,
   onLoadSample,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   activeBreakpoint,
   onActiveBreakpointChange,
 }: ToolbarProps) {
@@ -66,7 +77,7 @@ export function Toolbar({
           alert('Invalid layout JSON');
           return;
         }
-        emitLayoutChange(layout, importLayout(data as Layout), onChange);
+        onBaselineChange(importLayout(data as Layout));
       } catch {
         alert('Failed to parse JSON');
       }
@@ -201,7 +212,27 @@ export function Toolbar({
           <button
             type="button"
             className="btn btn-ghost btn-sm join-item"
-            onClick={() => emitLayoutChange(layout, clearLayout(), onChange)}
+            disabled={!canUndo}
+            onClick={onUndo}
+            aria-label="Undo"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm join-item"
+            disabled={!canRedo}
+            onClick={onRedo}
+            aria-label="Redo"
+          >
+            Redo
+          </button>
+        </div>
+        <div className="join">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm join-item"
+            onClick={() => onBaselineChange(clearLayout())}
           >
             Clear
           </button>

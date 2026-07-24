@@ -6,6 +6,7 @@ import {
   VantageThemeProvider,
   bringItemForward,
   bringItemToFront,
+  emitLayoutChange,
   getEnabledBreakpoints,
   importLayout,
   isValidLayout,
@@ -13,6 +14,7 @@ import {
   sendItemBackward,
   sendItemToBack,
   updateItemData,
+  useVantageHistory,
   type Layout,
   type SelectionRef,
   type Breakpoint,
@@ -96,6 +98,15 @@ function App() {
   const [panelTab, setPanelTab] = useState<PanelTab>('layers');
   const [tokens, setTokens] = useState<VantageTokens>(loadStoredTokens);
 
+  const {
+    reset,
+    onChange: pushLayoutChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useVantageHistory(layout, (next) => setLayout(next));
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
   }, [layout]);
@@ -121,13 +132,17 @@ function App() {
     return layout.sections.some((sec) => sec.id === inspectedSectionId) ? inspectedSectionId : null;
   }, [inspectedSectionId, layout.sections]);
 
-  const loadSample = useCallback(() => {
-    setLayout(createSampleLayout());
-  }, []);
+  const applyBaseline = useCallback(
+    (next: Layout) => {
+      reset(next);
+      setLayout(next);
+    },
+    [reset],
+  );
 
-  const handleLayoutChange = useCallback((next: Layout) => {
-    setLayout(next);
-  }, []);
+  const loadSample = useCallback(() => {
+    applyBaseline(createSampleLayout());
+  }, [applyBaseline]);
 
   const layerMenuIndex = useMemo(() => {
     if (!layerMenu) return -1;
@@ -155,25 +170,31 @@ function App() {
   const applyLayer = useCallback(
     (mutate: (layout: Layout, sectionId: string, itemId: string) => Layout) => {
       if (!layerMenu) return;
-      setLayout((prev) => mutate(prev, layerMenu.sectionId, layerMenu.itemId));
+      emitLayoutChange(
+        layout,
+        mutate(layout, layerMenu.sectionId, layerMenu.itemId),
+        pushLayoutChange,
+      );
     },
-    [layerMenu],
+    [layerMenu, layout, pushLayoutChange],
   );
 
   const applyButtonAlignment = useCallback(
     (patch: Partial<ButtonData>) => {
       if (!layerMenu) return;
-      setLayout((prev) =>
+      emitLayoutChange(
+        layout,
         updateItemData<ButtonData>(
-          prev,
+          layout,
           layerMenu.sectionId,
           layerMenu.itemId,
           patch,
           activeBreakpoint,
         ),
+        pushLayoutChange,
       );
     },
-    [activeBreakpoint, layerMenu],
+    [activeBreakpoint, layerMenu, layout, pushLayoutChange],
   );
 
   const atBack = layerMenuIndex <= 0;
@@ -252,8 +273,13 @@ function App() {
       <div className="flex h-full min-h-0 flex-col">
         <Toolbar
           layout={layout}
-          onChange={handleLayoutChange}
+          onChange={pushLayoutChange}
+          onBaselineChange={applyBaseline}
           onLoadSample={loadSample}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
           activeBreakpoint={activeBreakpoint}
           onActiveBreakpointChange={setActiveBreakpoint}
         />
@@ -275,13 +301,13 @@ function App() {
               <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
                 <VantageBuilder
                   value={layout}
-                  onChange={handleLayoutChange}
+                  onChange={pushLayoutChange}
                   components={demoComponents}
                   className="min-h-[70vh]"
                   renderSectionHeader={(ctx) => (
                     <SectionHeader
                       layout={layout}
-                      onChange={handleLayoutChange}
+                      onChange={pushLayoutChange}
                       components={demoComponents}
                       {...ctx}
                     />
@@ -332,7 +358,7 @@ function App() {
                 {panelTab === 'layers' ? (
                   <LayersPanel
                     layout={layout}
-                    onChange={handleLayoutChange}
+                    onChange={pushLayoutChange}
                     selection={selection}
                     onSelectionChange={handleSelectionChange}
                     activeBreakpoint={activeBreakpoint}
@@ -341,7 +367,7 @@ function App() {
                 {panelTab === 'item' ? (
                   <VantageInspector
                     layout={layout}
-                    onChange={handleLayoutChange}
+                    onChange={pushLayoutChange}
                     components={demoComponents}
                     selection={selection}
                     activeBreakpoint={activeBreakpoint}
@@ -364,7 +390,7 @@ function App() {
                 {panelTab === 'section' ? (
                   <SectionInspector
                     layout={layout}
-                    onChange={handleLayoutChange}
+                    onChange={pushLayoutChange}
                     selectedSectionId={effectiveInspectedSectionId}
                     onSelectSection={setInspectedSectionId}
                     activeBreakpoint={activeBreakpoint}

@@ -61,6 +61,8 @@ emitLayoutChange(layout, updateSection(layout, sectionId, { columns: 16 }), onCh
 
 Unchanged sections and items keep the same object references (structural sharing).
 
+For undo/redo, wrap your host `onChange` with [`useVantageHistory`](history.md) — same `(next, changeset)` signature.
+
 ### Sections
 
 ```ts

@@ -37,4 +37,4 @@ Standalone (out-of-tree) shell: resolves the selection, mounts the kind's `inspe
 
 Scope contract for kind panels: `{ scope: 'base' }` writes desktop base data; omit / `'active'` writes at `activeBreakpoint`. `dirty` defaults to `true`.
 
-Related: [Components](components.md), [Selection](selection.md), [Persistence](persistence.md), [Breakpoints](breakpoints.md).
+Related: [Components](components.md), [Selection](selection.md), [Persistence](persistence.md), [Breakpoints](breakpoints.md), [Undo / history](history.md).

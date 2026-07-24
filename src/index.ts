@@ -98,6 +98,11 @@ export {
 
 export type { SelectionRef } from './context/BuilderContext';
 export { useSelection, useSelectedItem } from './hooks/useSelection';
+export {
+  useVantageHistory,
+  type VantageHistory,
+  type VantageHistoryOptions,
+} from './hooks/useVantageHistory';
 
 export type { AddItemDefaults } from './mutations/layout';
 
