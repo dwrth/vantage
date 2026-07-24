@@ -49,7 +49,9 @@ export function stripData(layout: Layout): Layout {
     ...layout,
     sections: layout.sections.map((section) => {
       const refIds = new Set(
-        section.items.filter((item) => typeof item.ref === 'string' && item.ref.length > 0).map((i) => i.id),
+        section.items
+          .filter((item) => typeof item.ref === 'string' && item.ref.length > 0)
+          .map((i) => i.id),
       );
       return {
         ...section,

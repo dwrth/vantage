@@ -319,10 +319,7 @@ export function SectionView({ section }: SectionViewProps) {
                 >
                   {rowSteps.flatMap((_, row) =>
                     Array.from({ length: columns }, (_, col) => (
-                      <span
-                        key={`${row}-${col}`}
-                        className={builder['grid-overlay__cell']}
-                      />
+                      <span key={`${row}-${col}`} className={builder['grid-overlay__cell']} />
                     )),
                   )}
                 </div>
