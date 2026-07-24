@@ -32,19 +32,35 @@ import {
   createEmptyLayout,
   defineKind,
   type Layout,
+  type PreviewRendererProps,
+  type EditRendererProps,
 } from 'vantage';
 import 'vantage/style.css';
 
 type HeroData = { title: string; body: string };
 
-const heroKind = defineKind<HeroData>({
-  component: ({ item, mode }) => (
+function HeroPreview({ item }: PreviewRendererProps<HeroData>) {
+  return (
     <div>
       <h2>{item.data?.title}</h2>
       <p>{item.data?.body}</p>
-      {mode === 'edit' && <span>Editing</span>}
     </div>
-  ),
+  );
+}
+
+function HeroEdit({ item, interactive }: EditRendererProps<HeroData>) {
+  return (
+    <div onPointerDown={interactive ? (e) => e.stopPropagation() : undefined}>
+      <h2>{item.data?.title}</h2>
+      <p>{item.data?.body}</p>
+      <span>Editing</span>
+    </div>
+  );
+}
+
+const heroKind = defineKind<HeroData>({
+  component: HeroPreview,
+  editComponent: HeroEdit,
   defaults: { w: 6, h: 4, label: 'Hero', data: { title: 'Hello', body: 'World' } },
   displayName: 'Hero',
 });

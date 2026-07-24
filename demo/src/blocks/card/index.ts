@@ -1,5 +1,5 @@
 import { defineKind } from 'vantage';
-import { CardComponent } from './CardComponent';
+import { CardEdit, CardPreview } from './CardComponent';
 
 export type CardData = {
   image?: string;
@@ -10,7 +10,8 @@ export type CardData = {
 };
 
 export const cardKind = defineKind<CardData>({
-  component: CardComponent,
+  component: CardPreview,
+  editComponent: CardEdit,
   defaults: {
     w: 4,
     h: 7,

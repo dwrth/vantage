@@ -24,9 +24,9 @@ export type {
   BreakpointWidths,
   GridItem,
   ComponentRegistry,
-  ItemRendererProps,
+  PreviewRendererProps,
+  EditRendererProps,
   KindDescriptor,
-  KindEntry,
   KindDefaults,
   InspectorScope,
   InspectorProps,
@@ -49,10 +49,10 @@ export {
 export {
   defineKind,
   resolveRegistry,
-  resolveDescriptor,
   resolveRenderer,
   resolveDescriptorForKind,
 } from './lib/registry';
+export type { RenderSurface } from './lib/registry';
 
 export {
   createEmptyLayout,

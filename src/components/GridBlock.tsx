@@ -4,7 +4,7 @@ import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { getCellXStep, pxToCell } from '../lib/grid';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
-import { resolveRenderer } from '../hooks/useItemRenderer';
+import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
 import type { Breakpoint, GridItem } from '../types';
 import chrome from '../styles/grid-block.module.css';
@@ -162,7 +162,6 @@ export function GridBlock({
     ],
   );
 
-  const Renderer = resolveRenderer(components, item);
   const descriptor = components[item.kind];
   const wrapperClass = descriptor?.editWrapperClass ?? '';
 
@@ -176,6 +175,16 @@ export function GridBlock({
   );
 
   const isSelected = selection?.sectionId === sectionId && selection?.itemId === item.id;
+  const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !isSelected;
+
+  let body: React.ReactNode;
+  if (usePlaceholder) {
+    body = createElement(descriptor!.editPlaceholder!, { item });
+  } else if (descriptor?.editComponent) {
+    body = createElement(descriptor.editComponent, { item, interactive: true });
+  } else {
+    body = createElement(resolveRenderer(components, item, 'preview'), { item });
+  }
 
   const onPointerDownCapture = useCallback(() => {
     setSelection({ sectionId, itemId: item.id });
@@ -197,7 +206,7 @@ export function GridBlock({
         onContextMenu={onItemContextMenu ? onContextMenu : undefined}
         {...attributes}
       >
-        {createElement(Renderer, { item, mode: 'edit', interactive: true })}
+        {body}
       </div>
       <div
         className={[

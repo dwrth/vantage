@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './index';
 
 const H_ALIGN: Record<ButtonAlign, CSSProperties['justifyContent']> = {
@@ -14,9 +14,14 @@ const V_ALIGN: Record<ButtonVAlign, CSSProperties['alignItems']> = {
   bottom: 'flex-end',
 };
 
-export function ButtonComponent({ item, mode, interactive }: ItemRendererProps<ButtonData>) {
+function ButtonBody({
+  item,
+  stop,
+}: {
+  item: PreviewRendererProps<ButtonData>['item'];
+  stop?: boolean;
+}) {
   const data = item.data ?? {};
-  const stop = mode === 'edit' && interactive;
 
   return (
     <div
@@ -36,4 +41,12 @@ export function ButtonComponent({ item, mode, interactive }: ItemRendererProps<B
       </button>
     </div>
   );
+}
+
+export function ButtonPreview({ item }: PreviewRendererProps<ButtonData>) {
+  return <ButtonBody item={item} />;
+}
+
+export function ButtonEdit({ item, interactive }: EditRendererProps<ButtonData>) {
+  return <ButtonBody item={item} stop={interactive} />;
 }

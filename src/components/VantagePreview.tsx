@@ -35,7 +35,7 @@ type PreviewItemProps = {
 };
 
 function PreviewItem({ item, placement, components }: PreviewItemProps) {
-  const Renderer = resolveRenderer(components, item);
+  const Renderer = resolveRenderer(components, item, 'preview');
   const descriptor = components[item.kind];
   const kindClass = descriptor?.previewWrapperClass ?? '';
 
@@ -46,7 +46,7 @@ function PreviewItem({ item, placement, components }: PreviewItemProps) {
 
   return (
     <div className={[preview['preview-block'], kindClass].filter(Boolean).join(' ')} style={style}>
-      {createElement(Renderer, { item, mode: 'preview' })}
+      {createElement(Renderer, { item })}
     </div>
   );
 }

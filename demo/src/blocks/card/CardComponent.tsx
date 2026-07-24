@@ -1,9 +1,14 @@
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { CardData } from './index';
 
-export function CardComponent({ item, mode, interactive }: ItemRendererProps<CardData>) {
+function CardBody({
+  item,
+  stop,
+}: {
+  item: PreviewRendererProps<CardData>['item'];
+  stop?: boolean;
+}) {
   const data = item.data ?? {};
-  const stop = mode === 'edit' && interactive;
 
   return (
     <div className="card card-sm h-full w-full bg-base-100 shadow-none">
@@ -35,4 +40,12 @@ export function CardComponent({ item, mode, interactive }: ItemRendererProps<Car
       </div>
     </div>
   );
+}
+
+export function CardPreview({ item }: PreviewRendererProps<CardData>) {
+  return <CardBody item={item} />;
+}
+
+export function CardEdit({ item, interactive }: EditRendererProps<CardData>) {
+  return <CardBody item={item} stop={interactive} />;
 }

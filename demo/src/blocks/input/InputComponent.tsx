@@ -1,9 +1,14 @@
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { InputData } from './index';
 
-export function InputComponent({ item, mode, interactive }: ItemRendererProps<InputData>) {
+function InputBody({
+  item,
+  stop,
+}: {
+  item: PreviewRendererProps<InputData>['item'];
+  stop?: boolean;
+}) {
   const data = item.data ?? {};
-  const stop = mode === 'edit' && interactive;
 
   return (
     <label className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-hidden p-3">
@@ -19,4 +24,12 @@ export function InputComponent({ item, mode, interactive }: ItemRendererProps<In
       />
     </label>
   );
+}
+
+export function InputPreview({ item }: PreviewRendererProps<InputData>) {
+  return <InputBody item={item} />;
+}
+
+export function InputEdit({ item, interactive }: EditRendererProps<InputData>) {
+  return <InputBody item={item} stop={interactive} />;
 }

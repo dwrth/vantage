@@ -1,9 +1,10 @@
 import { defineKind } from 'vantage';
 import type { FormData } from './StatefulForm';
-import { FormComponent } from './FormComponent';
+import { FormEdit, FormPreview } from './FormComponent';
 
 export const formKind = defineKind<FormData>({
-  component: FormComponent,
+  component: FormPreview,
+  editComponent: FormEdit,
   defaults: {
     w: 6,
     h: 5,

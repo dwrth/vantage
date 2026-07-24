@@ -1,5 +1,5 @@
 import { defineKind } from 'vantage';
-import { InputComponent } from './InputComponent';
+import { InputEdit, InputPreview } from './InputComponent';
 
 export type InputData = {
   title?: string;
@@ -7,7 +7,8 @@ export type InputData = {
 };
 
 export const inputKind = defineKind<InputData>({
-  component: InputComponent,
+  component: InputPreview,
+  editComponent: InputEdit,
   defaults: {
     w: 4,
     h: 3,

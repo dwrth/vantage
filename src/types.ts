@@ -112,10 +112,13 @@ export type Layout<TData = unknown> = {
   meta?: Record<string, unknown>;
 };
 
-export type ItemRendererProps<TData = unknown> = {
+export type PreviewRendererProps<TData = unknown> = {
   item: GridItem<TData>;
-  mode: 'edit' | 'preview';
-  interactive?: boolean;
+};
+
+export type EditRendererProps<TData = unknown> = {
+  item: GridItem<TData>;
+  interactive: boolean;
 };
 
 export type KindDefaults<TData = unknown> = {
@@ -136,7 +139,12 @@ export type InspectorProps<TData = unknown> = {
 };
 
 export type KindDescriptor<TData = unknown> = {
-  component: FC<ItemRendererProps<TData>>;
+  /** Preview / published surface. Always mounted by `VantagePreview`. */
+  component: FC<PreviewRendererProps<TData>>;
+  /** Builder surface. When omitted, builder mounts `component` with `{ item }` only. */
+  editComponent?: FC<EditRendererProps<TData>>;
+  /** Builder shell until the item is selected. When omitted, always mounts edit renderer. */
+  editPlaceholder?: FC<PreviewRendererProps<TData>>;
   inspector?: FC<InspectorProps<TData>>;
   defaults: KindDefaults<TData>;
   displayName?: string;
@@ -148,9 +156,7 @@ export type KindDescriptor<TData = unknown> = {
 
 // Per-kind data types differ inside a registry; `any` preserves each entry's component/data pairing.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type KindEntry<TData = any> = KindDescriptor<TData> | FC<ItemRendererProps<TData>>;
-
-export type ComponentRegistry = Record<string, KindEntry>;
+export type ComponentRegistry = Record<string, KindDescriptor<any>>;
 
 export type ResolvedKindDescriptor<TData = unknown> = KindDescriptor<TData>;
 

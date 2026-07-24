@@ -37,11 +37,14 @@ Preview has no drag system, no chrome, no selection. Safe at any size — iframe
 
 ## `defineKind`
 
-Bundles a renderer with the defaults used when the user clicks **+ Add** for that kind.
+Bundles preview/edit renderers with the defaults used when the user clicks **+ Add** for that kind.
 
 ```ts
 defineKind<TData>({
-  component,             // FC<ItemRendererProps<TData>>
+  component,             // FC<PreviewRendererProps<TData>> — always mounted in preview
+  editComponent?,        // FC<EditRendererProps<TData>> — builder; omit → reuse component with { item }
+  editPlaceholder?,      // FC<PreviewRendererProps<TData>> — builder shell until selected
+  inspector?,            // FC<InspectorProps<TData>> — host-rendered settings panel
   defaults: {            // applied on add
     w, h,                // initial grid size in columns × rows
     label?,              // shown in the add menu and layers list
@@ -53,12 +56,8 @@ defineKind<TData>({
 });
 ```
 
-Wrappers are useful for transparent text cells, drop shadows, or overlay variants. The demo passes Tailwind / daisyUI classes via `editWrapperClass` / `previewWrapperClass` so kinds can opt into different cell-level styling in each mode.
+Wrappers are useful for transparent text cells, drop shadows, or overlay variants. The demo passes Tailwind / daisyUI classes via `editWrapperClass` / `previewWrapperClass` so kinds can opt into different cell-level styling per surface.
 
-You can also register a bare function instead of a descriptor — fallback size is 3×2 and `data` starts `undefined`:
-
-```ts
-const components = { divider: ({ mode }) => <hr data-mode={mode} /> };
-```
+Every registry entry must be a `KindDescriptor` from `defineKind`. Bare function entries are not supported.
 
 See [Custom blocks](blocks.md) for full patterns.

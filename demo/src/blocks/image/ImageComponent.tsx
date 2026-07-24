@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { ItemRendererProps } from 'vantage';
+import type { PreviewRendererProps } from 'vantage';
 import { getSingleImageStyle } from './imageDisplay';
 import type { ImageData } from './index';
 
-export function ImageComponent({ item }: ItemRendererProps<ImageData>) {
+export function ImageComponent({ item }: PreviewRendererProps<ImageData>) {
   const data = item.data ?? {};
   const frameRef = useRef<HTMLDivElement>(null);
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);

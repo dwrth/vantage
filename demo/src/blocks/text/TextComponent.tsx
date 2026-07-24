@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { ItemRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { TextData } from './types';
 import { FONT_SIZE_PX, FONT_WEIGHT_VALUE } from './types';
 
@@ -36,7 +36,7 @@ function TextBody({
   item,
   preview,
 }: {
-  item: ItemRendererProps<TextData>['item'];
+  item: PreviewRendererProps<TextData>['item'];
   preview?: boolean;
 }) {
   const data = item.data ?? {};
@@ -53,6 +53,10 @@ function TextBody({
   );
 }
 
-export function TextComponent(props: ItemRendererProps<TextData>) {
-  return <TextBody item={props.item} preview={props.mode === 'preview'} />;
+export function TextPreview({ item }: PreviewRendererProps<TextData>) {
+  return <TextBody item={item} preview />;
+}
+
+export function TextEdit({ item }: EditRendererProps<TextData>) {
+  return <TextBody item={item} />;
 }
