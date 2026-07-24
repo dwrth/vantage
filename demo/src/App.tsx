@@ -101,6 +101,10 @@ function App() {
     setLayout(createSampleLayout());
   }, []);
 
+  const handleLayoutChange = useCallback((next: Layout) => {
+    setLayout(next);
+  }, []);
+
   const layerMenuIndex = useMemo(() => {
     if (!layerMenu) return -1;
     const section = layout.sections.find((s) => s.id === layerMenu.sectionId);
@@ -221,7 +225,7 @@ function App() {
     <div className="flex h-full min-h-0 flex-col">
       <Toolbar
         layout={layout}
-        onChange={setLayout}
+        onChange={handleLayoutChange}
         onLoadSample={loadSample}
         activeBreakpoint={activeBreakpoint}
         onActiveBreakpointChange={setActiveBreakpoint}
@@ -244,13 +248,13 @@ function App() {
             <div className="vantage-canvas-shell mx-auto max-w-[1400px] rounded-box p-2 md:p-3">
               <VantageBuilder
                 value={layout}
-                onChange={setLayout}
+                onChange={handleLayoutChange}
                 components={demoComponents}
                 className="min-h-[70vh]"
                 renderSectionHeader={(ctx) => (
                   <SectionHeader
                     layout={layout}
-                    onChange={setLayout}
+                    onChange={handleLayoutChange}
                     components={demoComponents}
                     {...ctx}
                   />
@@ -300,7 +304,7 @@ function App() {
               {panelTab === 'layers' ? (
                 <LayersPanel
                   layout={layout}
-                  onChange={setLayout}
+                  onChange={handleLayoutChange}
                   selection={selection}
                   onSelectionChange={handleSelectionChange}
                   activeBreakpoint={activeBreakpoint}
@@ -309,7 +313,7 @@ function App() {
               {panelTab === 'item' ? (
                 <VantageInspector
                   layout={layout}
-                  onChange={setLayout}
+                  onChange={handleLayoutChange}
                   components={demoComponents}
                   selection={selection}
                   activeBreakpoint={activeBreakpoint}
@@ -332,7 +336,7 @@ function App() {
               {panelTab === 'section' ? (
                 <SectionInspector
                   layout={layout}
-                  onChange={setLayout}
+                  onChange={handleLayoutChange}
                   selectedSectionId={effectiveInspectedSectionId}
                   onSelectSection={setInspectedSectionId}
                   activeBreakpoint={activeBreakpoint}

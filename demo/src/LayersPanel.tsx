@@ -13,6 +13,7 @@ import {
   addSection,
   bringItemToFront,
   clearItemOverride,
+  emitLayoutChange,
   removeItem,
   reorderItemAtIndex,
   resolveItem,
@@ -21,6 +22,7 @@ import {
   type Breakpoint,
   type GridItem,
   type Layout,
+  type LayoutChangeset,
   type SelectionRef,
 } from 'vantage';
 
@@ -44,7 +46,7 @@ const parseRowId = (id: string): { sectionId: string; itemId: string } | null =>
 
 type LayersPanelProps = {
   layout: Layout;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   selection: SelectionRef | null;
   onSelectionChange: (next: SelectionRef | null) => void;
   activeBreakpoint: Breakpoint;
@@ -214,13 +216,14 @@ export function LayersPanel({
 
   const handleAddSection = useCallback(() => {
     const { layout: next } = addSection(layout);
-    onChange(next);
+    emitLayoutChange(layout, next, onChange);
   }, [layout, onChange]);
 
   const commitRename = useCallback(
     (sectionId: string, itemId: string) => {
       const trimmed = editValue.trim();
-      if (trimmed) onChange(updateItemLabel(layout, sectionId, itemId, trimmed));
+      if (trimmed)
+        emitLayoutChange(layout, updateItemLabel(layout, sectionId, itemId, trimmed), onChange);
       setEditingId(null);
     },
     [editValue, layout, onChange],
@@ -255,7 +258,11 @@ export function LayersPanel({
         .reverse()
         .findIndex((i) => i.id === to.itemId);
       if (fromStorage < 0 || toDisplay < 0) return;
-      onChange(reorderItemAtIndex(layout, from.sectionId, fromStorage, len - 1 - toDisplay));
+      emitLayoutChange(
+        layout,
+        reorderItemAtIndex(layout, from.sectionId, fromStorage, len - 1 - toDisplay),
+        onChange,
+      );
     },
     [layout, onChange],
   );
@@ -329,13 +336,22 @@ export function LayersPanel({
                               onCommitRename={() => commitRename(section.id, item.id)}
                               onCancelRename={() => setEditingId(null)}
                               onBringToFront={() =>
-                                onChange(bringItemToFront(layout, section.id, item.id))
+                                emitLayoutChange(
+                                  layout,
+                                  bringItemToFront(layout, section.id, item.id),
+                                  onChange,
+                                )
                               }
                               onSendToBack={() =>
-                                onChange(sendItemToBack(layout, section.id, item.id))
+                                emitLayoutChange(
+                                  layout,
+                                  sendItemToBack(layout, section.id, item.id),
+                                  onChange,
+                                )
                               }
                               onToggleHidden={() =>
-                                onChange(
+                                emitLayoutChange(
+                                  layout,
                                   setItemHidden(
                                     layout,
                                     section.id,
@@ -343,16 +359,23 @@ export function LayersPanel({
                                     activeBreakpoint,
                                     !placement.hidden,
                                   ),
+                                  onChange,
                                 )
                               }
                               onResetPlacement={() => {
                                 if (activeBreakpoint === 'desktop') return;
-                                onChange(
+                                emitLayoutChange(
+                                  layout,
                                   clearItemOverride(layout, section.id, activeBreakpoint, item.id),
+                                  onChange,
                                 );
                               }}
                               onDelete={() => {
-                                onChange(removeItem(layout, section.id, item.id));
+                                emitLayoutChange(
+                                  layout,
+                                  removeItem(layout, section.id, item.id),
+                                  onChange,
+                                );
                                 if (
                                   selection?.sectionId === section.id &&
                                   selection?.itemId === item.id

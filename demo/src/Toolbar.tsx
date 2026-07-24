@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import {
   BREAKPOINTS,
   clearLayout,
+  emitLayoutChange,
   exportLayout,
   getBreakpointPreviewWidths,
   getBreakpointWidths,
@@ -12,6 +13,7 @@ import {
   setLayoutBreakpoints,
   type Breakpoint,
   type Layout,
+  type LayoutChangeset,
 } from 'vantage';
 
 const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
@@ -22,7 +24,7 @@ const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
 
 type ToolbarProps = {
   layout: Layout;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   onLoadSample: () => void;
   activeBreakpoint: Breakpoint;
   onActiveBreakpointChange: (next: Breakpoint) => void;
@@ -64,7 +66,7 @@ export function Toolbar({
           alert('Invalid layout JSON');
           return;
         }
-        onChange(importLayout(data as Layout));
+        emitLayoutChange(layout, importLayout(data as Layout), onChange);
       } catch {
         alert('Failed to parse JSON');
       }
@@ -78,7 +80,7 @@ export function Toolbar({
     const next: Breakpoint[] = hasTablet
       ? enabledBreakpoints.filter((bp) => bp !== 'tablet')
       : [...enabledBreakpoints, 'tablet'];
-    onChange(setLayoutBreakpoints(layout, next));
+    emitLayoutChange(layout, setLayoutBreakpoints(layout, next), onChange);
   };
 
   return (
@@ -120,7 +122,8 @@ export function Toolbar({
                 value={breakpointWidths.mobile ?? 640}
                 onChange={(e) => {
                   const num = Number(e.target.value);
-                  if (Number.isFinite(num)) onChange(setBreakpointWidth(layout, 'mobile', num));
+                  if (Number.isFinite(num))
+                    emitLayoutChange(layout, setBreakpointWidth(layout, 'mobile', num), onChange);
                 }}
               />
             </label>
@@ -134,7 +137,11 @@ export function Toolbar({
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   if (Number.isFinite(num))
-                    onChange(setBreakpointPreviewWidth(layout, 'mobile', num));
+                    emitLayoutChange(
+                      layout,
+                      setBreakpointPreviewWidth(layout, 'mobile', num),
+                      onChange,
+                    );
                 }}
               />
             </label>
@@ -152,7 +159,8 @@ export function Toolbar({
                 value={breakpointWidths.tablet ?? 1023}
                 onChange={(e) => {
                   const num = Number(e.target.value);
-                  if (Number.isFinite(num)) onChange(setBreakpointWidth(layout, 'tablet', num));
+                  if (Number.isFinite(num))
+                    emitLayoutChange(layout, setBreakpointWidth(layout, 'tablet', num), onChange);
                 }}
               />
             </label>
@@ -166,7 +174,11 @@ export function Toolbar({
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   if (Number.isFinite(num))
-                    onChange(setBreakpointPreviewWidth(layout, 'tablet', num));
+                    emitLayoutChange(
+                      layout,
+                      setBreakpointPreviewWidth(layout, 'tablet', num),
+                      onChange,
+                    );
                 }}
               />
             </label>
@@ -189,7 +201,7 @@ export function Toolbar({
           <button
             type="button"
             className="btn btn-ghost btn-sm join-item"
-            onClick={() => onChange(clearLayout())}
+            onClick={() => emitLayoutChange(layout, clearLayout(), onChange)}
           >
             Clear
           </button>

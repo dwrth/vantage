@@ -5,7 +5,7 @@
 | Prop                       | Required | Description                                                                                                                                                                                                                                                               |
 | -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `value`                    | yes      | `Layout` to render.                                                                                                                                                                                                                                                       |
-| `onChange`                 | yes      | Called with the next `Layout` after every mutation.                                                                                                                                                                                                                       |
+| `onChange`                 | yes      | `(next, changeset) => void` after every mutation.                                                                                                                                                                                                                         |
 | `components`               | yes      | `ComponentRegistry` mapping `kind` → renderer.                                                                                                                                                                                                                            |
 | `selectedItem`             | no       | Controlled selection `{ sectionId, itemId }` or `null`. Omit for uncontrolled.                                                                                                                                                                                            |
 | `defaultSelectedItem`      | no       | Initial selection when uncontrolled.                                                                                                                                                                                                                                      |
@@ -42,7 +42,7 @@ Mounts the selected item's kind `inspector` and writes via `updateItemData`. Pla
 | Prop               | Required | Description                                                                                                 |
 | ------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
 | `layout`           | yes      | Current `Layout`.                                                                                           |
-| `onChange`         | yes      | Called with the next `Layout` after each inspector patch.                                                   |
+| `onChange`         | yes      | `(next, changeset) => void` after each inspector patch.                                                     |
 | `components`       | yes      | Same `ComponentRegistry` as the builder.                                                                    |
 | `selection`        | yes      | `{ sectionId, itemId }` or `null`.                                                                          |
 | `activeBreakpoint` | yes      | Breakpoint used for resolve + `scope: 'active'` writes.                                                     |
@@ -51,7 +51,7 @@ Mounts the selected item's kind `inspector` and writes via `updateItemData`. Pla
 | `emptyState`       | no       | Shown when nothing is selected.                                                                             |
 | `renderHeader`     | no       | `({ section, item, … }) => ReactNode` chrome above the kind panel.                                          |
 
-Kind panels receive `InspectorProps` and call `onChange(patch, { scope?, dirty? })`. Library maps scope → breakpoint, applies `updateItemData`, then fires `onChange` + optional `onItemDataChange`.
+Kind panels receive `InspectorProps` and call `onChange(patch, { scope?, dirty? })`. Library maps scope → breakpoint, applies `updateItemData`, then fires layout `onChange(next, changeset)` + optional `onItemDataChange`.
 
 Chrome is unstyled — skin with `className` / `renderHeader`. Kind field UIs stay host-authored on `defineKind`.
 

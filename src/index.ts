@@ -116,13 +116,17 @@ export type { ResolvedSelection } from './lib/inspector';
 
 export {
   diffLayouts,
+  emitLayoutChange,
   type LayoutChangeset,
   type ItemAddedEvent,
   type ItemRemovedEvent,
   type ItemUpdatedEvent,
   type ItemMovedEvent,
+  type ItemsReorderedEvent,
   type SectionAddedEvent,
   type SectionRemovedEvent,
+  type SectionUpdatedEvent,
+  type LayoutUpdatedEvent,
 } from './lib/diff';
 
 export {

@@ -41,7 +41,25 @@ Stack order inside a section is the order of `section.items` — later items ren
 
 ## Mutating the layout
 
-Every helper is pure: it returns a new `Layout`. Call `onChange` with the result.
+Every helper is pure: it returns a new `Layout`. Emit via `onChange(next, changeset)` — Builder and `VantageInspector` compute the changeset for you. Host panels outside those trees should use `emitLayoutChange`:
+
+```ts
+import { emitLayoutChange, updateSection } from 'vantage';
+
+emitLayoutChange(layout, updateSection(layout, sectionId, { columns: 16 }), onChange);
+// equivalent to: onChange(next, diffLayouts(layout, next))
+```
+
+`LayoutChangeset` lists what changed (empty arrays / `null` when nothing matches):
+
+| Field                                                         | When                                                                                           |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `itemsAdded` / `itemsRemoved` / `itemsUpdated` / `itemsMoved` | Item identity / ref / cross-section moves                                                      |
+| `itemsReordered`                                              | Same item ids, different stack order                                                           |
+| `sectionsAdded` / `sectionsRemoved` / `sectionsUpdated`       | Section identity; chrome fields (`columns`, gaps, padding, background, overrides, meta, label) |
+| `layoutUpdated`                                               | Top-level breakpoints / widths / meta                                                          |
+
+Unchanged sections and items keep the same object references (structural sharing).
 
 ### Sections
 
@@ -78,7 +96,7 @@ Edge positions are no-ops. The demo wires these to a right-click context menu (`
 ```tsx
 <VantageBuilder
   value={layout}
-  onChange={setLayout}
+  onChange={(next) => setLayout(next)}
   components={components}
   onItemContextMenu={(e, { sectionId, item }) => {
     setLayerMenu({ x: e.clientX, y: e.clientY, sectionId, itemId: item.id });

@@ -25,7 +25,7 @@ const [active, setActive] = useState<Breakpoint>('desktop');
 
 <VantageBuilder
   value={layout}
-  onChange={setLayout}
+  onChange={(next) => setLayout(next)}
   components={components}
   activeBreakpoint={active}
   onActiveBreakpointChange={setActive}

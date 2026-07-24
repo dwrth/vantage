@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import {
   addItem,
+  emitLayoutChange,
   removeSection,
   resolveDescriptorForKind,
   resolveRegistry,
@@ -10,12 +11,13 @@ import {
   type Breakpoint,
   type ComponentRegistry,
   type Layout,
+  type LayoutChangeset,
   type Section,
 } from 'vantage';
 
 type SectionHeaderProps = {
   layout: Layout;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   components: ComponentRegistry;
   section: Section;
   activeBreakpoint: Breakpoint;
@@ -42,10 +44,14 @@ export function SectionHeader({
     if (!Number.isFinite(num)) return;
     const next = Math.max(min, Math.round(num));
     if (activeBreakpoint === 'desktop') {
-      onChange(updateSection(layout, section.id, { [key]: next }));
+      emitLayoutChange(layout, updateSection(layout, section.id, { [key]: next }), onChange);
       return;
     }
-    onChange(setSectionOverride(layout, section.id, activeBreakpoint, { [key]: next }));
+    emitLayoutChange(
+      layout,
+      setSectionOverride(layout, section.id, activeBreakpoint, { [key]: next }),
+      onChange,
+    );
   };
 
   const kindLabel = (kind: string) => {
@@ -58,7 +64,13 @@ export function SectionHeader({
       <input
         className="input input-sm input-ghost min-w-28 max-w-48 font-semibold"
         value={section.label ?? ''}
-        onChange={(e) => onChange(updateSection(layout, section.id, { label: e.target.value }))}
+        onChange={(e) =>
+          emitLayoutChange(
+            layout,
+            updateSection(layout, section.id, { label: e.target.value }),
+            onChange,
+          )
+        }
         placeholder="Section"
       />
 
@@ -97,7 +109,11 @@ export function SectionHeader({
             className="btn btn-ghost btn-xs"
             onClick={() => {
               const descriptor = resolveDescriptorForKind(resolvedRegistry, kind);
-              onChange(addItem(layout, section.id, kind, descriptor?.defaults));
+              emitLayoutChange(
+                layout,
+                addItem(layout, section.id, kind, descriptor?.defaults),
+                onChange,
+              );
             }}
           >
             + {kindLabel(kind)}
@@ -106,7 +122,7 @@ export function SectionHeader({
         <button
           type="button"
           className="btn btn-ghost btn-xs text-error"
-          onClick={() => onChange(removeSection(layout, section.id))}
+          onClick={() => emitLayoutChange(layout, removeSection(layout, section.id), onChange)}
           aria-label="Delete section"
         >
           ×

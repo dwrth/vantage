@@ -9,7 +9,7 @@ const [selection, setSelection] = useState<SelectionRef | null>(null);
 
 <VantageBuilder
   value={layout}
-  onChange={setLayout}
+  onChange={(next) => setLayout(next)}
   components={components}
   selectedItem={selection}
   onSelectionChange={setSelection}

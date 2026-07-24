@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import type { SelectionRef } from '../context/BuilderContext';
+import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveSelectedItem, type ResolvedSelection } from '../lib/inspector';
 import { updateItemData } from '../mutations/layout';
 import type {
@@ -15,7 +16,7 @@ export type VantageInspectorProps = {
   components: ComponentRegistry;
   selection: SelectionRef | null;
   activeBreakpoint: Breakpoint;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   onItemDataChange?: (event: ItemDataChangeEvent) => void;
   className?: string;
   emptyState?: ReactNode;
@@ -75,7 +76,8 @@ export function VantageInspector({
               const scope: InspectorScope = opts?.scope ?? 'active';
               const breakpoint = scope === 'base' ? 'desktop' : activeBreakpoint;
               const dirty = opts?.dirty ?? true;
-              onChange(updateItemData(layout, section.id, item.id, patch, breakpoint));
+              const next = updateItemData(layout, section.id, item.id, patch, breakpoint);
+              onChange(next, diffLayouts(layout, next));
               onItemDataChange?.({
                 sectionId: section.id,
                 itemId: item.id,

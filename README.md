@@ -71,7 +71,7 @@ function App() {
   const [layout, setLayout] = useState<Layout>(createEmptyLayout);
   return (
     <>
-      <VantageBuilder value={layout} onChange={setLayout} components={components} />
+      <VantageBuilder value={layout} onChange={(next) => setLayout(next)} components={components} />
       <VantagePreview value={layout} components={components} />
     </>
   );

@@ -23,7 +23,7 @@ Standalone (out-of-tree) shell: resolves the selection, mounts the kind's `inspe
 ```tsx
 <VantageInspector
   layout={layout}
-  onChange={setLayout}
+  onChange={(next) => setLayout(next)}
   components={components}
   selection={selection}
   activeBreakpoint={activeBreakpoint}

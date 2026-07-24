@@ -2,10 +2,12 @@ import { useCallback, useMemo } from 'react';
 import {
   DEFAULT_SECTION_PADDING_Y,
   clearSectionOverride,
+  emitLayoutChange,
   resolveSection,
   setSectionOverride,
   type Breakpoint,
   type Layout,
+  type LayoutChangeset,
   type Section,
   type SectionBackground,
   type SectionBackgroundImageRepeat,
@@ -15,7 +17,7 @@ import { SectionBackgroundFocalPointControl } from './SectionBackgroundFocalPoin
 
 type SectionInspectorProps = {
   layout: Layout;
-  onChange: (layout: Layout) => void;
+  onChange: (next: Layout, changeset: LayoutChangeset) => void;
   selectedSectionId: string | null;
   onSelectSection: (sectionId: string | null) => void;
   activeBreakpoint: Breakpoint;
@@ -125,7 +127,11 @@ export function SectionInspector({
   const patch = useCallback(
     (next: Partial<SectionBackground>) => {
       if (!section) return;
-      onChange(setSectionBackground(layout, section.id, withPatch(section.background, next)));
+      emitLayoutChange(
+        layout,
+        setSectionBackground(layout, section.id, withPatch(section.background, next)),
+        onChange,
+      );
     },
     [layout, onChange, section],
   );
@@ -185,10 +191,12 @@ export function SectionInspector({
                         onChange={(e) => {
                           const num = Number(e.target.value);
                           if (!Number.isFinite(num)) return;
-                          onChange(
+                          emitLayoutChange(
+                            layout,
                             setSectionOverride(layout, section.id, activeBreakpoint, {
                               [key]: Math.max(min, Math.round(num)),
                             }),
+                            onChange,
                           );
                         }}
                       />
@@ -199,7 +207,11 @@ export function SectionInspector({
                   type="button"
                   className="btn btn-ghost btn-sm w-full"
                   onClick={() =>
-                    onChange(clearSectionOverride(layout, section.id, activeBreakpoint))
+                    emitLayoutChange(
+                      layout,
+                      clearSectionOverride(layout, section.id, activeBreakpoint),
+                      onChange,
+                    )
                   }
                 >
                   Reset {activeBreakpoint} layout
@@ -220,10 +232,12 @@ export function SectionInspector({
                   onChange={(e) => {
                     const num = Number(e.target.value);
                     if (!Number.isFinite(num)) return;
-                    onChange(
+                    emitLayoutChange(
+                      layout,
                       patchSection(layout, section.id, {
                         paddingTop: Math.max(0, Math.round(num)),
                       }),
+                      onChange,
                     );
                   }}
                 />
@@ -239,10 +253,12 @@ export function SectionInspector({
                   onChange={(e) => {
                     const num = Number(e.target.value);
                     if (!Number.isFinite(num)) return;
-                    onChange(
+                    emitLayoutChange(
+                      layout,
                       patchSection(layout, section.id, {
                         paddingBottom: Math.max(0, Math.round(num)),
                       }),
+                      onChange,
                     );
                   }}
                 />
@@ -399,7 +415,13 @@ export function SectionInspector({
             <button
               type="button"
               className="btn btn-ghost btn-sm w-full"
-              onClick={() => onChange(setSectionBackground(layout, section.id, undefined))}
+              onClick={() =>
+                emitLayoutChange(
+                  layout,
+                  setSectionBackground(layout, section.id, undefined),
+                  onChange,
+                )
+              }
             >
               Clear background
             </button>
