@@ -48,9 +48,9 @@ function HeroPreview({ item }: PreviewRendererProps<HeroData>) {
   );
 }
 
-function HeroEdit({ item, interactive }: EditRendererProps<HeroData>) {
+function HeroEdit({ item }: EditRendererProps<HeroData>) {
   return (
-    <div onPointerDown={interactive ? (e) => e.stopPropagation() : undefined}>
+    <div>
       <h2>{item.data?.title}</h2>
       <p>{item.data?.body}</p>
       <span>Editing</span>

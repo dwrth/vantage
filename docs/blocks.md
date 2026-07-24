@@ -16,21 +16,21 @@ export type HeroData = {
 
 Register separate FCs for each surface. Render **content only** — Vantage already placed the cell.
 
-| Surface           | Props                                         | When mounted                                               |
-| ----------------- | --------------------------------------------- | ---------------------------------------------------------- |
-| `component`       | `PreviewRendererProps` (`{ item }`)           | Always in `VantagePreview`                                 |
-| `editComponent`   | `EditRendererProps` (`{ item, interactive }`) | Builder, when selected (or always if no `editPlaceholder`) |
-| `editPlaceholder` | `PreviewRendererProps` (`{ item }`)           | Builder, until the item is selected                        |
+| Surface           | Props                               | When mounted                                               |
+| ----------------- | ----------------------------------- | ---------------------------------------------------------- |
+| `component`       | `PreviewRendererProps` (`{ item }`) | Always in `VantagePreview`                                 |
+| `editComponent`   | `EditRendererProps` (`{ item }`)    | Builder, when selected (or always if no `editPlaceholder`) |
+| `editPlaceholder` | `PreviewRendererProps` (`{ item }`) | Builder, until the item is selected                        |
 
-When `editComponent` is omitted, the builder mounts `component` with `{ item }` only. Kinds that need edit gestures (stopPropagation, etc.) must supply `editComponent`.
+When `editComponent` is omitted, the builder mounts `component` with `{ item }` only.
 
 ```tsx
 function CardPreview({ item }: PreviewRendererProps<CardData>) {
-  /* no chrome, no event handlers */
+  /* published surface */
 }
 
-function CardEdit({ item, interactive }: EditRendererProps<CardData>) {
-  /* uses `interactive` to stopPropagation on clicks */
+function CardEdit({ item }: EditRendererProps<CardData>) {
+  /* builder surface — native buttons/inputs need no stopPropagation */
 }
 
 export const cardKind = defineKind<CardData>({
@@ -93,23 +93,40 @@ The seven kinds in `demo/src/blocks/` cover the common shapes:
 - **Variant via data** — `text` flips to a white-on-image `overlay` look when `data.variant === 'overlay'`. Use this instead of forking the kind.
 - **Alignment via data** — `button` reads `align` / `vAlign` to position its surface inside the cell. The demo's right-click menu writes those fields per-breakpoint via `updateItemData<ButtonData>(layout, sectionId, itemId, { align: 'left' }, activeBreakpoint)` so mobile alignment doesn't leak into desktop.
 - **Composed content** — `card` renders an image, body, and CTA from a single typed object. Wrapper class lifts the cell into a card with a shadow.
-- **Form controls** — `input` is a stateless label + input; the host controls the value. The edit renderer calls `stopPropagation` on `onPointerDown` / `onClick` only when `interactive` is true so dnd-kit doesn't capture the gesture.
+- **Form controls** — `input` is a stateless label + input; the host controls the value. Native `<input>` / `<button>` are auto-isolated from drag by the library sensor.
 - **Stateful blocks** — `form` keeps its own `useState` for the email value and a `submitted` flag. `item.data` is read-only from the block's perspective; for persisted state, lift to the host and call `updateItemData`. See `demo/src/blocks/form/StatefulForm.tsx`.
 - **Edit-only chrome** — `block` uses `component: () => null` and `editComponent` that shows `{w}×{h} @ (x,y)`, useful as a debugging or spacer block.
 - **Inspectors** — `text`, `button`, and `image` register an `inspector` on `defineKind`. `<VantageInspector>` resolves the selected item and mounts that panel. Image and section backgrounds also ship a focal-point cropper for `cover` images.
 
 ## Interactivity inside edit mode
 
-In the builder every cell is a drag target. `interactive` is passed to `editComponent` (currently always `true`). For any interactive child — buttons, links, inputs, contenteditable — stop the gesture so dnd-kit doesn't capture it:
+Drag starts from the **cell handle only**, not from content. The builder `PointerSensor` also refuses activation when the pointer target is (or is inside) an interactive element:
+
+- Native: `a`, `button`, `input`, `textarea`, `select`, `label`, `contenteditable`
+- Custom: `[data-vantage-interactive]` or wrap with `<VantageInteractive>`
+
+Kinds must **not** call `stopPropagation` for dnd. Preview has no drag system — mount `component` with normal interactive elements.
 
 ```tsx
-<input
-  onPointerDown={interactive ? (e) => e.stopPropagation() : undefined}
-  onClick={interactive ? (e) => e.stopPropagation() : undefined}
-/>
-```
+import { VantageInteractive } from 'vantage';
 
-Preview has no drag system; mount `component` with normal interactive elements.
+function StageEdit({ item }: EditRendererProps<StageData>) {
+  return (
+    <div>
+      {/* native button — auto-isolated */}
+      <button type="button">Play</button>
+      {/* custom clickable surface */}
+      <VantageInteractive
+        onClick={() => {
+          /* … */
+        }}
+      >
+        Open panel
+      </VantageInteractive>
+    </div>
+  );
+}
+```
 
 ## Rules and pitfalls
 

@@ -118,7 +118,6 @@ export type PreviewRendererProps<TData = unknown> = {
 
 export type EditRendererProps<TData = unknown> = {
   item: GridItem<TData>;
-  interactive: boolean;
 };
 
 export type KindDefaults<TData = unknown> = {

@@ -1,13 +1,7 @@
 import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { InputData } from './index';
 
-function InputBody({
-  item,
-  stop,
-}: {
-  item: PreviewRendererProps<InputData>['item'];
-  stop?: boolean;
-}) {
+function InputBody({ item }: { item: PreviewRendererProps<InputData>['item'] }) {
   const data = item.data ?? {};
 
   return (
@@ -15,13 +9,7 @@ function InputBody({
       <span className="text-xs font-medium tracking-wide text-base-content/60 uppercase">
         {data.title ?? 'Label'}
       </span>
-      <input
-        type="text"
-        className="input input-sm w-full"
-        placeholder={data.placeholder ?? ''}
-        onPointerDown={stop ? (e) => e.stopPropagation() : undefined}
-        onClick={stop ? (e) => e.stopPropagation() : undefined}
-      />
+      <input type="text" className="input input-sm w-full" placeholder={data.placeholder ?? ''} />
     </label>
   );
 }
@@ -30,6 +18,6 @@ export function InputPreview({ item }: PreviewRendererProps<InputData>) {
   return <InputBody item={item} />;
 }
 
-export function InputEdit({ item, interactive }: EditRendererProps<InputData>) {
-  return <InputBody item={item} stop={interactive} />;
+export function InputEdit({ item }: EditRendererProps<InputData>) {
+  return <InputBody item={item} />;
 }

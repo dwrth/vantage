@@ -28,6 +28,24 @@
   opacity: 0.85;
 }
 
+/* Restore native touch/pan inside interactive controls (body uses touch-action: none). */
+.grid-block__body
+  :global(
+    :is(
+      a,
+      button,
+      input,
+      textarea,
+      select,
+      label,
+      [contenteditable='true'],
+      [contenteditable=''],
+      [data-vantage-interactive]
+    )
+  ) {
+  touch-action: auto;
+}
+
 /* Chrome cell — same grid area, raised only when active. */
 .grid-block__chrome {
   position: relative;

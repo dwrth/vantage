@@ -1,13 +1,7 @@
 import type { EditRendererProps, PreviewRendererProps } from 'vantage';
 import type { CardData } from './index';
 
-function CardBody({
-  item,
-  stop,
-}: {
-  item: PreviewRendererProps<CardData>['item'];
-  stop?: boolean;
-}) {
+function CardBody({ item }: { item: PreviewRendererProps<CardData>['item'] }) {
   const data = item.data ?? {};
 
   return (
@@ -27,12 +21,7 @@ function CardBody({
         {data.content ? <p className="text-sm text-base-content/70">{data.content}</p> : null}
         {data.cta ? (
           <div className="card-actions mt-auto">
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={stop ? (e) => e.stopPropagation() : undefined}
-              onPointerDown={stop ? (e) => e.stopPropagation() : undefined}
-            >
+            <button type="button" className="btn btn-sm btn-primary">
               {data.cta}
             </button>
           </div>
@@ -46,6 +35,6 @@ export function CardPreview({ item }: PreviewRendererProps<CardData>) {
   return <CardBody item={item} />;
 }
 
-export function CardEdit({ item, interactive }: EditRendererProps<CardData>) {
-  return <CardBody item={item} stop={interactive} />;
+export function CardEdit({ item }: EditRendererProps<CardData>) {
+  return <CardBody item={item} />;
 }

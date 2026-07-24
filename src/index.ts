@@ -13,6 +13,7 @@ export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
 export { VantageInspector } from './components/VantageInspector';
 export type { VantageInspectorProps } from './components/VantageInspector';
+export { VantageInteractive } from './components/VantageInteractive';
 
 export type {
   Layout,
@@ -57,6 +58,8 @@ export {
   resolveDescriptorForKind,
 } from './lib/registry';
 export type { RenderSurface } from './lib/registry';
+
+export { VANTAGE_INTERACTIVE_ATTR, isVantageInteractiveTarget } from './lib/interactive';
 
 export {
   createEmptyLayout,

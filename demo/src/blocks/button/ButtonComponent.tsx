@@ -14,13 +14,7 @@ const V_ALIGN: Record<ButtonVAlign, CSSProperties['alignItems']> = {
   bottom: 'flex-end',
 };
 
-function ButtonBody({
-  item,
-  stop,
-}: {
-  item: PreviewRendererProps<ButtonData>['item'];
-  stop?: boolean;
-}) {
+function ButtonBody({ item }: { item: PreviewRendererProps<ButtonData>['item'] }) {
   const data = item.data ?? {};
 
   return (
@@ -31,12 +25,7 @@ function ButtonBody({
         alignItems: V_ALIGN[data.vAlign ?? 'center'],
       }}
     >
-      <button
-        type="button"
-        className="btn btn-sm btn-primary"
-        onClick={stop ? (e) => e.stopPropagation() : undefined}
-        onPointerDown={stop ? (e) => e.stopPropagation() : undefined}
-      >
+      <button type="button" className="btn btn-sm btn-primary">
         {data.cta ?? item.label ?? 'Button'}
       </button>
     </div>
@@ -47,6 +36,6 @@ export function ButtonPreview({ item }: PreviewRendererProps<ButtonData>) {
   return <ButtonBody item={item} />;
 }
 
-export function ButtonEdit({ item, interactive }: EditRendererProps<ButtonData>) {
-  return <ButtonBody item={item} stop={interactive} />;
+export function ButtonEdit({ item }: EditRendererProps<ButtonData>) {
+  return <ButtonBody item={item} />;
 }

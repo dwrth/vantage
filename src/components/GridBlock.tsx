@@ -181,7 +181,7 @@ export function GridBlock({
   if (usePlaceholder) {
     body = createElement(descriptor!.editPlaceholder!, { item });
   } else if (descriptor?.editComponent) {
-    body = createElement(descriptor.editComponent, { item, interactive: true });
+    body = createElement(descriptor.editComponent, { item });
   } else {
     body = createElement(resolveRenderer(components, item, 'preview'), { item });
   }

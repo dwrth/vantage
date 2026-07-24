@@ -1,4 +1,4 @@
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { resolveItem, resolveItemData, resolveSection } from '../lib/breakpoint';
 import {
@@ -11,6 +11,7 @@ import {
   itemsAtPointer,
 } from '../lib/grid';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
+import { VantagePointerSensor } from '../lib/pointerSensor';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useContainerWidth } from '../hooks/useContainerWidth';
@@ -135,7 +136,9 @@ export function SectionView({ section }: SectionViewProps) {
     [resolvedItems],
   );
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(VantagePointerSensor, { activationConstraint: { distance: 4 } }),
+  );
 
   const onDragStart = useCallback(() => {
     setInteracting(true);
