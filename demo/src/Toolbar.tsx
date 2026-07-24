@@ -6,12 +6,15 @@ import {
   exportLayout,
   getBreakpointPreviewWidths,
   getBreakpointWidths,
+  hydrate,
   importLayout,
   isValidLayout,
   setBreakpointPreviewWidth,
   setBreakpointWidth,
   setLayoutBreakpoints,
+  stripData,
   type Breakpoint,
+  type ComponentRegistry,
   type Layout,
   type LayoutChangeset,
 } from 'vantage';
@@ -24,6 +27,8 @@ const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
 
 type ToolbarProps = {
   layout: Layout;
+  components: ComponentRegistry;
+  entities: Record<string, unknown>;
   onChange: (next: Layout, changeset: LayoutChangeset) => void;
   /** Clear / Sample / Import — bypasses history stack (host calls `reset`). */
   onBaselineChange: (next: Layout) => void;
@@ -38,6 +43,8 @@ type ToolbarProps = {
 
 export function Toolbar({
   layout,
+  components,
+  entities,
   onChange,
   onBaselineChange,
   onLoadSample,
@@ -55,7 +62,7 @@ export function Toolbar({
   const previewWidths = getBreakpointPreviewWidths(layout);
 
   const handleExport = () => {
-    const blob = new Blob([JSON.stringify(exportLayout(layout), null, 2)], {
+    const blob = new Blob([JSON.stringify(exportLayout(stripData(layout), components), null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
@@ -77,9 +84,9 @@ export function Toolbar({
           alert('Invalid layout JSON');
           return;
         }
-        onBaselineChange(importLayout(data as Layout));
-      } catch {
-        alert('Failed to parse JSON');
+        onBaselineChange(hydrate(importLayout(data as Layout, components), entities));
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Failed to parse JSON');
       }
     };
     reader.readAsText(file);

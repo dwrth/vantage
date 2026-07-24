@@ -14,6 +14,20 @@ export type ImageData = {
   cropScale?: number;
 };
 
+/** Wire shape uses `url` instead of in-memory `content`. */
+type PersistedImageData = {
+  url?: string;
+  label?: string;
+  objectFit?: ImageObjectFit;
+  objectPositionX?: number;
+  objectPositionY?: number;
+  cropScale?: number;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export const imageKind = defineKind<ImageData>({
   component: ImageComponent,
   inspector: ImageInspector,
@@ -32,4 +46,27 @@ export const imageKind = defineKind<ImageData>({
   displayName: 'Image',
   editWrapperClass: 'bg-base-200!',
   previewWrapperClass: 'bg-base-200! rounded-box overflow-hidden',
+  toPersistedData(data) {
+    const { content, ...rest } = data;
+    return { ...rest, url: content } satisfies PersistedImageData;
+  },
+  fromPersistedData(raw) {
+    if (!isPlainObject(raw)) return {};
+    const { url, content, ...rest } = raw as PersistedImageData & { content?: string };
+    return {
+      ...rest,
+      content: typeof url === 'string' ? url : typeof content === 'string' ? content : undefined,
+    };
+  },
+  validate(data) {
+    const errors: string[] = [];
+    if (data.content !== undefined && typeof data.content !== 'string') {
+      errors.push('content must be a string');
+    }
+    if (data.objectFit !== undefined) {
+      const fits = new Set(['cover', 'contain', 'fill']);
+      if (!fits.has(data.objectFit)) errors.push('objectFit invalid');
+    }
+    return errors.length > 0 ? errors : undefined;
+  },
 });

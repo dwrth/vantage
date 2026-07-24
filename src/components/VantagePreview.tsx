@@ -3,11 +3,12 @@ import {
   getEnabledBreakpoints,
   resolveBreakpointFromLayout,
   resolveItem,
-  resolveItemData,
   resolveSection,
 } from '../lib/breakpoint';
+import { resolveEffectiveItemData } from '../lib/entities';
 import { resolveRenderer, resolveRegistry } from '../lib/registry';
 import { useContainerWidth } from '../hooks/useContainerWidth';
+import { useResolveItemData } from '../hooks/useItemData';
 import type {
   Breakpoint,
   ComponentRegistry,
@@ -32,12 +33,31 @@ export type VantagePreviewProps = {
 
 type PreviewItemProps = {
   item: GridItem;
+  section: Section;
+  breakpoint: Breakpoint;
+  enabledBreakpoints: Breakpoint[];
   placement: ReturnType<typeof resolveItem>;
   components: ResolvedComponentRegistry;
 };
 
-function PreviewItem({ item, placement, components }: PreviewItemProps) {
-  const Renderer = resolveRenderer(components, item, 'preview');
+function PreviewItem({
+  item,
+  section,
+  breakpoint,
+  enabledBreakpoints,
+  placement,
+  components,
+}: PreviewItemProps) {
+  const resolveEntity = useResolveItemData();
+  const data = resolveEffectiveItemData(
+    item,
+    section,
+    breakpoint,
+    enabledBreakpoints,
+    resolveEntity?.(item),
+  );
+  const resolvedItem = { ...item, data };
+  const Renderer = resolveRenderer(components, resolvedItem, 'preview');
   const descriptor = components[item.kind];
   const kindClass = descriptor?.previewWrapperClass ?? '';
 
@@ -48,7 +68,7 @@ function PreviewItem({ item, placement, components }: PreviewItemProps) {
 
   return (
     <div className={[preview['preview-block'], kindClass].filter(Boolean).join(' ')} style={style}>
-      {createElement(Renderer, { item })}
+      {createElement(Renderer, { item: resolvedItem })}
     </div>
   );
 }
@@ -89,14 +109,13 @@ function PreviewSection({
         {section.items.map((item) => {
           const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
           if (placement.hidden) return null;
-          const resolvedItem = {
-            ...item,
-            data: resolveItemData(item, section, breakpoint, enabledBreakpoints),
-          };
           return (
             <PreviewItem
               key={item.id}
-              item={resolvedItem}
+              item={item}
+              section={section}
+              breakpoint={breakpoint}
+              enabledBreakpoints={enabledBreakpoints}
               placement={placement}
               components={components}
             />

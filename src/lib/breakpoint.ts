@@ -158,7 +158,8 @@ export function resolveItem(
   return { ...clamped, hidden };
 }
 
-export function resolveItemData<TData = unknown>(
+/** Shallow-merge base `item.data` with breakpoint override `data`. Not entity resolve. */
+export function mergeBreakpointItemData<TData = unknown>(
   item: GridItem<TData>,
   section: Section,
   breakpoint: Breakpoint,

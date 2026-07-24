@@ -118,7 +118,7 @@ export function useBuilderActions() {
         apply(mutations.bringItemToFront(layout, sectionId, itemId)),
       sendItemToBack: (sectionId: string, itemId: string) =>
         apply(mutations.sendItemToBack(layout, sectionId, itemId)),
-      importLayout: (data: Layout) => apply(mutations.importLayout(data)),
+      importLayout: (data: Layout) => apply(mutations.importLayout(data, components)),
       clear: () => apply(mutations.clearLayout()),
     }),
     [layout, apply, components, activeBreakpoint],

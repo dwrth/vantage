@@ -66,6 +66,10 @@ export const heroKind = defineKind<HeroData>({
   displayName: 'Hero',
   editWrapperClass: 'hero-cell--edit',
   previewWrapperClass: 'hero-cell--preview',
+  // optional wire-format hooks (used by exportLayout / importLayout)
+  toPersistedData: (data) => data,
+  fromPersistedData: (raw) => raw as HeroData,
+  validate: (data) => (data.title ? undefined : ['title required']),
 });
 ```
 
@@ -89,7 +93,8 @@ Pass the **same** registry to both `VantageBuilder` and `VantagePreview`. Missin
 
 The seven kinds in `demo/src/blocks/` cover the common shapes:
 
-- **Static content** — `text`, `image`. Pure data → DOM; `image` reuses one `component` for both surfaces.
+- **Static content** — `text`, `image`. Pure data → DOM; `image` reuses one `component` for both surfaces. Demo `image` also ships `toPersistedData` / `fromPersistedData` (`content` ↔ `url`) and `validate`.
+- **External entity** — sample hero visual uses `ref: 'entity-hero-visual'` with payload in `demoEntities`; see [Persistence](persistence.md).
 - **Variant via data** — `text` flips to a white-on-image `overlay` look when `data.variant === 'overlay'`. Use this instead of forking the kind.
 - **Alignment via data** — `button` reads `align` / `vAlign` to position its surface inside the cell. The demo's right-click menu writes those fields per-breakpoint via `updateItemData<ButtonData>(layout, sectionId, itemId, { align: 'left' }, activeBreakpoint)` so mobile alignment doesn't leak into desktop.
 - **Composed content** — `card` renders an image, body, and CTA from a single typed object. Wrapper class lifts the cell into a card with a shadow.

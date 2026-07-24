@@ -8,9 +8,14 @@ export type GridItem<TData = unknown> = {
   h: number;
   kind: string;
   label?: string;
+  /** External entity id. Layout may omit `data` when host resolves via `ref`. */
+  ref?: string;
   data?: TData;
   meta?: Record<string, unknown>;
 };
+
+/** Sync host resolver for entity payloads keyed by `item.ref`. */
+export type ResolveItemData = (item: GridItem) => unknown | undefined;
 
 export type SectionBackgroundImageSize = 'cover' | 'contain' | 'auto';
 
@@ -167,6 +172,12 @@ export type KindDescriptor<TData = unknown> = {
   editWrapperClass?: string;
   /** Applied to the preview grid cell wrapper. */
   previewWrapperClass?: string;
+  /** Map in-memory kind data to wire/storage shape on export. */
+  toPersistedData?(data: TData): unknown;
+  /** Map wire/storage shape to in-memory kind data on import. */
+  fromPersistedData?(raw: unknown): TData;
+  /** Return `void` or empty array when valid; non-empty `string[]` fails import. */
+  validate?(data: TData): void | string[];
 };
 
 // Per-kind data types differ inside a registry; `any` preserves each entry's component/data pairing.

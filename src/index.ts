@@ -7,7 +7,6 @@ export type {
   ItemDeleteButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
-  SectionFooterRenderProps,
 } from './components/Builder';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
@@ -35,6 +34,7 @@ export type {
   InspectorChangeOpts,
   InspectorProps,
   ItemDataChangeEvent,
+  ResolveItemData,
   ResolvedComponentRegistry,
   ResolvedKindDescriptor,
 } from './types';
@@ -103,15 +103,28 @@ export {
   type VantageHistory,
   type VantageHistoryOptions,
 } from './hooks/useVantageHistory';
+export {
+  ItemDataProvider,
+  useItemData,
+  useResolveItemData,
+  type ItemDataProviderProps,
+} from './hooks/useItemData';
 
 export type { AddItemDefaults } from './mutations/layout';
 
 export { isValidLayout } from './lib/validate';
 
 export {
+  stripData,
+  hydrate,
+  mergeEntityAndLayoutData,
+  resolveEffectiveItemData,
+} from './lib/entities';
+
+export {
   resolveSection,
   resolveItem,
-  resolveItemData,
+  mergeBreakpointItemData,
   resolveBreakpointFromWidth,
   resolveBreakpointFromLayout,
   defaultColumnsForBreakpoint,

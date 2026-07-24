@@ -69,6 +69,8 @@ Use `applyBaseline` for Clear, Sample, Import, and any hydrate from disk/network
 
 **Bypass rule:** `setLayout` that skips wrapped `onChange` without `reset` desyncs the stacks. Route all layout writes through `history.onChange` or `reset` + `setLayout`.
 
+History holds **working** layouts (payloads included). Call `stripData` only when writing to disk/CMS — not when pushing undo entries.
+
 ## `onItemDataChange`
 
 Parallel signal on `VantageInspector` for dirty flags / entity sync — **not** a history input. Undo restores a full layout via `onChange`. Hosts that mirror entity state from `onItemDataChange` must also react to layout `onChange` from undo/redo (or re-derive from layout).

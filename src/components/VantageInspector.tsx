@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import type { SelectionRef } from '../context/BuilderContext';
+import { useResolveItemData } from '../hooks/useItemData';
 import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveSelectedItem, type ResolvedSelection } from '../lib/inspector';
 import { updateItemData } from '../mutations/layout';
@@ -38,10 +39,14 @@ export function VantageInspector({
   renderHeader,
 }: VantageInspectorProps) {
   const tokens = useVantageTokens();
-  const resolved = useMemo(
-    () => resolveSelectedItem(layout, selection, components, activeBreakpoint),
-    [layout, selection, components, activeBreakpoint],
-  );
+  const resolveEntity = useResolveItemData();
+  const resolved = useMemo(() => {
+    if (!selection) return null;
+    const section = layout.sections.find((s) => s.id === selection.sectionId);
+    const item = section?.items.find((i) => i.id === selection.itemId);
+    const entityData = item ? resolveEntity?.(item) : undefined;
+    return resolveSelectedItem(layout, selection, components, activeBreakpoint, entityData);
+  }, [layout, selection, components, activeBreakpoint, resolveEntity]);
 
   if (!resolved) {
     const root = vantageRootProps(tokens, className);

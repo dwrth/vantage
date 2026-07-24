@@ -31,11 +31,12 @@ type GridItem<TData = unknown> = {
   h: number; // grid units
   kind: string; // registry key
   label?: string;
-  data?: TData; // your block-specific payload
+  ref?: string; // external entity id (optional)
+  data?: TData; // block payload (optional when `ref` resolves externally)
 };
 ```
 
-`Layout` serializes cleanly to JSON. Persist it as-is. Validate untrusted input with `isValidLayout(data)` before passing it to `importLayout`.
+`Layout` serializes to JSON. Prefer `stripData` + `exportLayout(layout, registry)` when payloads live outside the layout. Validate with `isValidLayout` before `importLayout(raw, registry)`, then `hydrate` from your entity map. See [Persistence](persistence.md).
 
 Stack order inside a section is the order of `section.items` — later items render on top when cells overlap. Use the layering helpers below to reorder.
 
@@ -111,7 +112,9 @@ Edge positions are no-ops. The demo wires these to a right-click context menu (`
 ```ts
 createEmptyLayout(); // default ['desktop','mobile'] enabled
 clearLayout(); // same as above; useful as a button handler
-importLayout(json); // clamps items, prunes invalid overrides
-exportLayout(layout); // canonicalizes breakpoints/widths for serialization
-isValidLayout(unknown); // type guard for untrusted JSON
+importLayout(json, registry); // fromPersistedData + validate + clamp
+exportLayout(layout, registry); // toPersistedData + canonicalize breakpoints
+stripData(layout); // drop payloads; keep ref
+hydrate(layout, entities); // fill data from entities[ref]
+isValidLayout(unknown); // structural type guard (accepts optional ref)
 ```

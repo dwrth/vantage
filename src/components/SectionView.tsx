@@ -1,6 +1,7 @@
 import { DndContext, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { resolveItem, resolveItemData, resolveSection } from '../lib/breakpoint';
+import { resolveItem, resolveSection } from '../lib/breakpoint';
+import { resolveEffectiveItemData } from '../lib/entities';
 import {
   CELL_MAX_PX,
   ROW_MAX_PX,
@@ -17,6 +18,7 @@ import { VantagePointerSensor } from '../lib/pointerSensor';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useContainerWidth } from '../hooks/useContainerWidth';
+import { useResolveItemData } from '../hooks/useItemData';
 import { parsePxToken } from '../theme/tokens';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import type { BreakpointWidths, GridItem, Section } from '../types';
@@ -60,6 +62,7 @@ function editorCanvasMaxWidth(
 export function SectionView({ section }: SectionViewProps) {
   const { id, items, background } = section;
   const {
+    layout,
     isInteracting,
     setInteracting,
     selection,
@@ -70,10 +73,12 @@ export function SectionView({ section }: SectionViewProps) {
     renderSectionFooter,
   } = useBuilderContext();
   const { moveItem } = useBuilderActions();
+  const resolveEntity = useResolveItemData();
+  const enabledBreakpoints = layout.breakpoints;
 
   const resolved = useMemo(
-    () => resolveSection(section, activeBreakpoint),
-    [section, activeBreakpoint],
+    () => resolveSection(section, activeBreakpoint, enabledBreakpoints),
+    [section, activeBreakpoint, enabledBreakpoints],
   );
   const { columns, colGap, rowGap, paddingTop, paddingBottom } = resolved;
 
@@ -83,12 +88,18 @@ export function SectionView({ section }: SectionViewProps) {
         .map((item) => ({
           item: {
             ...item,
-            data: resolveItemData(item, section, activeBreakpoint),
+            data: resolveEffectiveItemData(
+              item,
+              section,
+              activeBreakpoint,
+              enabledBreakpoints,
+              resolveEntity?.(item),
+            ),
           },
-          placement: resolveItem(item, section, activeBreakpoint),
+          placement: resolveItem(item, section, activeBreakpoint, enabledBreakpoints),
         }))
         .filter(({ placement }) => !placement.hidden),
-    [items, section, activeBreakpoint],
+    [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
   );
 
   const { containerRef, containerWidth } = useContainerWidth<HTMLDivElement>();

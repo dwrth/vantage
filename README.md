@@ -89,7 +89,7 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Breakpoints](docs/breakpoints.md)         | Responsive overrides, resolution helpers             |
 | [Selection](docs/selection.md)             | Controlled / uncontrolled selection                  |
 | [Section backgrounds](docs/backgrounds.md) | Color, image, blur, focal crop, parallax             |
-| [Persistence](docs/persistence.md)         | localStorage, file I/O, preview route                |
+| [Persistence](docs/persistence.md)         | `ref`, strip/hydrate, kind persist hooks, file I/O   |
 | [Undo / history](docs/history.md)          | `useVantageHistory`, coalesce, reset                 |
 | [Custom blocks](docs/blocks.md)            | `defineKind` patterns, interactivity, pitfalls       |
 | [Theme / tokens](docs/theme.md)            | `VantageThemeProvider`, opaque CSS token maps        |
