@@ -19,6 +19,8 @@ import type {
 } from '../types';
 import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
+import { parsePxToken } from '../theme/tokens';
+import { CELL_MAX_PX, ROW_MAX_PX } from '../lib/grid';
 import '../styles/tokens.css';
 import preview from '../styles/preview.module.css';
 import { SectionBackground } from './SectionBackground';
@@ -87,6 +89,9 @@ function PreviewSection({
   components,
 }: PreviewSectionProps) {
   const resolved = resolveSection(section, breakpoint, enabledBreakpoints);
+  const tokens = useVantageTokens();
+  const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
+  const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
 
   return (
     <div className={preview['preview-section']}>
@@ -97,6 +102,7 @@ function PreviewSection({
             '--cols': resolved.columns,
             '--col-gap-px': `${resolved.colGap}px`,
             '--row-gap-px': `${resolved.rowGap}px`,
+            '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
             '--section-pad-top-px': `${resolved.paddingTop}px`,
             '--section-pad-bottom-px': `${resolved.paddingBottom}px`,
           } as React.CSSProperties

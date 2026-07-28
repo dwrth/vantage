@@ -13,8 +13,15 @@
 }
 
 .builder-grid {
+  /*
+   * --row-ratio (var(--vantage-row-max-px) / var(--vantage-cell-max-px)) is
+   * supplied inline as a plain number by JS rather than computed here via
+   * calc(length / length). Firefox's registered-custom-property calc
+   * resolver doesn't reliably reduce a length-divided-by-length to the
+   * <number> it's registered as, and silently falls back to the
+   * @property initial-value instead (see tokens.css).
+   */
   --cell-max-px: var(--vantage-cell-max-px);
-  --row-max-px: var(--vantage-row-max-px);
   --max-section-w: calc(var(--cols) * var(--cell-max-px));
   --content-w: min(
     max(0px, calc(100cqi - var(--canvas-pad-x) - var(--col-gap-px) - var(--col-gap-px))),
@@ -25,7 +32,7 @@
     0px,
     calc((var(--content-w) - (var(--cols) - 1) * var(--col-gap-px)) / var(--cols))
   );
-  --row-px: calc(var(--cell-px) * var(--row-max-px) / var(--cell-max-px));
+  --row-px: calc(var(--cell-px) * var(--row-ratio));
   display: grid;
   align-content: start;
   position: relative;

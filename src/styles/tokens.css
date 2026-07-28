@@ -1,3 +1,83 @@
+/*
+ * Registering the grid-math custom properties as typed (`@property`) fixes a
+ * Firefox bug where `calc()` chains built from unregistered (untyped) custom
+ * properties fail to resolve inside grid track sizing (e.g.
+ * `grid-auto-rows: minmax(var(--row-px), auto)`), silently falling back to
+ * `auto`. Chrome/Safari resolve the untyped chain fine, Firefox doesn't.
+ * `inherits: true` preserves the default (untyped) custom-property behavior.
+ */
+@property --vantage-cell-max-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 96px;
+}
+
+@property --vantage-row-max-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 48px;
+}
+
+@property --cols {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --col-gap-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --row-gap-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --cell-max-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --row-ratio {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --max-section-w {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --content-w {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --content-offset-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --cell-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --row-px {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
 :where(.vantage-root) {
   --vantage-cell-max-px: 96px;
   --vantage-row-max-px: 48px;
