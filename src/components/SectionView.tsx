@@ -298,6 +298,7 @@ export function SectionView({ section }: SectionViewProps) {
                   '--cols': columns,
                   '--col-gap-px': `${colGap}px`,
                   '--row-gap-px': `${rowGap}px`,
+                  '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
                   '--section-pad-top-px': `${paddingTop}px`,
                   '--section-pad-bottom-px': `${paddingBottom}px`,
                 } as React.CSSProperties
