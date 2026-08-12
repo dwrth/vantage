@@ -17,7 +17,7 @@ Add as a git dependency:
 ```
 
 ```bash
-yarn
+npm i
 ```
 
 `prepare` builds `dist/` on install. No separate consumer build step.
