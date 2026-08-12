@@ -10,10 +10,10 @@ cd demo && npm install && npm run dev
 
 ## Install
 
-Add as a git dependency. Repo is private — use a GitHub PAT with `repo` read access:
+Add as a git dependency:
 
 ```json
-"vantage": "git+https://github_pat_<YOUR_GITHUB_PAT>@github.com/stuzubi/vantage.git"
+"vantage": "git+https://git@github.com/dwrth/vantage.git"
 ```
 
 ```bash
