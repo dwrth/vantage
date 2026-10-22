@@ -94,6 +94,7 @@ export {
   setLayoutBreakpoints,
   setBreakpointWidth,
   setBreakpointPreviewWidth,
+  autoArrangeBreakpoint,
 } from './mutations/layout';
 
 export type { SelectionRef } from './context/BuilderContext';

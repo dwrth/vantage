@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import {
   BREAKPOINTS,
+  autoArrangeBreakpoint,
   clearLayout,
   emitLayoutChange,
   exportLayout,
@@ -98,7 +99,12 @@ export function Toolbar({
     const next: Breakpoint[] = hasTablet
       ? enabledBreakpoints.filter((bp) => bp !== 'tablet')
       : [...enabledBreakpoints, 'tablet'];
-    emitLayoutChange(layout, setLayoutBreakpoints(layout, next), onChange);
+    const withBreakpoints = setLayoutBreakpoints(layout, next);
+    emitLayoutChange(
+      layout,
+      hasTablet ? withBreakpoints : autoArrangeBreakpoint(withBreakpoints, 'tablet'),
+      onChange,
+    );
   };
 
   return (
