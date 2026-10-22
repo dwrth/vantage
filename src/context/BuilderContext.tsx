@@ -19,6 +19,30 @@ export type SelectionRef = {
   itemId: string;
 };
 
+/** Size of a block being dragged in from outside the builder (e.g. a host component palette). */
+export type ExternalDragItem = {
+  w: number;
+  h: number;
+};
+
+/** Where an external drag was dropped. `x` / `y` refer to `breakpoint`'s grid of that section. */
+export type ExternalDropEvent = {
+  sectionId: string;
+  x: number;
+  y: number;
+  breakpoint: Breakpoint;
+  dataTransfer: DataTransfer;
+};
+
+export type SectionChromeContext = {
+  section: Section;
+  activeBreakpoint: Breakpoint;
+  /** The selected item lives in this section. */
+  hasSelection: boolean;
+  /** Something is being dragged over this section and would land here. */
+  isDropTarget: boolean;
+};
+
 export type BuilderContextValue = {
   layout: Layout;
   enabledBreakpoints: Breakpoint[];
@@ -32,8 +56,10 @@ export type BuilderContextValue = {
   setSelection: (next: SelectionRef | null) => void;
   activeBreakpoint: Breakpoint;
   setActiveBreakpoint: (next: Breakpoint) => void;
-  renderSectionHeader?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
-  renderSectionFooter?: (ctx: { section: Section; activeBreakpoint: Breakpoint }) => ReactNode;
+  renderSectionHeader?: (ctx: SectionChromeContext) => ReactNode;
+  renderSectionFooter?: (ctx: SectionChromeContext) => ReactNode;
+  externalDrag?: ExternalDragItem | null;
+  onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;
   renderDragHandle?: (ctx: {
     sectionId: string;

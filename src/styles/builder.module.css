@@ -124,7 +124,29 @@
 }
 
 .section {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* Lift the section a block is dragged out of so the block paints above later sections. */
+.section--drag-source {
+  z-index: 5;
+}
+
+.section--drop-target .builder-grid {
+  outline: 2px dashed var(--vantage-drop-color, #2563eb);
+  outline-offset: -2px;
+}
+
+.drop-ghost {
+  position: relative;
+  z-index: 20;
+  min-width: 0;
+  min-height: 0;
+  pointer-events: none;
+  border: 2px dashed var(--vantage-drop-color, #2563eb);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vantage-drop-color, #2563eb) 14%, transparent);
 }

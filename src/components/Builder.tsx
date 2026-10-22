@@ -9,8 +9,14 @@ import {
 } from '../lib/breakpoint';
 import { diffLayouts, type LayoutChangeset } from '../lib/diff';
 import { resolveRegistry } from '../lib/registry';
-import type { ItemContextMenuEvent, SelectionRef } from '../context/BuilderContext';
-import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
+import type {
+  ExternalDragItem,
+  ExternalDropEvent,
+  ItemContextMenuEvent,
+  SectionChromeContext,
+  SelectionRef,
+} from '../context/BuilderContext';
+import type { Breakpoint, ComponentRegistry, GridItem, Layout } from '../types';
 import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
@@ -52,12 +58,16 @@ export type VantageBuilderProps = {
   renderDragHandle?: (ctx: ItemDragHandleRenderProps) => ReactNode;
   renderDeleteButton?: (ctx: ItemDeleteButtonRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
+  /**
+   * Set while the host drags a new block over the canvas with native HTML5 drag-and-drop
+   * (e.g. from a component palette). Sections then accept the drop and show a ghost of this size.
+   */
+  externalDrag?: ExternalDragItem | null;
+  /** Called when an `externalDrag` is dropped on a section. Insert the block there. */
+  onExternalDrop?: (event: ExternalDropEvent) => void;
 };
 
-export type SectionChromeRenderProps = {
-  section: Section;
-  activeBreakpoint: Breakpoint;
-};
+export type SectionChromeRenderProps = SectionChromeContext;
 
 export type SectionHeaderRenderProps = SectionChromeRenderProps;
 export type SectionFooterRenderProps = SectionChromeRenderProps;
@@ -80,6 +90,8 @@ export function VantageBuilder({
   renderDragHandle,
   renderDeleteButton,
   onItemContextMenu,
+  externalDrag = null,
+  onExternalDrop,
 }: VantageBuilderProps) {
   const enabledBreakpoints = useMemo(() => getEnabledBreakpoints(value), [value]);
   const breakpointWidths = useMemo(() => getBreakpointWidths(value), [value]);
@@ -157,6 +169,8 @@ export function VantageBuilder({
         renderDragHandle,
         renderDeleteButton,
         onItemContextMenu,
+        externalDrag,
+        onExternalDrop,
       }}
     >
       <div className={root.className} style={root.style}>

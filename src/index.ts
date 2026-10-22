@@ -98,7 +98,7 @@ export {
   autoArrangeBreakpoint,
 } from './mutations/layout';
 
-export type { SelectionRef } from './context/BuilderContext';
+export type { SelectionRef, ExternalDragItem, ExternalDropEvent } from './context/BuilderContext';
 export { useSelection, useSelectedItem } from './hooks/useSelection';
 export {
   useVantageHistory,

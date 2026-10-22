@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { createElement, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
+import { useCanvasDnd } from '../context/CanvasDndContext';
 import {
   getCellXStep,
   pxToCell,
@@ -83,30 +84,40 @@ export function GridBlock({
   const cellStepRef = useRef({ x: cellXStep, y: cellHeight });
   const displayedPlacement = resizeDraft !== null ? { ...placement, ...resizeDraft } : placement;
 
+  const { dropTarget } = useCanvasDnd();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: item.id,
-    data: { type: 'block', item, sectionId },
+    id: `${sectionId}:${item.id}`,
+    data: { type: 'block', item, sectionId, placement },
   });
+  // Over another section the block follows the pointer freely; the target shows a snapped ghost.
+  const leavingSection = isDragging && dropTarget !== null && dropTarget.sectionId !== sectionId;
 
   useEffect(() => {
     cellStepRef.current = { x: cellXStep, y: cellHeight };
   }, [cellXStep, cellHeight]);
 
-  const snappedX = transform ? pxToCell(transform.x, cellXStep) * cellXStep : 0;
+  const snappedX =
+    leavingSection && transform
+      ? transform.x
+      : transform
+        ? pxToCell(transform.x, cellXStep) * cellXStep
+        : 0;
   const snappedY =
-    transform && rowSteps
-      ? getRowStart(
-          closestRowForOffset(
-            getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
+    leavingSection && transform
+      ? transform.y
+      : transform && rowSteps
+        ? getRowStart(
+            closestRowForOffset(
+              getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
+              rowSteps,
+              cellHeight,
+            ),
             rowSteps,
             cellHeight,
-          ),
-          rowSteps,
-          cellHeight,
-        ) - getRowStart(placement.y, rowSteps, cellHeight)
-      : transform
-        ? pxToCell(transform.y, cellHeight) * cellHeight
-        : 0;
+          ) - getRowStart(placement.y, rowSteps, cellHeight)
+        : transform
+          ? pxToCell(transform.y, cellHeight) * cellHeight
+          : 0;
 
   const gridPlacement: React.CSSProperties = {
     gridColumn: `${displayedPlacement.x + 2} / span ${displayedPlacement.w}`,

@@ -1,5 +1,5 @@
-import { DndContext, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveItem, resolveSection } from '../lib/breakpoint';
 import { resolveEffectiveItemData } from '../lib/entities';
 import {
@@ -14,9 +14,9 @@ import {
   itemsAtPointer,
 } from '../lib/grid';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
-import { VantagePointerSensor } from '../lib/pointerSensor';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
+import { useCanvasDnd, type SectionDropHandle } from '../context/CanvasDndContext';
 import { useContainerWidth } from '../hooks/useContainerWidth';
 import { useResolveItemData } from '../hooks/useItemData';
 import { parsePxToken } from '../theme/tokens';
@@ -29,6 +29,11 @@ import { SectionBackground } from './SectionBackground';
 type SectionViewProps = {
   section: Section;
 };
+
+/** Nearest whole cell index for a pixel offset (no sign handling: offsets below 0 clamp later). */
+function pxToCellIndex(px: number, step: number): number {
+  return step > 0 ? Math.round(px / step) : 0;
+}
 
 function parseGridRows(value: string): number[] {
   return Array.from(value.matchAll(/([\d.]+)px/g), (match) => Number(match[1])).filter((v) =>
@@ -64,14 +69,16 @@ export function SectionView({ section }: SectionViewProps) {
   const {
     layout,
     isInteracting,
-    setInteracting,
     selection,
     setSelection,
     activeBreakpoint,
     breakpointPreviewWidths,
     renderSectionHeader,
     renderSectionFooter,
+    externalDrag,
+    onExternalDrop,
   } = useBuilderContext();
+  const { registerSection, dropTarget, setDropTarget, dragSourceSectionId } = useCanvasDnd();
   const { moveItem } = useBuilderActions();
   const resolveEntity = useResolveItemData();
   const enabledBreakpoints = layout.breakpoints;
@@ -154,19 +161,11 @@ export function SectionView({ section }: SectionViewProps) {
     [resolvedItems],
   );
 
-  const sensors = useSensors(
-    useSensor(VantagePointerSensor, { activationConstraint: { distance: 4 } }),
-  );
-
-  const onDragStart = useCallback(() => {
-    setInteracting(true);
-  }, [setInteracting]);
-
-  const onDragEnd = useCallback(
+  const dropWithin = useCallback(
     (event: DragEndEvent) => {
-      setInteracting(false);
       const { active, delta } = event;
-      const entry = resolvedItems.find(({ item }) => item.id === active.id);
+      const dragged = (active.data.current as { item?: GridItem } | undefined)?.item;
+      const entry = resolvedItems.find(({ item }) => item.id === dragged?.id);
       if (!entry || !delta) return;
       const { dx, dy } = deltaToGrid(delta.x, delta.y, cellXStep, cellHeight);
       const nextY = rowSteps
@@ -179,21 +178,98 @@ export function SectionView({ section }: SectionViewProps) {
       if (dx === 0 && nextY === entry.placement.y) return;
       moveItem(id, entry.item.id, entry.placement.x + dx, nextY, activeBreakpoint);
     },
-    [
-      resolvedItems,
-      cellXStep,
-      cellHeight,
-      rowSteps,
-      moveItem,
-      setInteracting,
-      id,
-      activeBreakpoint,
-    ],
+    [resolvedItems, cellXStep, cellHeight, rowSteps, moveItem, id, activeBreakpoint],
   );
 
-  const onDragCancel = useCallback(() => {
-    setInteracting(false);
-  }, [setInteracting]);
+  const cellAt = useCallback<SectionDropHandle['cellAt']>(
+    (clientLeft, clientTop, w) => {
+      const grid = containerRef.current;
+      const width = Math.max(1, Math.min(w, columns));
+      if (!grid) return { x: 0, y: 0, w: width };
+      const rect = grid.getBoundingClientRect();
+      const left = clientLeft - rect.left - contentOffsetX;
+      const top = clientTop - rect.top - paddingTop;
+      const x = Math.max(0, Math.min(pxToCellIndex(left, cellXStep), columns - width));
+      const y = rowSteps
+        ? closestRowForOffset(top, rowSteps, cellHeight)
+        : Math.max(0, pxToCellIndex(top, cellHeight));
+      return { x, y, w: width };
+    },
+    [containerRef, columns, contentOffsetX, paddingTop, cellXStep, rowSteps, cellHeight],
+  );
+
+  const blockSize = useCallback<SectionDropHandle['blockSize']>(
+    (w, h) => ({
+      width: Math.min(w, columns) * cellWidth + Math.max(0, Math.min(w, columns) - 1) * colGap,
+      height: h * cellHeight - rowGap,
+    }),
+    [columns, cellWidth, colGap, cellHeight, rowGap],
+  );
+
+  // Handle identity stays stable; the canvas reads the latest geometry through the ref.
+  const handleRef = useRef({ cellAt, blockSize, dropWithin });
+  useLayoutEffect(() => {
+    handleRef.current = { cellAt, blockSize, dropWithin };
+  });
+  useEffect(
+    () =>
+      registerSection(id, {
+        getElement: () => containerRef.current,
+        cellAt: (...args) => handleRef.current.cellAt(...args),
+        blockSize: (...args) => handleRef.current.blockSize(...args),
+        dropWithin: (event) => handleRef.current.dropWithin(event),
+      }),
+    [registerSection, id, containerRef],
+  );
+
+  const acceptsExternal = Boolean(externalDrag && onExternalDrop);
+
+  const externalTarget = useCallback(
+    (e: React.DragEvent) => {
+      if (!externalDrag) return null;
+      const size = blockSize(externalDrag.w, externalDrag.h);
+      const cell = cellAt(e.clientX - size.width / 2, e.clientY - size.height / 2, externalDrag.w);
+      return { sectionId: id, x: cell.x, y: cell.y, w: cell.w, h: externalDrag.h };
+    },
+    [externalDrag, blockSize, cellAt, id],
+  );
+
+  const onExternalDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      const target = externalTarget(e);
+      if (!target) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setDropTarget(target);
+    },
+    [externalTarget, setDropTarget],
+  );
+
+  const onExternalDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      const next = e.relatedTarget as Node | null;
+      if (next && e.currentTarget.contains(next)) return;
+      if (dropTarget?.sectionId === id) setDropTarget(null);
+    },
+    [dropTarget?.sectionId, id, setDropTarget],
+  );
+
+  const onExternalDropEvent = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      const target = externalTarget(e);
+      if (!target || !onExternalDrop) return;
+      e.preventDefault();
+      setDropTarget(null);
+      onExternalDrop({
+        sectionId: id,
+        x: target.x,
+        y: target.y,
+        breakpoint: activeBreakpoint,
+        dataTransfer: e.dataTransfer,
+      });
+    },
+    [externalTarget, onExternalDrop, setDropTarget, id, activeBreakpoint],
+  );
 
   const onGridPointerDownCapture = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -276,74 +352,103 @@ export function SectionView({ section }: SectionViewProps) {
 
   const canvasMaxWidth = editorCanvasMaxWidth(activeBreakpoint, breakpointPreviewWidths);
 
+  const ghost = dropTarget?.sectionId === id ? dropTarget : null;
+  const isDropTarget = ghost !== null;
+  const hasSelection = selection?.sectionId === id;
+  const chromeCtx = { section, activeBreakpoint, hasSelection, isDropTarget };
+  const sectionClass = [
+    builder.section,
+    dragSourceSectionId === id ? builder['section--drag-source'] : '',
+    isDropTarget ? builder['section--drop-target'] : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const gridClass = [
+    builder['builder-grid'],
+    isInteracting || isDropTarget ? builder['builder-grid--active'] : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragCancel={onDragCancel}
+    <section
+      className={sectionClass}
+      data-vantage-section={id}
+      data-vantage-section-selected={hasSelection ? '' : undefined}
+      data-vantage-drop-target={isDropTarget ? '' : undefined}
     >
-      <section className={builder.section}>
-        {renderSectionHeader ? renderSectionHeader({ section, activeBreakpoint }) : null}
-        <div className={builder['canvas-frame']} style={{ maxWidth: canvasMaxWidth }}>
-          <div className={builder['canvas-wrap']}>
-            <div
-              ref={containerRef}
-              className={`${builder['builder-grid']} ${isInteracting ? builder['builder-grid--active'] : ''}`}
-              data-vantage-section-frame={id}
-              tabIndex={-1}
-              onPointerDownCapture={onGridPointerDownCapture}
-              style={
-                {
-                  '--cols': columns,
-                  '--col-gap-px': `${colGap}px`,
-                  '--row-gap-px': `${rowGap}px`,
-                  '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
-                  '--section-pad-top-px': `${paddingTop}px`,
-                  '--section-pad-bottom-px': `${paddingBottom}px`,
-                } as React.CSSProperties
-              }
-            >
-              <SectionBackground background={background} className={builder['section-bg']} />
-              {rowSteps ? (
-                <div
-                  className={builder['grid-overlay']}
-                  aria-hidden="true"
-                  style={
-                    {
-                      gridTemplateColumns: `repeat(${columns}, var(--cell-px))`,
-                      gridTemplateRows: rowSteps
-                        .map((step) => `${Math.max(0, step - rowGap)}px`)
-                        .join(' '),
-                    } as React.CSSProperties
-                  }
-                >
-                  {rowSteps.flatMap((_, row) =>
-                    Array.from({ length: columns }, (_, col) => (
-                      <span key={`${row}-${col}`} className={builder['grid-overlay__cell']} />
-                    )),
-                  )}
-                </div>
-              ) : null}
-              {resolvedItems.map(({ item, placement }) => (
-                <GridBlock
-                  key={item.id}
-                  sectionId={id}
-                  item={item}
-                  placement={placement}
-                  cellWidth={cellWidth}
-                  cellHeight={cellHeight}
-                  colGap={colGap}
-                  columns={columns}
-                  breakpoint={activeBreakpoint}
-                  rowSteps={rowSteps}
-                />
-              ))}
-            </div>
+      {renderSectionHeader ? renderSectionHeader(chromeCtx) : null}
+      <div className={builder['canvas-frame']} style={{ maxWidth: canvasMaxWidth }}>
+        <div className={builder['canvas-wrap']}>
+          <div
+            ref={containerRef}
+            className={gridClass}
+            data-vantage-section-frame={id}
+            tabIndex={-1}
+            onPointerDownCapture={onGridPointerDownCapture}
+            onDragOver={acceptsExternal ? onExternalDragOver : undefined}
+            onDragLeave={acceptsExternal ? onExternalDragLeave : undefined}
+            onDrop={acceptsExternal ? onExternalDropEvent : undefined}
+            style={
+              {
+                '--cols': columns,
+                '--col-gap-px': `${colGap}px`,
+                '--row-gap-px': `${rowGap}px`,
+                '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
+                '--section-pad-top-px': `${paddingTop}px`,
+                '--section-pad-bottom-px': `${paddingBottom}px`,
+              } as React.CSSProperties
+            }
+          >
+            <SectionBackground background={background} className={builder['section-bg']} />
+            {rowSteps ? (
+              <div
+                className={builder['grid-overlay']}
+                aria-hidden="true"
+                style={
+                  {
+                    gridTemplateColumns: `repeat(${columns}, var(--cell-px))`,
+                    gridTemplateRows: rowSteps
+                      .map((step) => `${Math.max(0, step - rowGap)}px`)
+                      .join(' '),
+                  } as React.CSSProperties
+                }
+              >
+                {rowSteps.flatMap((_, row) =>
+                  Array.from({ length: columns }, (_, col) => (
+                    <span key={`${row}-${col}`} className={builder['grid-overlay__cell']} />
+                  )),
+                )}
+              </div>
+            ) : null}
+            {resolvedItems.map(({ item, placement }) => (
+              <GridBlock
+                key={item.id}
+                sectionId={id}
+                item={item}
+                placement={placement}
+                cellWidth={cellWidth}
+                cellHeight={cellHeight}
+                colGap={colGap}
+                columns={columns}
+                breakpoint={activeBreakpoint}
+                rowSteps={rowSteps}
+              />
+            ))}
+            {ghost ? (
+              <div
+                className={builder['drop-ghost']}
+                aria-hidden="true"
+                style={{
+                  gridColumn: `${ghost.x + 2} / span ${ghost.w}`,
+                  gridRow: `${ghost.y + 1} / span ${ghost.h}`,
+                }}
+              />
+            ) : null}
           </div>
         </div>
-        {renderSectionFooter ? renderSectionFooter({ section, activeBreakpoint }) : null}
-      </section>
-    </DndContext>
+      </div>
+      {renderSectionFooter ? renderSectionFooter(chromeCtx) : null}
+    </section>
   );
 }
