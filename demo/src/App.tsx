@@ -5,6 +5,10 @@ import {
   VantageInspector,
   VantageThemeProvider,
   ItemDataProvider,
+  addItem,
+  moveItem,
+  resolveDescriptorForKind,
+  resolveRegistry,
   bringItemForward,
   bringItemToFront,
   emitLayoutChange,
@@ -19,6 +23,7 @@ import {
   stripData,
   updateItemData,
   useVantageHistory,
+  type ExternalDropEvent,
   type GridItem,
   type ItemDataChangeEvent,
   type Layout,
@@ -301,6 +306,27 @@ function App() {
     ];
   }, [layerMenuItem, atFront, atBack, applyLayer, applyButtonAlignment]);
 
+  const resolvedRegistry = useMemo(() => resolveRegistry(demoComponents), []);
+  const [draggedKind, setDraggedKind] = useState<string | null>(null);
+  const externalDrag = useMemo(() => {
+    if (!draggedKind) return null;
+    const defaults = resolveDescriptorForKind(resolvedRegistry, draggedKind)?.defaults;
+    return { w: defaults?.w ?? 3, h: defaults?.h ?? 2 };
+  }, [draggedKind, resolvedRegistry]);
+
+  const handleExternalDrop = ({ sectionId, x, y, breakpoint, dataTransfer }: ExternalDropEvent) => {
+    const kind = dataTransfer.getData('text/plain') || draggedKind;
+    setDraggedKind(null);
+    if (!kind || !demoComponents[kind]) return;
+    const defaults = resolveDescriptorForKind(resolvedRegistry, kind)?.defaults;
+    const atDesktop = breakpoint === 'desktop';
+    let next = addItem(layout, sectionId, kind, { ...defaults, ...(atDesktop ? { x, y } : {}) });
+    const added = next.sections.find((s) => s.id === sectionId)?.items.at(-1);
+    if (added && !atDesktop) next = moveItem(next, sectionId, added.id, x, y, breakpoint);
+    emitLayoutChange(layout, next, pushLayoutChange);
+    if (added) handleSelectionChange({ sectionId, itemId: added.id });
+  };
+
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/preview')) {
     return (
       <VantageThemeProvider tokens={tokens}>
@@ -357,9 +383,12 @@ function App() {
                         layout={layout}
                         onChange={pushLayoutChange}
                         components={demoComponents}
+                        onDragKind={setDraggedKind}
                         {...ctx}
                       />
                     )}
+                    externalDrag={externalDrag}
+                    onExternalDrop={handleExternalDrop}
                     selectedItem={selection}
                     onSelectionChange={handleSelectionChange}
                     activeBreakpoint={activeBreakpoint}

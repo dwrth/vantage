@@ -1,4 +1,4 @@
-import { resolveItem, resolveSection } from '../lib/breakpoint';
+import { defaultColumnsForBreakpoint, resolveItem, resolveSection } from '../lib/breakpoint';
 import { clampItem, nextSlot } from '../lib/grid';
 import { createId } from '../lib/id';
 import {
@@ -23,6 +23,10 @@ export type AddItemDefaults = {
   id?: string;
   /** External entity id for host-resolved payloads. */
   ref?: string;
+  /** Desktop column to place the item at. Omitted: next free slot. */
+  x?: number;
+  /** Desktop row to place the item at. Omitted: next free slot. */
+  y?: number;
   w?: number;
   h?: number;
   label?: string;
@@ -535,7 +539,11 @@ export function addItem(
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (section) => {
-      const { x, y } = nextSlot(section.items);
+      const slot = nextSlot(section.items);
+      const { x, y } = clampItem(
+        { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
+        section.columns,
+      );
       const sameKindCount = section.items.filter((i) => i.kind === kind).length;
       const existingIds = new Set(section.items.map((item) => item.id));
       let nextId = defaults.id;
@@ -590,6 +598,95 @@ export function moveItem(
     sections: mapSection(layout.sections, sectionId, (section) =>
       writeItemOverride(section, itemId, breakpoint, { x, y }),
     ),
+  };
+}
+
+export type MoveItemToSectionOptions = {
+  /** Target column on `breakpoint`'s grid. Omitted: next free slot. */
+  x?: number;
+  /** Target row on `breakpoint`'s grid. Omitted: next free slot. */
+  y?: number;
+  /** Grid that `x` / `y` refer to. Defaults to `'desktop'`. */
+  breakpoint?: Breakpoint;
+};
+
+/**
+ * Move an item into another section. The item keeps its id, size, ref, data and meta and lands
+ * on top of the target stack. Desktop placement goes to `x` / `y` (or the next free slot);
+ * when `breakpoint` is not desktop, `x` / `y` become that breakpoint's override instead.
+ * Per-breakpoint `hidden` / `data` overrides travel along; positions from the old grid do not.
+ * Same-section calls behave like `moveItem`.
+ */
+export function moveItemToSection(
+  layout: Layout,
+  fromSectionId: string,
+  itemId: string,
+  toSectionId: string,
+  options: MoveItemToSectionOptions = {},
+): Layout {
+  const breakpoint = options.breakpoint ?? 'desktop';
+  const source = layout.sections.find((section) => section.id === fromSectionId);
+  const item = source?.items.find((i) => i.id === itemId);
+  const target = layout.sections.find((section) => section.id === toSectionId);
+  if (!source || !item || !target) return layout;
+
+  if (fromSectionId === toSectionId) {
+    if (options.x === undefined && options.y === undefined) return layout;
+    const current = resolveItem(item, source, breakpoint);
+    return moveItem(
+      layout,
+      fromSectionId,
+      itemId,
+      options.x ?? current.x,
+      options.y ?? current.y,
+      breakpoint,
+    );
+  }
+
+  const isDesktop = breakpoint === 'desktop';
+  const slot = nextSlot(target.items);
+  const placement = clampItem(
+    {
+      x: isDesktop ? (options.x ?? slot.x) : slot.x,
+      y: isDesktop ? (options.y ?? slot.y) : slot.y,
+      w: item.w,
+      h: item.h,
+    },
+    target.columns,
+  );
+  const idTaken = target.items.some((i) => i.id === item.id);
+  const moved: GridItem = { ...item, ...placement, id: idTaken ? createId() : item.id };
+
+  let nextTarget: Section = { ...target, items: [...target.items, moved] };
+  for (const bp of NON_DESKTOP_BREAKPOINTS) {
+    const carried = source.overrides?.[bp]?.items?.[item.id];
+    const patch: ItemOverride = {};
+    if (carried?.hidden !== undefined) patch.hidden = carried.hidden;
+    if (carried?.data !== undefined) patch.data = carried.data;
+    if (Object.keys(patch).length > 0) {
+      nextTarget = withBreakpointOverride(nextTarget, bp, { items: { [moved.id]: patch } });
+    }
+  }
+  if (!isDesktop && (options.x !== undefined || options.y !== undefined)) {
+    const current = resolveItem(moved, nextTarget, breakpoint);
+    nextTarget = writeItemOverride(nextTarget, moved.id, breakpoint, {
+      x: options.x ?? current.x,
+      y: options.y ?? current.y,
+    });
+  }
+
+  const nextSource = stripItemFromOverrides(
+    { ...source, items: source.items.filter((i) => i.id !== itemId) },
+    itemId,
+  );
+
+  return {
+    ...layout,
+    sections: layout.sections.map((section) => {
+      if (section.id === fromSectionId) return nextSource;
+      if (section.id === toSectionId) return nextTarget;
+      return section;
+    }),
   };
 }
 
@@ -859,6 +956,101 @@ export function setBreakpointPreviewWidth(
   return {
     ...layout,
     breakpointPreviewWidths: normalizeBreakpointPreviewWidths(layout.breakpoints, nextWidths),
+  };
+}
+
+type Placement = Pick<GridItem, 'x' | 'y' | 'w' | 'h'>;
+
+function placementsOverlap(a: Placement, b: Placement): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/** Map a horizontal span from `fromColumns` onto `toColumns`, keeping relative edges. */
+function scaleSpan(x: number, w: number, fromColumns: number, toColumns: number) {
+  const left = Math.round((x * toColumns) / fromColumns);
+  const right = Math.round(((x + w) * toColumns) / fromColumns);
+  return { x: left, w: Math.max(1, right - left) };
+}
+
+/** Transitive overlap groups, e.g. text layered on top of an image. */
+function overlapGroups(items: GridItem[]): GridItem[][] {
+  let groups: GridItem[][] = [];
+  for (const item of items) {
+    const hits = groups.filter((group) => group.some((other) => placementsOverlap(other, item)));
+    groups = [...groups.filter((group) => !hits.includes(group)), [...hits.flat(), item]];
+  }
+  return groups;
+}
+
+function scalePlacements(items: GridItem[], fromColumns: number, toColumns: number) {
+  const placements: Record<string, Placement> = {};
+  for (const item of items) {
+    const span = scaleSpan(item.x, item.w, fromColumns, toColumns);
+    placements[item.id] = clampItem({ ...span, y: item.y, h: item.h }, toColumns);
+  }
+  return placements;
+}
+
+/** Stack overlap groups top-to-bottom at full width; layering inside a group is kept. */
+function stackPlacements(items: GridItem[], toColumns: number) {
+  const groups = overlapGroups(items)
+    .map((group) => ({
+      items: group,
+      top: Math.min(...group.map((i) => i.y)),
+      bottom: Math.max(...group.map((i) => i.y + i.h)),
+      left: Math.min(...group.map((i) => i.x)),
+      right: Math.max(...group.map((i) => i.x + i.w)),
+    }))
+    .sort((a, b) => a.top - b.top || a.left - b.left);
+
+  const placements: Record<string, Placement> = {};
+  let cursor = 0;
+  for (const group of groups) {
+    for (const item of group.items) {
+      const span = scaleSpan(item.x - group.left, item.w, group.right - group.left, toColumns);
+      placements[item.id] = clampItem(
+        { ...span, y: cursor + item.y - group.top, h: item.h },
+        toColumns,
+      );
+    }
+    cursor += group.bottom - group.top;
+  }
+  return placements;
+}
+
+/**
+ * Generate a starting layout for a non-desktop breakpoint from the desktop placement.
+ * Tablet scales items onto fewer columns; mobile stacks items (overlap groups stay together)
+ * at full width. Overwrites `columns` and item `x/y/w/h` overrides for that breakpoint; keeps
+ * gaps, paddings, `hidden` flags and `data` patches. Pass `sectionId` to arrange one section.
+ */
+export function autoArrangeBreakpoint(
+  layout: Layout,
+  breakpoint: NonDesktopBreakpoint,
+  sectionId?: string,
+): Layout {
+  if (!layout.breakpoints.includes(breakpoint)) return layout;
+  return {
+    ...layout,
+    sections: layout.sections.map((section) => {
+      if (sectionId !== undefined && section.id !== sectionId) return section;
+      const current = section.overrides?.[breakpoint];
+      const columns = defaultColumnsForBreakpoint(section.columns, breakpoint);
+      const visible = section.items.filter((item) => current?.items?.[item.id]?.hidden !== true);
+      const placements =
+        breakpoint === 'tablet'
+          ? scalePlacements(visible, section.columns, columns)
+          : stackPlacements(visible, columns);
+      const items: Record<string, ItemOverride> = {};
+      for (const item of section.items) {
+        const next = { ...current?.items?.[item.id], ...placements[item.id] };
+        if (Object.keys(next).length > 0) items[item.id] = next;
+      }
+      return pruneSectionOverrides({
+        ...section,
+        overrides: { ...section.overrides, [breakpoint]: { ...current, columns, items } },
+      });
+    }),
   };
 }
 

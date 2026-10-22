@@ -78,6 +78,7 @@ export {
   updateItemData,
   addItem,
   moveItem,
+  moveItemToSection,
   resizeItem,
   removeItem,
   setSectionOverride,
@@ -94,9 +95,10 @@ export {
   setLayoutBreakpoints,
   setBreakpointWidth,
   setBreakpointPreviewWidth,
+  autoArrangeBreakpoint,
 } from './mutations/layout';
 
-export type { SelectionRef } from './context/BuilderContext';
+export type { SelectionRef, ExternalDragItem, ExternalDropEvent } from './context/BuilderContext';
 export { useSelection, useSelectedItem } from './hooks/useSelection';
 export {
   useVantageHistory,
@@ -110,7 +112,7 @@ export {
   type ItemDataProviderProps,
 } from './hooks/useItemData';
 
-export type { AddItemDefaults } from './mutations/layout';
+export type { AddItemDefaults, MoveItemToSectionOptions } from './mutations/layout';
 
 export { isValidLayout } from './lib/validate';
 
