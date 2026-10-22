@@ -21,6 +21,8 @@ type SectionHeaderProps = {
   components: ComponentRegistry;
   section: Section;
   activeBreakpoint: Breakpoint;
+  /** Native palette drag: kind on dragstart, `null` on dragend. */
+  onDragKind?: (kind: string | null) => void;
 };
 
 export function SectionHeader({
@@ -29,6 +31,7 @@ export function SectionHeader({
   components,
   section,
   activeBreakpoint,
+  onDragKind,
 }: SectionHeaderProps) {
   const resolved = resolveSection(section, activeBreakpoint, layout.breakpoints);
   const { columns, colGap, rowGap, paddingTop, paddingBottom } = resolved;
@@ -107,6 +110,14 @@ export function SectionHeader({
             key={kind}
             type="button"
             className="btn btn-ghost btn-xs"
+            title="Click to add, or drag onto any section"
+            draggable={Boolean(onDragKind)}
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'copy';
+              e.dataTransfer.setData('text/plain', kind);
+              onDragKind?.(kind);
+            }}
+            onDragEnd={() => onDragKind?.(null)}
             onClick={() => {
               const descriptor = resolveDescriptorForKind(resolvedRegistry, kind);
               emitLayoutChange(
