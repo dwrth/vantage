@@ -78,6 +78,7 @@ export {
   updateItemData,
   addItem,
   moveItem,
+  moveItemToSection,
   resizeItem,
   removeItem,
   setSectionOverride,
@@ -111,7 +112,7 @@ export {
   type ItemDataProviderProps,
 } from './hooks/useItemData';
 
-export type { AddItemDefaults } from './mutations/layout';
+export type { AddItemDefaults, MoveItemToSectionOptions } from './mutations/layout';
 
 export { isValidLayout } from './lib/validate';
 

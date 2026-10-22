@@ -77,11 +77,16 @@ updateSection(layout, sectionId, { columns: 16, colGap: 4, paddingTop: 48 });
 ```ts
 addItem(layout, sectionId, 'hero', heroKind.defaults);   // pass the kind's defaults
 moveItem(layout, sectionId, itemId, x, y, breakpoint?);
+moveItemToSection(layout, fromSectionId, itemId, toSectionId, { x?, y?, breakpoint? });
 resizeItem(layout, sectionId, itemId, x, y, w, h, breakpoint?);
 removeItem(layout, sectionId, itemId);                   // also strips per-breakpoint overrides
 updateItemData<HeroData>(layout, sectionId, itemId, { title: 'New' }, breakpoint?); // shallow merge into data
 reorderItemAtIndex(layout, sectionId, fromIndex, toIndex); // for layers-panel DnD
 ```
+
+`addItem` accepts optional desktop `x` / `y` in its defaults (otherwise the next free slot).
+
+`moveItemToSection` keeps the item's id, size, `ref`, `data` and `meta`, puts it on top of the target stack and carries per-breakpoint `hidden` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsRemoved` + `itemsAdded`.
 
 `moveItem` / `resizeItem` / `updateItemData` write to the section's items when `breakpoint === 'desktop'` (the default) and to that breakpoint's overrides otherwise. For `updateItemData`, the patch is shallow-merged on top of the resolved data (base + any existing override) so unaffected fields keep falling through from desktop.
 
