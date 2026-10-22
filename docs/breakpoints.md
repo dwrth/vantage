@@ -34,6 +34,21 @@ const [active, setActive] = useState<Breakpoint>('desktop');
 
 The demo persists this to `localStorage` and re-clamps on load with `getEnabledBreakpoints` so a previously-saved `tablet` selection doesn't strand the user when tablet is later disabled.
 
+## Auto-arrange
+
+A freshly enabled breakpoint inherits the desktop grid, which rarely fits a phone. `autoArrangeBreakpoint` generates a starting layout from the desktop placement:
+
+```ts
+let next = setLayoutBreakpoints(layout, ['desktop', 'mobile']);
+next = autoArrangeBreakpoint(next, 'mobile'); // all sections
+next = autoArrangeBreakpoint(next, 'mobile', sectionId); // one section
+```
+
+- **Mobile** — `columns` becomes `DEFAULT_MOBILE_COLUMNS`; items are stacked top-to-bottom at full width. Items that overlap (e.g. text layered on an image) form a group that is scaled as a unit, so layering survives.
+- **Tablet** — `columns` becomes 2/3 of desktop; every item is scaled proportionally, arrangement unchanged.
+
+It overwrites `columns` and item `x` / `y` / `w` / `h` for that breakpoint and keeps gaps, paddings, `hidden` flags and `data` patches. Items hidden on the breakpoint are skipped when stacking.
+
 ## Per-breakpoint overrides
 
 When the user drags, resizes, or edits a block's `data` while a non-desktop breakpoint is active, Vantage stores an `ItemOverride` instead of mutating the desktop placement. `ItemOverride` can carry `x` / `y` / `w` / `h`, `hidden`, and a partial `data` patch that is shallow-merged on top of the base item data at render time. You can also write overrides explicitly:
@@ -58,10 +73,14 @@ mergeBreakpointItemData<HeroData>(item, section, 'mobile'); // base data ∪ BP 
 resolveEffectiveItemData(item, section, 'mobile', enabled, entityData); // entity ∪ layout/BP
 hasItemOverride(item, section, 'mobile'); // boolean
 resolveBreakpointFromWidth(width, layout); // for custom preview surfaces
-resolveBreakpointFromLayout(width, layout); // alias used by VantagePreview internally
+resolveBreakpointFromLayout(width, layout); // container width → breakpoint
 defaultColumnsForBreakpoint('mobile', baseColumns); // 4 by default for mobile, 2/3 of base for tablet
 ```
 
 Entity resolve is a separate host function (`ResolveItemData`) passed to `ItemDataProvider` — not `mergeBreakpointItemData`. See [Persistence](persistence.md).
 
 The sample layout (`demo/src/sampleLayout.ts`) shows the data shape: a `Hero` section with `columns: 12` desktop and a mobile `overrides.mobile` block setting `columns: 4` plus a per-item `{ x, y, w, h }` map.
+
+## Published preview
+
+`VantagePreview` without a `breakpoint` prop renders every enabled breakpoint at once: placements and section settings become CSS variables, and a scoped `<style>` with `@container` width ranges (matching `breakpointWidths`) picks the active one. Markup is therefore correct on the server and before hydration — no desktop/mobile flash. The measured container width is only used to merge per-breakpoint `data` patches (desktop data until measured). Passing `breakpoint` renders that breakpoint only, with inline styles.
