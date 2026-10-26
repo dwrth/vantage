@@ -32,12 +32,15 @@ All sections share one drag context. Dragging a block within its section snaps i
 
 ## `VantagePreview`
 
-| Prop         | Required | Description                                                                |
-| ------------ | -------- | -------------------------------------------------------------------------- |
-| `value`      | yes      | Same `Layout` shape as the builder.                                        |
-| `components` | yes      | Same registry. Reuse it; do not ship a second one.                         |
-| `breakpoint` | no       | Force a specific breakpoint. Omit to auto-detect from the container width. |
-| `className`  | no       | Extra class on the root.                                                   |
+| Prop            | Required | Description                                                                |
+| --------------- | -------- | -------------------------------------------------------------------------- |
+| `value`         | yes      | Same `Layout` shape as the builder.                                        |
+| `components`    | yes      | Same registry. Reuse it; do not ship a second one.                         |
+| `breakpoint`    | no       | Force a specific breakpoint. Omit to auto-detect from the container width. |
+| `className`     | no       | Extra class on the root.                                                   |
+| `isItemVisible` | no       | `(item) => boolean` render-time filter, e.g. per-viewer access rules.      |
+
+Items filtered out by `isItemVisible` render on no breakpoint, and grid rows that only they occupied collapse so content below moves up. Rows still holding a visible item (or left empty on purpose) keep their height. Per-breakpoint `hidden` overrides keep their slot as before.
 
 Preview has no drag system, no chrome, no selection. Safe at any size — iframe, separate route (demo uses `/preview`), or inline next to the builder.
 

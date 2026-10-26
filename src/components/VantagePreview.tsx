@@ -36,6 +36,11 @@ export type VantagePreviewProps = {
   className?: string;
   /** When set, forces a breakpoint instead of auto-detecting from container width. */
   breakpoint?: Breakpoint;
+  /**
+   * Render-time filter (e.g. per-viewer access rules). Items returning `false` are not
+   * rendered on any breakpoint, and grid rows only they occupied collapse.
+   */
+  isItemVisible?: (item: GridItem) => boolean;
 };
 
 const SECTION_VARS = [
@@ -57,10 +62,46 @@ function sectionVars(resolved: ResolvedSectionLayout, prefix = '') {
   return Object.fromEntries(SECTION_VARS.map((name, i) => [`--${prefix}${name}`, values[i]]));
 }
 
-function placementStyle(placement: ResolvedItemLayout) {
+type RowShift = (y: number) => number;
+
+const NO_SHIFT: RowShift = (y) => y;
+
+function occupiedRows(
+  items: GridItem[],
+  section: Section,
+  bp: Breakpoint,
+  enabledBreakpoints: Breakpoint[],
+): Set<number> {
+  const rows = new Set<number>();
+  for (const item of items) {
+    const placement = resolveItem(item, section, bp, enabledBreakpoints);
+    if (placement.hidden) continue;
+    for (let row = placement.y; row < placement.y + placement.h; row++) rows.add(row);
+  }
+  return rows;
+}
+
+/** Rows occupied only by filtered-out items at `bp` collapse; items below move up. */
+function rowShiftFor(
+  visible: GridItem[],
+  filtered: GridItem[],
+  section: Section,
+  bp: Breakpoint,
+  enabledBreakpoints: Breakpoint[],
+): RowShift {
+  if (filtered.length === 0) return NO_SHIFT;
+  const kept = occupiedRows(visible, section, bp, enabledBreakpoints);
+  const removed = [...occupiedRows(filtered, section, bp, enabledBreakpoints)].filter(
+    (row) => !kept.has(row),
+  );
+  if (removed.length === 0) return NO_SHIFT;
+  return (y) => y - removed.filter((row) => row < y).length;
+}
+
+function placementStyle(placement: ResolvedItemLayout, shift: RowShift = NO_SHIFT) {
   return {
     gridColumn: `${placement.x + 2} / span ${placement.w}`,
-    gridRow: `${placement.y + 1} / span ${placement.h}`,
+    gridRow: `${shift(placement.y) + 1} / span ${placement.h}`,
   };
 }
 
@@ -146,6 +187,7 @@ type PreviewSectionProps = {
   /** Breakpoints rendered via CSS; `null` renders `breakpoint` inline. */
   responsive: Breakpoint[] | null;
   components: ResolvedComponentRegistry;
+  isItemVisible?: (item: GridItem) => boolean;
 };
 
 function PreviewSection({
@@ -154,7 +196,19 @@ function PreviewSection({
   enabledBreakpoints,
   responsive,
   components,
+  isItemVisible,
 }: PreviewSectionProps) {
+  const visibleItems = isItemVisible ? section.items.filter(isItemVisible) : section.items;
+  const filteredItems = isItemVisible
+    ? section.items.filter((item) => !visibleItems.includes(item))
+    : [];
+  const shifts = Object.fromEntries(
+    (responsive ?? [breakpoint]).map((bp) => [
+      bp,
+      rowShiftFor(visibleItems, filteredItems, section, bp, enabledBreakpoints),
+    ]),
+  ) as Partial<Record<Breakpoint, RowShift>>;
+
   const tokens = useVantageTokens();
   const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
   const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
@@ -183,7 +237,7 @@ function PreviewSection({
           background={section.background}
           className={preview['preview-section__bg']}
         />
-        {section.items.map((item) => {
+        {visibleItems.map((item) => {
           let style: Record<string, string>;
           let hiddenOn: string | undefined;
           if (responsive) {
@@ -191,7 +245,7 @@ function PreviewSection({
             const hidden: Breakpoint[] = [];
             for (const bp of responsive) {
               const placement = resolveItem(item, section, bp, enabledBreakpoints);
-              const { gridColumn, gridRow } = placementStyle(placement);
+              const { gridColumn, gridRow } = placementStyle(placement, shifts[bp]);
               style[`--vp-${bp}-col`] = gridColumn;
               style[`--vp-${bp}-row`] = gridRow;
               if (placement.hidden) hidden.push(bp);
@@ -201,7 +255,7 @@ function PreviewSection({
           } else {
             const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
             if (placement.hidden) return null;
-            style = placementStyle(placement);
+            style = placementStyle(placement, shifts[breakpoint]);
           }
           return (
             <PreviewItem
@@ -226,6 +280,7 @@ export function VantagePreview({
   components: componentsProp,
   className,
   breakpoint: breakpointProp,
+  isItemVisible,
 }: VantagePreviewProps) {
   const components = useMemo(() => resolveRegistry(componentsProp), [componentsProp]);
   const enabledBreakpoints = useMemo(() => getEnabledBreakpoints(value), [value]);
@@ -272,6 +327,7 @@ export function VantagePreview({
             enabledBreakpoints={enabledBreakpoints}
             responsive={responsive}
             components={components}
+            isItemVisible={isItemVisible}
           />
         ))
       )}
