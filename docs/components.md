@@ -17,6 +17,7 @@
 | `renderSectionHeader`      | no       | `({ section, activeBreakpoint, hasSelection, isDropTarget }) => ReactNode` slot for custom per-section header chrome.                                                                                                                                                     |
 | `renderSectionFooter`      | no       | `({ section, activeBreakpoint, hasSelection, isDropTarget }) => ReactNode` slot for custom per-section footer chrome.                                                                                                                                                     |
 | `renderEditButton`         | no       | `({ sectionId, item, isSelected }) => ReactNode` slot for per-block settings/edit chrome.                                                                                                                                                                                 |
+| `isItemRestricted`         | no       | `(item: GridItem) => boolean`. Blocks for which it returns true get a dashed instead of solid hover/selection outline (e.g. blocks with an access rule).                                                                                                                  |
 | `renderDragHandle`         | no       | `({ sectionId, item, isSelected, isDragging, listeners, attributes }) => ReactNode` slot for custom drag-handle chrome. Vantage positions the slot and applies grab/grabbing cursor styling; you style the inner control. Falls back to the built-in handle when omitted. |
 | `renderDeleteButton`       | no       | `({ sectionId, item, isSelected, onDelete }) => ReactNode` slot for custom delete chrome. Vantage positions the slot; you style the inner control. Falls back to the built-in delete button when omitted.                                                                 |
 | `externalDrag`             | no       | `{ w, h }` while the host drags a new block over the canvas with native HTML5 drag-and-drop (e.g. a component palette). Sections then accept the drop and show a ghost of that size.                                                                                      |
@@ -32,12 +33,15 @@ All sections share one drag context. Dragging a block within its section snaps i
 
 ## `VantagePreview`
 
-| Prop         | Required | Description                                                                |
-| ------------ | -------- | -------------------------------------------------------------------------- |
-| `value`      | yes      | Same `Layout` shape as the builder.                                        |
-| `components` | yes      | Same registry. Reuse it; do not ship a second one.                         |
-| `breakpoint` | no       | Force a specific breakpoint. Omit to auto-detect from the container width. |
-| `className`  | no       | Extra class on the root.                                                   |
+| Prop            | Required | Description                                                                |
+| --------------- | -------- | -------------------------------------------------------------------------- |
+| `value`         | yes      | Same `Layout` shape as the builder.                                        |
+| `components`    | yes      | Same registry. Reuse it; do not ship a second one.                         |
+| `breakpoint`    | no       | Force a specific breakpoint. Omit to auto-detect from the container width. |
+| `className`     | no       | Extra class on the root.                                                   |
+| `isItemVisible` | no       | `(item) => boolean` render-time filter, e.g. per-viewer access rules.      |
+
+Items filtered out by `isItemVisible` render on no breakpoint, and grid rows that only they occupied collapse so content below moves up. Rows still holding a visible item (or left empty on purpose) keep their height. Per-breakpoint `hidden` overrides keep their slot as before.
 
 Preview has no drag system, no chrome, no selection. Safe at any size — iframe, separate route (demo uses `/preview`), or inline next to the builder.
 

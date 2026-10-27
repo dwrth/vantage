@@ -20,6 +20,14 @@
   border-color: #2563eb;
 }
 
+.grid-block__body--restricted {
+  border-style: dashed;
+}
+
+.grid-block__chrome--restricted {
+  --vantage-outline-style: dashed;
+}
+
 .grid-block__body--dragging {
   z-index: 10;
   border-color: #2563eb;
@@ -70,7 +78,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 2px solid #2563eb;
+  border: 2px var(--vantage-outline-style, solid) #2563eb;
   pointer-events: none;
 }
 
@@ -79,7 +87,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 2px solid #2563eb;
+  border: 2px var(--vantage-outline-style, solid) #2563eb;
   pointer-events: none;
 }
 

@@ -73,6 +73,7 @@ export function GridBlock({
     selection,
     setSelection,
     renderEditButton,
+    isItemRestricted,
     renderDragHandle,
     renderDeleteButton,
   } = useBuilderContext();
@@ -249,6 +250,7 @@ export function GridBlock({
     [onItemContextMenu, sectionId, item],
   );
 
+  const restricted = isItemRestricted?.(item) ?? false;
   const isSelected = selection?.sectionId === sectionId && selection?.itemId === item.id;
   const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !isSelected;
 
@@ -273,6 +275,7 @@ export function GridBlock({
           chrome['grid-block__body'],
           wrapperClass,
           isDragging ? chrome['grid-block__body--dragging'] : '',
+          restricted ? chrome['grid-block__body--restricted'] : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -287,6 +290,7 @@ export function GridBlock({
         className={[
           chrome['grid-block__chrome'],
           isSelected || isDragging ? chrome['grid-block__chrome--active'] : '',
+          restricted ? chrome['grid-block__chrome--restricted'] : '',
         ]
           .filter(Boolean)
           .join(' ')}

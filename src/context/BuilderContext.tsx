@@ -61,6 +61,7 @@ export type BuilderContextValue = {
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;
+  isItemRestricted?: (item: GridItem) => boolean;
   renderDragHandle?: (ctx: {
     sectionId: string;
     item: GridItem;
