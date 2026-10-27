@@ -1,6 +1,6 @@
 import type { DragEndEvent } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { resolveItem, resolveSection } from '../lib/breakpoint';
+import { resolveItem, resolveSection, sectionContentRows, sectionRows } from '../lib/breakpoint';
 import { resolveEffectiveItemData } from '../lib/entities';
 import {
   CELL_MAX_PX,
@@ -21,10 +21,11 @@ import { useContainerWidth } from '../hooks/useContainerWidth';
 import { useResolveItemData } from '../hooks/useItemData';
 import { parsePxToken } from '../theme/tokens';
 import { useVantageTokens } from '../theme/useVantageTokens';
-import type { BreakpointWidths, GridItem, Section } from '../types';
+import { MIN_SECTION_ROWS, type BreakpointWidths, type GridItem, type Section } from '../types';
 import builder from '../styles/builder.module.css';
 import { GridBlock } from './GridBlock';
 import { SectionBackground } from './SectionBackground';
+import { SectionResizeHandle } from './SectionResizeHandle';
 
 type SectionViewProps = {
   section: Section;
@@ -79,7 +80,7 @@ export function SectionView({ section }: SectionViewProps) {
     onExternalDrop,
   } = useBuilderContext();
   const { registerSection, dropTarget, setDropTarget, dragSourceSectionId } = useCanvasDnd();
-  const { moveItem } = useBuilderActions();
+  const { moveItem, resizeSection } = useBuilderActions();
   const resolveEntity = useResolveItemData();
   const enabledBreakpoints = layout.breakpoints;
 
@@ -107,6 +108,22 @@ export function SectionView({ section }: SectionViewProps) {
         }))
         .filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
+  );
+
+  const rows = useMemo(
+    () => sectionRows(section, activeBreakpoint, enabledBreakpoints),
+    [section, activeBreakpoint, enabledBreakpoints],
+  );
+  const minRows = useMemo(
+    () =>
+      Math.max(MIN_SECTION_ROWS, sectionContentRows(section, activeBreakpoint, enabledBreakpoints)),
+    [section, activeBreakpoint, enabledBreakpoints],
+  );
+  const [draftRows, setDraftRows] = useState<number | null>(null);
+  const displayedRows = draftRows ?? rows;
+  const commitRows = useCallback(
+    (next: number) => resizeSection(id, next, activeBreakpoint),
+    [resizeSection, id, activeBreakpoint],
   );
 
   const { containerRef, containerWidth } = useContainerWidth<HTMLDivElement>();
@@ -147,7 +164,7 @@ export function SectionView({ section }: SectionViewProps) {
       cancelAnimationFrame(raf);
       observer.disconnect();
     };
-  }, [containerRef, rowGap, resolvedItems, columns, paddingTop, paddingBottom]);
+  }, [containerRef, rowGap, resolvedItems, columns, paddingTop, paddingBottom, displayedRows]);
 
   const hitTestItems: GridItem[] = useMemo(
     () =>
@@ -175,27 +192,32 @@ export function SectionView({ section }: SectionViewProps) {
             cellHeight,
           )
         : entry.placement.y + dy;
-      if (dx === 0 && nextY === entry.placement.y) return;
-      moveItem(id, entry.item.id, entry.placement.x + dx, nextY, activeBreakpoint);
+      // The section keeps its height: a block dropped past the bottom stops at the last row.
+      const clampedY = Math.max(0, Math.min(nextY, rows - entry.placement.h));
+      if (dx === 0 && clampedY === entry.placement.y) return;
+      moveItem(id, entry.item.id, entry.placement.x + dx, clampedY, activeBreakpoint);
     },
-    [resolvedItems, cellXStep, cellHeight, rowSteps, moveItem, id, activeBreakpoint],
+    [resolvedItems, cellXStep, cellHeight, rowSteps, rows, moveItem, id, activeBreakpoint],
   );
 
   const cellAt = useCallback<SectionDropHandle['cellAt']>(
-    (clientLeft, clientTop, w) => {
+    (clientLeft, clientTop, w, h) => {
       const grid = containerRef.current;
       const width = Math.max(1, Math.min(w, columns));
-      if (!grid) return { x: 0, y: 0, w: width };
+      // Blocks taller than the section shrink to fit, like blocks wider than the grid.
+      const height = Math.max(1, Math.min(h, rows));
+      if (!grid) return { x: 0, y: 0, w: width, h: height };
       const rect = grid.getBoundingClientRect();
       const left = clientLeft - rect.left - contentOffsetX;
       const top = clientTop - rect.top - paddingTop;
       const x = Math.max(0, Math.min(pxToCellIndex(left, cellXStep), columns - width));
-      const y = rowSteps
+      const row = rowSteps
         ? closestRowForOffset(top, rowSteps, cellHeight)
-        : Math.max(0, pxToCellIndex(top, cellHeight));
-      return { x, y, w: width };
+        : pxToCellIndex(top, cellHeight);
+      const y = Math.max(0, Math.min(row, rows - height));
+      return { x, y, w: width, h: height };
     },
-    [containerRef, columns, contentOffsetX, paddingTop, cellXStep, rowSteps, cellHeight],
+    [containerRef, columns, rows, contentOffsetX, paddingTop, cellXStep, rowSteps, cellHeight],
   );
 
   const blockSize = useCallback<SectionDropHandle['blockSize']>(
@@ -228,8 +250,13 @@ export function SectionView({ section }: SectionViewProps) {
     (e: React.DragEvent) => {
       if (!externalDrag) return null;
       const size = blockSize(externalDrag.w, externalDrag.h);
-      const cell = cellAt(e.clientX - size.width / 2, e.clientY - size.height / 2, externalDrag.w);
-      return { sectionId: id, x: cell.x, y: cell.y, w: cell.w, h: externalDrag.h };
+      const cell = cellAt(
+        e.clientX - size.width / 2,
+        e.clientY - size.height / 2,
+        externalDrag.w,
+        externalDrag.h,
+      );
+      return { sectionId: id, ...cell };
     },
     [externalDrag, blockSize, cellAt, id],
   );
@@ -358,6 +385,7 @@ export function SectionView({ section }: SectionViewProps) {
   const chromeCtx = { section, activeBreakpoint, hasSelection, isDropTarget };
   const sectionClass = [
     builder.section,
+    draftRows !== null ? builder['section--resizing'] : '',
     dragSourceSectionId === id ? builder['section--drag-source'] : '',
     isDropTarget ? builder['section--drop-target'] : '',
   ]
@@ -397,6 +425,7 @@ export function SectionView({ section }: SectionViewProps) {
                 '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
                 '--section-pad-top-px': `${paddingTop}px`,
                 '--section-pad-bottom-px': `${paddingBottom}px`,
+                gridTemplateRows: `repeat(${displayedRows}, minmax(var(--row-px), auto))`,
               } as React.CSSProperties
             }
           >
@@ -433,6 +462,7 @@ export function SectionView({ section }: SectionViewProps) {
                 columns={columns}
                 breakpoint={activeBreakpoint}
                 rowSteps={rowSteps}
+                rows={displayedRows}
               />
             ))}
             {ghost ? (
@@ -445,6 +475,15 @@ export function SectionView({ section }: SectionViewProps) {
                 }}
               />
             ) : null}
+            <SectionResizeHandle
+              label={`Resize ${section.label ?? 'section'} height`}
+              rows={rows}
+              minRows={minRows}
+              rowSteps={rowSteps}
+              cellHeight={cellHeight}
+              onDraft={setDraftRows}
+              onCommit={commitRows}
+            />
           </div>
         </div>
       </div>

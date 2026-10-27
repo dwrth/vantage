@@ -26,3 +26,18 @@ export function closestRowForOffset(
 
   return row + Math.round((safeOffset - current) / fallbackStep);
 }
+
+/**
+ * Section height (in rows) after dragging its bottom edge by `dy` px from `startRows`.
+ * Snaps to the nearest row boundary and never goes below `minRows`.
+ */
+export function snapSectionRows(
+  startRows: number,
+  dy: number,
+  rowHeights: number[],
+  fallbackStep: number,
+  minRows: number,
+): number {
+  const bottom = getRowStart(startRows, rowHeights, fallbackStep) + dy;
+  return Math.max(minRows, closestRowForOffset(bottom, rowHeights, fallbackStep));
+}

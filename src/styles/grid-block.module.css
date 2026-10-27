@@ -15,7 +15,7 @@
   contain: size;
 }
 
-.grid-block__body:hover,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *)),
 .grid-block__body:focus-within {
   border-color: #2563eb;
 }
@@ -64,8 +64,8 @@
   will-change: transform;
 }
 
-.grid-block__body:hover + .grid-block__chrome,
-.grid-block__chrome:hover,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *)) + .grid-block__chrome,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)),
 .grid-block__chrome--active {
   z-index: 6;
 }
@@ -82,8 +82,11 @@
   pointer-events: none;
 }
 
-.grid-block__body:hover + .grid-block__chrome:not(.grid-block__chrome--active)::after,
-.grid-block__chrome:hover:not(.grid-block__chrome--active)::after {
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome:not(.grid-block__chrome--active)::after,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)):not(
+    .grid-block__chrome--active
+  )::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -120,7 +123,7 @@
   box-shadow: 0 1px 2px rgba(15, 17, 23, 0.08);
 }
 
-.grid-block__handle:hover {
+.grid-block__handle:hover:where(:not([data-vantage-dragging] *)) {
   background: #ffffff;
   color: #111827;
   border-color: rgba(15, 17, 23, 0.18);
@@ -136,12 +139,16 @@
   opacity: 1;
 }
 
-.grid-block__body:hover + .grid-block__chrome .grid-block__handle,
-.grid-block__chrome:hover .grid-block__handle,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__handle,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__handle,
 .grid-block__chrome--active .grid-block__handle,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__handle,
-.grid-block__body:hover + .grid-block__chrome .grid-block__handle-slot,
-.grid-block__chrome:hover .grid-block__handle-slot,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__handle-slot,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__handle-slot,
 .grid-block__chrome--active .grid-block__handle-slot,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__handle-slot {
   opacity: 1;
@@ -193,7 +200,7 @@
   box-shadow: 0 1px 2px rgba(15, 17, 23, 0.08);
 }
 
-.grid-block__delete:hover {
+.grid-block__delete:hover:where(:not([data-vantage-dragging] *)) {
   background: #fee2e2;
   border-color: #fca5a5;
 }
@@ -204,11 +211,15 @@
   opacity: 1;
 }
 
-.grid-block__body:hover + .grid-block__chrome .grid-block__delete,
-.grid-block__chrome:hover .grid-block__delete,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__delete,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__delete,
 .grid-block__chrome--active .grid-block__delete,
-.grid-block__body:hover + .grid-block__chrome .grid-block__delete-slot,
-.grid-block__chrome:hover .grid-block__delete-slot,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__delete-slot,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__delete-slot,
 .grid-block__chrome--active .grid-block__delete-slot,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__delete-slot {
   opacity: 1;
@@ -236,8 +247,10 @@
   transition: opacity 120ms ease;
 }
 
-.grid-block__body:hover + .grid-block__chrome .grid-block__edit,
-.grid-block__chrome:hover .grid-block__edit,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__edit,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__edit,
 .grid-block__chrome--active .grid-block__edit,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__edit {
   opacity: 1;
@@ -324,8 +337,10 @@
   bottom: -3px;
 }
 
-.grid-block__body:hover + .grid-block__chrome .grid-block__resize,
-.grid-block__chrome:hover .grid-block__resize,
+.grid-block__body:hover:where(:not([data-vantage-dragging] *))
+  + .grid-block__chrome
+  .grid-block__resize,
+.grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__resize,
 .grid-block__chrome--active .grid-block__resize,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__resize {
   opacity: 1;

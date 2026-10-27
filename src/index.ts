@@ -42,6 +42,8 @@ export type {
 export {
   DEFAULT_SECTION,
   DEFAULT_SECTION_PADDING_Y,
+  DEFAULT_SECTION_ROWS,
+  MIN_SECTION_ROWS,
   BREAKPOINTS,
   BREAKPOINT_MIN_WIDTH,
   NON_DESKTOP_BREAKPOINTS,
@@ -80,6 +82,7 @@ export {
   moveItem,
   moveItemToSection,
   resizeItem,
+  resizeSection,
   removeItem,
   setSectionOverride,
   clearSectionOverride,
@@ -126,6 +129,8 @@ export {
 export {
   resolveSection,
   resolveItem,
+  sectionRows,
+  sectionContentRows,
   mergeBreakpointItemData,
   resolveBreakpointFromWidth,
   resolveBreakpointFromLayout,

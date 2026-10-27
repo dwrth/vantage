@@ -51,14 +51,19 @@ export function getGridContentOffset(
   return Math.max(0, (containerWidth - contentWidth) / 2);
 }
 
+/**
+ * Keep an item inside the grid. With `rows`, the item also stays inside the section height:
+ * too-tall items shrink to `rows`, like too-wide items shrink to `columns`.
+ */
 export function clampItem(
   item: Pick<GridItem, 'x' | 'y' | 'w' | 'h'>,
   columns: number,
+  rows?: number,
 ): Pick<GridItem, 'x' | 'y' | 'w' | 'h'> {
   const w = Math.max(1, Math.min(item.w, columns));
   const x = Math.max(0, Math.min(item.x, columns - w));
-  const h = Math.max(1, item.h);
-  const y = Math.max(0, item.y);
+  const h = Math.max(1, rows === undefined ? item.h : Math.min(item.h, rows));
+  const y = Math.max(0, rows === undefined ? item.y : Math.min(item.y, rows - h));
   return { x, y, w, h };
 }
 
@@ -83,7 +88,8 @@ export function resizeEdgeAxes(edge: ResizeEdge): {
 
 /**
  * Apply cell-snapped `dw` / `dh` from a resize handle, anchoring the opposite edge(s).
- * Pass deltas already snapped to the grid (incl. rowSteps for vertical).
+ * Pass deltas already snapped to the grid (incl. rowSteps for vertical). With `rows`, the
+ * south edge stops at the section's bottom.
  */
 export function resizeByHandle(
   start: PlacementRect,
@@ -91,6 +97,7 @@ export function resizeByHandle(
   dw: number,
   dh: number,
   columns: number,
+  rows?: number,
 ): PlacementRect {
   const { moveE, moveW, moveN, moveS } = resizeEdgeAxes(edge);
   let { x, y, w, h } = start;
@@ -104,14 +111,15 @@ export function resizeByHandle(
   }
 
   if (moveS) {
-    h = Math.max(1, start.h + dh);
+    const maxH = rows === undefined ? Infinity : rows - start.y;
+    h = Math.max(1, Math.min(start.h + dh, maxH));
   } else if (moveN) {
     const bottom = start.y + start.h;
     y = Math.max(0, Math.min(start.y + dh, bottom - 1));
     h = bottom - y;
   }
 
-  return clampItem({ x, y, w, h }, columns);
+  return clampItem({ x, y, w, h }, columns, rows);
 }
 
 export function overlaps(a: GridItem, b: GridItem): boolean {

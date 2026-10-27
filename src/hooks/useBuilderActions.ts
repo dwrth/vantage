@@ -119,6 +119,8 @@ export function useBuilderActions() {
             breakpoint ?? activeBreakpoint,
           ),
         ),
+      resizeSection: (sectionId: string, rows: number, breakpoint?: Breakpoint) =>
+        apply(mutations.resizeSection(layout, sectionId, rows, breakpoint ?? activeBreakpoint)),
       removeItem: (sectionId: string, itemId: string) =>
         apply(mutations.removeItem(layout, sectionId, itemId)),
       bringItemForward: (sectionId: string, itemId: string) =>

@@ -50,8 +50,13 @@ function isValidItemOverride(raw: unknown): raw is ItemOverride {
   return true;
 }
 
+function isValidRows(raw: unknown): boolean {
+  return raw === undefined || (Number.isInteger(raw) && (raw as number) >= 1);
+}
+
 function isValidSectionOverride(raw: unknown): raw is SectionOverride {
   if (!isPlainObject(raw)) return false;
+  if (!isValidRows(raw.rows)) return false;
   if (raw.columns !== undefined && (!Number.isFinite(raw.columns) || (raw.columns as number) < 1)) {
     return false;
   }
@@ -161,6 +166,7 @@ function isValidSection(raw: unknown): boolean {
   ) {
     return false;
   }
+  if (!isValidRows(raw.rows)) return false;
   if (raw.label !== undefined && typeof raw.label !== 'string') return false;
   if (!isValidMeta(raw.meta)) return false;
   if (!isValidBackground(raw.background)) return false;

@@ -5,7 +5,9 @@ import {
   DEFAULT_BREAKPOINT_WIDTHS,
   DEFAULT_MOBILE_COLUMNS,
   DEFAULT_SECTION_PADDING_Y,
+  DEFAULT_SECTION_ROWS,
   DEFAULT_TABLET_COLUMNS_RATIO,
+  MIN_SECTION_ROWS,
   NON_DESKTOP_BREAKPOINTS,
   type Breakpoint,
   type BreakpointWidths,
@@ -26,6 +28,8 @@ export type ResolvedSectionLayout = {
   rowGap: number;
   paddingTop: number;
   paddingBottom: number;
+  /** Explicit section height in rows (inherits desktop). Unset: follows content. */
+  rows?: number;
 };
 
 export type ResolvedItemLayout = Pick<GridItem, 'x' | 'y' | 'w' | 'h'> & {
@@ -118,6 +122,7 @@ export function resolveSection(
     rowGap: section.rowGap,
     paddingTop: section.paddingTop ?? DEFAULT_SECTION_PADDING_Y,
     paddingBottom: section.paddingBottom ?? DEFAULT_SECTION_PADDING_Y,
+    rows: section.rows,
   };
   if (breakpoint === 'desktop' || !enabled.includes(breakpoint)) return base;
   const ovr = getSectionOverride(section, breakpoint);
@@ -127,6 +132,7 @@ export function resolveSection(
     rowGap: ovr?.rowGap ?? base.rowGap,
     paddingTop: ovr?.paddingTop ?? base.paddingTop,
     paddingBottom: ovr?.paddingBottom ?? base.paddingBottom,
+    rows: ovr?.rows ?? base.rows,
   };
 }
 
@@ -156,6 +162,35 @@ export function resolveItem(
   }
   const clamped = clampItem(placement, resolved.columns);
   return { ...clamped, hidden };
+}
+
+/** Bottom edge (in rows) of the items shown at `breakpoint`; 0 when none. */
+export function sectionContentRows(
+  section: Section,
+  breakpoint: Breakpoint,
+  enabled: Breakpoint[] = BREAKPOINTS,
+): number {
+  let bottom = 0;
+  for (const item of section.items) {
+    const placement = resolveItem(item, section, breakpoint, enabled);
+    if (!placement.hidden) bottom = Math.max(bottom, placement.y + placement.h);
+  }
+  return bottom;
+}
+
+/**
+ * Rows a section spans at `breakpoint`: its `rows`, grown to fit the content. Without `rows`
+ * the height follows the content (`DEFAULT_SECTION_ROWS` while empty).
+ */
+export function sectionRows(
+  section: Section,
+  breakpoint: Breakpoint,
+  enabled: Breakpoint[] = BREAKPOINTS,
+): number {
+  const content = sectionContentRows(section, breakpoint, enabled);
+  const { rows } = resolveSection(section, breakpoint, enabled);
+  if (rows === undefined) return content > 0 ? content : DEFAULT_SECTION_ROWS;
+  return Math.max(MIN_SECTION_ROWS, rows, content);
 }
 
 /** Shallow-merge base `item.data` with breakpoint override `data`. Not entity resolve. */

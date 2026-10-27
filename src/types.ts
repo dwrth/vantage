@@ -60,6 +60,7 @@ export type SectionOverride = {
   rowGap?: number;
   paddingTop?: number;
   paddingBottom?: number;
+  rows?: number;
   items?: Record<string, ItemOverride>;
 };
 
@@ -101,6 +102,11 @@ export type Section<TData = unknown> = {
   paddingTop?: number;
   /** Vertical padding below the grid content, in px. Defaults to 24. */
   paddingBottom?: number;
+  /**
+   * Section height in grid rows, set by the editor's resize edge. Items never extend it by
+   * dragging; content below it still renders. Unset: height follows the content.
+   */
+  rows?: number;
   items: GridItem<TData>[];
   background?: SectionBackground;
   overrides?: Partial<Record<Exclude<Breakpoint, 'desktop'>, SectionOverride>>;
@@ -190,11 +196,18 @@ export type ResolvedComponentRegistry = Record<string, ResolvedKindDescriptor>;
 
 export const DEFAULT_SECTION_PADDING_Y = 24;
 
+/** Rows of a new section, and of an empty section without `rows`. */
+export const DEFAULT_SECTION_ROWS = 4;
+
+/** Smallest height (in rows) the section resize edge allows. */
+export const MIN_SECTION_ROWS = 1;
+
 export const DEFAULT_SECTION: Omit<Section, 'id'> = {
   columns: 12,
   colGap: 8,
   rowGap: 8,
   paddingTop: DEFAULT_SECTION_PADDING_Y,
   paddingBottom: DEFAULT_SECTION_PADDING_Y,
+  rows: DEFAULT_SECTION_ROWS,
   items: [],
 };

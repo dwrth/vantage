@@ -11,6 +11,7 @@ import {
   type PlacementRect,
   type ResizeEdge,
 } from '../lib/grid';
+import { trackPointerDrag } from '../lib/pointerDrag';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
@@ -51,6 +52,8 @@ type GridBlockProps = {
   columns: number;
   breakpoint: Breakpoint;
   rowSteps: number[] | null;
+  /** Section height in rows; drags and resizes stay inside it. */
+  rows: number;
 };
 
 type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
@@ -65,6 +68,7 @@ export function GridBlock({
   columns,
   breakpoint,
   rowSteps,
+  rows,
 }: GridBlockProps) {
   const {
     components,
@@ -97,6 +101,9 @@ export function GridBlock({
     cellStepRef.current = { x: cellXStep, y: cellHeight };
   }, [cellXStep, cellHeight]);
 
+  // A drag never grows the section: the block snaps no lower than its last row.
+  const clampRow = (row: number) => Math.max(0, Math.min(row, rows - placement.h));
+
   const snappedX =
     leavingSection && transform
       ? transform.x
@@ -108,16 +115,18 @@ export function GridBlock({
       ? transform.y
       : transform && rowSteps
         ? getRowStart(
-            closestRowForOffset(
-              getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
-              rowSteps,
-              cellHeight,
+            clampRow(
+              closestRowForOffset(
+                getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
+                rowSteps,
+                cellHeight,
+              ),
             ),
             rowSteps,
             cellHeight,
           ) - getRowStart(placement.y, rowSteps, cellHeight)
         : transform
-          ? pxToCell(transform.y, cellHeight) * cellHeight
+          ? (clampRow(placement.y + pxToCell(transform.y, cellHeight)) - placement.y) * cellHeight
           : 0;
 
   const gridPlacement: React.CSSProperties = {
@@ -151,7 +160,6 @@ export function GridBlock({
         edge,
       };
       resizeStart.current = start;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
       setInteracting(true);
 
       const computeResize = (clientX: number, clientY: number): PlacementRect => {
@@ -187,7 +195,7 @@ export function GridBlock({
           }
         }
 
-        return resizeByHandle(current, current.edge, dw, dh, columns);
+        return resizeByHandle(current, current.edge, dw, dh, columns, rows);
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -196,7 +204,7 @@ export function GridBlock({
         setResizeDraft(next);
       };
 
-      const finishResize = () => {
+      const onEnd = (cancelled: boolean) => {
         const next = pendingResize.current;
         const start = resizeStart.current;
         pendingResize.current = null;
@@ -204,6 +212,7 @@ export function GridBlock({
         setResizeDraft(null);
         setInteracting(false);
         if (
+          !cancelled &&
           next &&
           start &&
           (next.x !== start.x || next.y !== start.y || next.w !== start.w || next.h !== start.h)
@@ -212,16 +221,7 @@ export function GridBlock({
         }
       };
 
-      const onUp = () => {
-        finishResize();
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
-        window.removeEventListener('pointercancel', onUp);
-      };
-
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-      window.addEventListener('pointercancel', onUp);
+      trackPointerDrag(e, { onMove, onEnd });
     },
     [
       sectionId,
@@ -233,6 +233,7 @@ export function GridBlock({
       columns,
       breakpoint,
       rowSteps,
+      rows,
       resizeItem,
       setInteracting,
     ],
