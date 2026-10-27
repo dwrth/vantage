@@ -42,10 +42,10 @@ export function SectionResizeHandle({
           next = snapSectionRows(rows, ev.clientY - startY, steps, cellHeight, minRows);
           onDraft(next);
         },
-        onEnd: () => {
+        onEnd: (cancelled) => {
           onDraft(null);
           setInteracting(false);
-          if (next !== rows) onCommit(next);
+          if (!cancelled && next !== rows) onCommit(next);
         },
       });
     },

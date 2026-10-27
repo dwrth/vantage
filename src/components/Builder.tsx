@@ -177,7 +177,12 @@ export function VantageBuilder({
         onExternalDrop,
       }}
     >
-      <div className={root.className} style={root.style}>
+      {/* While anything is dragged, hover styles are off (CSS guards on `[data-vantage-dragging]`). */}
+      <div
+        className={root.className}
+        style={root.style}
+        data-vantage-dragging={isInteracting || externalDrag ? '' : undefined}
+      >
         {children}
         {registryEmpty ? (
           <div

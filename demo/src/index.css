@@ -84,7 +84,7 @@ body {
   border-color: transparent;
 }
 
-.vantage-root [class*='grid-block__body']:hover,
+.vantage-root [class*='grid-block__body']:hover:where(:not([data-vantage-dragging] *)),
 .vantage-root [class*='grid-block__body']:focus-within {
   border-color: color-mix(in oklab, var(--color-primary) 65%, transparent);
 }
@@ -96,10 +96,12 @@ body {
 
 .vantage-root [class*='grid-block__chrome--active']::after,
 .vantage-root
-  [class*='grid-block__body']:hover
+  [class*='grid-block__body']:hover:where(:not([data-vantage-dragging] *))
   + [class*='grid-block__chrome']:not([class*='grid-block__chrome--active'])::after,
 .vantage-root
-  [class*='grid-block__chrome']:hover:not([class*='grid-block__chrome--active'])::after {
+  [class*='grid-block__chrome']:hover:where(:not([data-vantage-dragging] *)):not(
+    [class*='grid-block__chrome--active']
+  )::after {
   border-color: var(--color-primary);
 }
 
@@ -111,7 +113,7 @@ body {
   box-shadow: 0 1px 2px color-mix(in oklab, var(--color-base-content) 8%, transparent);
 }
 
-.vantage-root [class*='grid-block__handle']:hover {
+.vantage-root [class*='grid-block__handle']:hover:where(:not([data-vantage-dragging] *)) {
   background: var(--color-base-100);
   color: var(--color-primary);
 }
@@ -120,7 +122,7 @@ body {
   color: var(--color-error);
 }
 
-.vantage-root [class*='grid-block__delete']:hover {
+.vantage-root [class*='grid-block__delete']:hover:where(:not([data-vantage-dragging] *)) {
   background: color-mix(in oklab, var(--color-error) 12%, var(--color-base-100));
   border-color: color-mix(in oklab, var(--color-error) 35%, transparent);
 }

@@ -204,7 +204,7 @@ export function GridBlock({
         setResizeDraft(next);
       };
 
-      const onEnd = () => {
+      const onEnd = (cancelled: boolean) => {
         const next = pendingResize.current;
         const start = resizeStart.current;
         pendingResize.current = null;
@@ -212,6 +212,7 @@ export function GridBlock({
         setResizeDraft(null);
         setInteracting(false);
         if (
+          !cancelled &&
           next &&
           start &&
           (next.x !== start.x || next.y !== start.y || next.w !== start.w || next.h !== start.h)

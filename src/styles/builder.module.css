@@ -185,10 +185,10 @@
   transition: opacity 120ms ease;
 }
 
-.section:hover .section-resize__grip,
+.section:hover:where(:not([data-vantage-dragging] *)) .section-resize__grip,
 .section-resize:focus-visible .section-resize__grip,
 .section--resizing .section-resize__grip,
-.section-resize:hover::before,
+.section-resize:hover:where(:not([data-vantage-dragging] *))::before,
 .section-resize:focus-visible::before,
 .section--resizing .section-resize::before {
   opacity: 1;
