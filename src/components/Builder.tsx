@@ -55,6 +55,8 @@ export type VantageBuilderProps = {
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
+  /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
+  isItemRestricted?: (item: GridItem) => boolean;
   renderDragHandle?: (ctx: ItemDragHandleRenderProps) => ReactNode;
   renderDeleteButton?: (ctx: ItemDeleteButtonRenderProps) => ReactNode;
   onItemContextMenu?: (event: React.MouseEvent, ctx: ItemContextMenuEvent) => void;
@@ -87,6 +89,7 @@ export function VantageBuilder({
   renderSectionHeader,
   renderSectionFooter,
   renderEditButton,
+  isItemRestricted,
   renderDragHandle,
   renderDeleteButton,
   onItemContextMenu,
@@ -166,6 +169,7 @@ export function VantageBuilder({
         renderSectionHeader,
         renderSectionFooter,
         renderEditButton,
+        isItemRestricted,
         renderDragHandle,
         renderDeleteButton,
         onItemContextMenu,
