@@ -29,7 +29,7 @@ Builder canvas ships without section header/footer chrome by default; the demo w
 
 ### Drag and drop
 
-All sections share one drag context. Dragging a block within its section snaps it on that grid (`moveItem`). Dragging it over another section shows a dashed ghost there and drops it with `moveItemToSection`; selection follows the block. Each `<section>` carries `data-vantage-section`, plus `data-vantage-section-selected` when it holds the selection and `data-vantage-drop-target` while something would land in it, so host chrome can show/hide itself with CSS. Sections are `position: relative`, so header chrome can float over the grid instead of pushing it down. The drop accent colour is `--vantage-drop-color`.
+All sections share one drag context. Dragging a block within its section snaps it on that grid (`moveItem`). Dragging it over another section shows a dashed ghost there and drops it with `moveItemToSection`; selection follows the block. Each `<section>` carries `data-vantage-section`, plus `data-vantage-section-selected` when it holds the selection and `data-vantage-drop-target` while something would land in it, so host chrome can show/hide itself with CSS. Sections are `position: relative`, so header chrome can float over the grid instead of pushing it down. The drop accent colour is `--vantage-drop-color`. Blocks stay inside their section's height; drags and drops never resize it. Each section's bottom edge (`data-vantage-section-resize`, editor only) changes its height in rows by drag, touch or arrow keys.
 
 ## `VantagePreview`
 

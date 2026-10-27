@@ -75,8 +75,8 @@ export function Canvas() {
       if (!sectionId || sectionId === data.sectionId) return null;
       const handle = handles.current.get(sectionId);
       if (!handle) return null;
-      const cell = handle.cellAt(rect.left, rect.top, data.placement.w);
-      return { sectionId, x: cell.x, y: cell.y, w: cell.w, h: data.placement.h };
+      const cell = handle.cellAt(rect.left, rect.top, data.placement.w, data.placement.h);
+      return { sectionId, ...cell };
     },
     [sectionAtPointer],
   );

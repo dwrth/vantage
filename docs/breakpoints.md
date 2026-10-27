@@ -64,10 +64,12 @@ setItemHidden(layout, sectionId, itemId, 'mobile', true);
 clearItemOverride(layout, sectionId, 'mobile', itemId);
 ```
 
+Section `rows` follow the same rule: resizing a section on tablet or mobile writes `overrides[bp].rows`; without it the breakpoint inherits the desktop `rows` (grown to fit that breakpoint's content).
+
 ## Resolution helpers
 
 ```ts
-resolveSection(section, 'mobile'); // { columns, colGap, rowGap, paddingTop, paddingBottom }
+resolveSection(section, 'mobile'); // { columns, colGap, rowGap, paddingTop, paddingBottom, rows? }
 resolveItem(item, section, 'mobile'); // { x, y, w, h, hidden }
 mergeBreakpointItemData<HeroData>(item, section, 'mobile'); // base data ∪ BP override (not entity resolve)
 resolveEffectiveItemData(item, section, 'mobile', enabled, entityData); // entity ∪ layout/BP

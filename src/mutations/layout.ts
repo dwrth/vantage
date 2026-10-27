@@ -1,4 +1,10 @@
-import { defaultColumnsForBreakpoint, resolveItem, resolveSection } from '../lib/breakpoint';
+import {
+  defaultColumnsForBreakpoint,
+  resolveItem,
+  resolveSection,
+  sectionContentRows,
+  sectionRows,
+} from '../lib/breakpoint';
 import { clampItem, nextSlot } from '../lib/grid';
 import { createId } from '../lib/id';
 import {
@@ -6,6 +12,7 @@ import {
   DEFAULT_BREAKPOINT_PREVIEW_WIDTHS,
   DEFAULT_BREAKPOINT_WIDTHS,
   DEFAULT_SECTION,
+  MIN_SECTION_ROWS,
   NON_DESKTOP_BREAKPOINTS,
   type Breakpoint,
   type BreakpointWidths,
@@ -120,7 +127,8 @@ function pruneSectionOverrides(section: Section): Section {
       ovr.colGap !== undefined ||
       ovr.rowGap !== undefined ||
       ovr.paddingTop !== undefined ||
-      ovr.paddingBottom !== undefined;
+      ovr.paddingBottom !== undefined ||
+      ovr.rows !== undefined;
     const hasItems = ovr.items && Object.keys(ovr.items).length > 0;
     if (!hasSectionFields && !hasItems) {
       delete overrides[bp];
@@ -188,6 +196,7 @@ function writeItemOverride(
   itemId: string,
   breakpoint: NonDesktopBreakpoint,
   patch: ItemOverride,
+  rows?: number,
 ): Section {
   const item = section.items.find((i) => i.id === itemId);
   if (!item) return section;
@@ -201,6 +210,7 @@ function writeItemOverride(
       h: patch.h ?? current.h,
     },
     resolved.columns,
+    rows,
   );
   const itemPatch: ItemOverride = { ...patch };
   if (
@@ -218,6 +228,25 @@ function writeItemOverride(
   return withBreakpointOverride(section, breakpoint, {
     items: { [itemId]: { ...existing, ...itemPatch } },
   });
+}
+
+/** Write a section's height at `breakpoint` into its rows field. */
+function withSectionRows(section: Section, breakpoint: Breakpoint, rows: number): Section {
+  if (breakpoint === 'desktop') return { ...section, rows };
+  return withBreakpointOverride(section, breakpoint, { rows });
+}
+
+/**
+ * Freeze the section height at `breakpoint` before an item moves in, out or within it, so a
+ * drag can neither grow nor shrink the section. Returns the frozen row count to clamp against.
+ */
+function pinSectionRows(
+  section: Section,
+  breakpoint: Breakpoint,
+): { section: Section; rows: number } {
+  const rows = sectionRows(section, breakpoint);
+  if (resolveSection(section, breakpoint).rows === rows) return { section, rows };
+  return { section: withSectionRows(section, breakpoint, rows), rows };
 }
 
 function descriptorForKind(registry: ComponentRegistry, kind: string): KindDescriptor | undefined {
@@ -538,11 +567,17 @@ export function addItem(
 
   return {
     ...layout,
-    sections: mapSection(layout.sections, sectionId, (section) => {
+    sections: mapSection(layout.sections, sectionId, (current) => {
+      // An explicit row (a drop) lands inside the section; the next free slot may extend it.
+      const { section, rows } =
+        defaults.y !== undefined
+          ? pinSectionRows(current, 'desktop')
+          : { section: current, rows: undefined };
       const slot = nextSlot(section.items);
-      const { x, y } = clampItem(
+      const placement = clampItem(
         { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
         section.columns,
+        rows,
       );
       const sameKindCount = section.items.filter((i) => i.kind === kind).length;
       const existingIds = new Set(section.items.map((item) => item.id));
@@ -557,10 +592,7 @@ export function addItem(
       }
       const newItem: GridItem = {
         id: nextId ?? createId(),
-        x,
-        y,
-        w,
-        h,
+        ...placement,
         kind,
         label: `${baseLabel} ${sameKindCount + 1}`,
         ref: defaults.ref,
@@ -580,24 +612,22 @@ export function moveItem(
   y: number,
   breakpoint: Breakpoint = 'desktop',
 ): Layout {
-  if (breakpoint === 'desktop') {
-    return {
-      ...layout,
-      sections: mapSection(layout.sections, sectionId, (section) => ({
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (current) => {
+      const { section, rows } = pinSectionRows(current, breakpoint);
+      if (breakpoint !== 'desktop') {
+        return writeItemOverride(section, itemId, breakpoint, { x, y }, rows);
+      }
+      return {
         ...section,
         items: section.items.map((item) => {
           if (item.id !== itemId) return item;
-          const clamped = clampItem({ ...item, x, y }, section.columns);
-          return { ...item, x: clamped.x, y: clamped.y };
+          const clamped = clampItem({ ...item, x, y }, section.columns, rows);
+          return { ...item, x: clamped.x, y: clamped.y, h: clamped.h };
         }),
-      })),
-    };
-  }
-  return {
-    ...layout,
-    sections: mapSection(layout.sections, sectionId, (section) =>
-      writeItemOverride(section, itemId, breakpoint, { x, y }),
-    ),
+      };
+    }),
   };
 }
 
@@ -644,6 +674,9 @@ export function moveItemToSection(
   }
 
   const isDesktop = breakpoint === 'desktop';
+  // Neither section changes height on the breakpoint being edited.
+  const pinnedSource = pinSectionRows(source, breakpoint).section;
+  const { section: pinnedTarget, rows: targetRows } = pinSectionRows(target, breakpoint);
   const slot = nextSlot(target.items);
   const placement = clampItem(
     {
@@ -653,11 +686,12 @@ export function moveItemToSection(
       h: item.h,
     },
     target.columns,
+    isDesktop ? targetRows : undefined,
   );
   const idTaken = target.items.some((i) => i.id === item.id);
   const moved: GridItem = { ...item, ...placement, id: idTaken ? createId() : item.id };
 
-  let nextTarget: Section = { ...target, items: [...target.items, moved] };
+  let nextTarget: Section = { ...pinnedTarget, items: [...pinnedTarget.items, moved] };
   for (const bp of NON_DESKTOP_BREAKPOINTS) {
     const carried = source.overrides?.[bp]?.items?.[item.id];
     const patch: ItemOverride = {};
@@ -669,14 +703,17 @@ export function moveItemToSection(
   }
   if (!isDesktop && (options.x !== undefined || options.y !== undefined)) {
     const current = resolveItem(moved, nextTarget, breakpoint);
-    nextTarget = writeItemOverride(nextTarget, moved.id, breakpoint, {
-      x: options.x ?? current.x,
-      y: options.y ?? current.y,
-    });
+    nextTarget = writeItemOverride(
+      nextTarget,
+      moved.id,
+      breakpoint,
+      { x: options.x ?? current.x, y: options.y ?? current.y },
+      targetRows,
+    );
   }
 
   const nextSource = stripItemFromOverrides(
-    { ...source, items: source.items.filter((i) => i.id !== itemId) },
+    { ...pinnedSource, items: pinnedSource.items.filter((i) => i.id !== itemId) },
     itemId,
   );
 
@@ -700,24 +737,44 @@ export function resizeItem(
   h: number,
   breakpoint: Breakpoint = 'desktop',
 ): Layout {
-  if (breakpoint === 'desktop') {
-    return {
-      ...layout,
-      sections: mapSection(layout.sections, sectionId, (section) => ({
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (current) => {
+      const { section, rows } = pinSectionRows(current, breakpoint);
+      if (breakpoint !== 'desktop') {
+        return writeItemOverride(section, itemId, breakpoint, { x, y, w, h }, rows);
+      }
+      return {
         ...section,
         items: section.items.map((item) => {
           if (item.id !== itemId) return item;
-          const clamped = clampItem({ ...item, x, y, w, h }, section.columns);
+          const clamped = clampItem({ ...item, x, y, w, h }, section.columns, rows);
           return { ...item, x: clamped.x, y: clamped.y, w: clamped.w, h: clamped.h };
         }),
-      })),
-    };
-  }
+      };
+    }),
+  };
+}
+
+/**
+ * Set a section's height in rows (the editor's resize edge). Writes `section.rows` on desktop
+ * and that breakpoint's override otherwise. Never goes below the content at that breakpoint
+ * or `MIN_SECTION_ROWS`.
+ */
+export function resizeSection(
+  layout: Layout,
+  sectionId: string,
+  rows: number,
+  breakpoint: Breakpoint = 'desktop',
+): Layout {
   return {
     ...layout,
-    sections: mapSection(layout.sections, sectionId, (section) =>
-      writeItemOverride(section, itemId, breakpoint, { x, y, w, h }),
-    ),
+    sections: mapSection(layout.sections, sectionId, (section) => {
+      const minRows = Math.max(MIN_SECTION_ROWS, sectionContentRows(section, breakpoint));
+      const next = Math.max(minRows, Math.round(rows));
+      if (resolveSection(section, breakpoint).rows === next) return section;
+      return withSectionRows(section, breakpoint, next);
+    }),
   };
 }
 

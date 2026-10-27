@@ -70,6 +70,8 @@
   max-width: 100%;
   padding-block: var(--section-pad-top-px) var(--section-pad-bottom-px);
   grid-template-columns: minmax(0, 1fr) repeat(var(--cols), var(--cell-px)) minmax(0, 1fr);
+  /* Section height in rows (`none` when unset); content below it adds implicit rows. */
+  grid-template-rows: var(--rows-tpl, none);
   grid-auto-rows: minmax(var(--row-px), auto);
   gap: var(--row-gap-px) var(--col-gap-px);
 }

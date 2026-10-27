@@ -100,6 +100,7 @@ function sectionChromeChanged(prev: Section, next: Section): boolean {
     prev.rowGap !== next.rowGap ||
     prev.paddingTop !== next.paddingTop ||
     prev.paddingBottom !== next.paddingBottom ||
+    prev.rows !== next.rows ||
     prev.background !== next.background ||
     prev.overrides !== next.overrides ||
     prev.meta !== next.meta

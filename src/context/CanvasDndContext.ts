@@ -13,8 +13,16 @@ export type DropTarget = {
 /** Live grid geometry a section exposes to the canvas-level drag-and-drop. */
 export type SectionDropHandle = {
   getElement: () => HTMLElement | null;
-  /** Grid cell whose top-left is closest to a client point, clamped for an item `w` cells wide. */
-  cellAt: (clientLeft: number, clientTop: number, w: number) => { x: number; y: number; w: number };
+  /**
+   * Grid cell whose top-left is closest to a client point, clamped so a `w` x `h` item stays
+   * inside the section. Returns the item size after clamping (the section never grows).
+   */
+  cellAt: (
+    clientLeft: number,
+    clientTop: number,
+    w: number,
+    h: number,
+  ) => { x: number; y: number; w: number; h: number };
   /** Pixel size of a `w` x `h` block on this grid (for centering a dragged palette item). */
   blockSize: (w: number, h: number) => { width: number; height: number };
   /** In-section move from a drag delta (the original single-section behaviour). */

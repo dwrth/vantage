@@ -18,6 +18,7 @@ type Section = {
   rowGap: number; // px
   paddingTop?: number; // px, default 24
   paddingBottom?: number; // px, default 24
+  rows?: number; // height in grid rows; unset = follows content (new sections: 4)
   items: GridItem[];
   background?: SectionBackground; // color / image / blur / opacity
   overrides?: Partial<Record<'tablet' | 'mobile', SectionOverride>>;
@@ -70,7 +71,13 @@ For undo/redo, wrap your host `onChange` with [`useVantageHistory`](history.md) 
 const { layout: next, sectionId } = addSection(layout); // appends a default section
 removeSection(layout, sectionId);
 updateSection(layout, sectionId, { columns: 16, colGap: 4, paddingTop: 48 });
+resizeSection(layout, sectionId, rows, breakpoint?);  // height in rows; never below content
+sectionRows(section, breakpoint);                     // rows the section spans there
 ```
+
+Section height is `rows` grid rows. The builder sets it with the resize edge at the bottom of each section (drag snaps to rows; arrow keys step one row). `resizeSection` never shrinks below the content at that breakpoint or `MIN_SECTION_ROWS`, and writes the breakpoint's override off desktop. `rows` is a floor when rendering: content below it still shows. Without `rows` (older layouts) the height follows the content, or `DEFAULT_SECTION_ROWS` while empty.
+
+Dragging blocks never resizes a section. `moveItem`, `resizeItem`, `moveItemToSection` and `addItem` with an explicit `y` first pin the section's current height at that breakpoint (writing `rows` if it was unset), then clamp the block into it: it stops at the last row, and a block taller than the section shrinks to its height, the same way a too-wide block shrinks to `columns`. `addItem` without a position still appends below the content and extends the section.
 
 ### Items
 

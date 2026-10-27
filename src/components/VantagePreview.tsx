@@ -49,22 +49,27 @@ const SECTION_VARS = [
   'row-gap-px',
   'section-pad-top-px',
   'section-pad-bottom-px',
+  'rows-tpl',
 ] as const;
 
-function sectionVars(resolved: ResolvedSectionLayout, prefix = '') {
+type RowShift = (y: number) => number;
+
+const NO_SHIFT: RowShift = (y) => y;
+
+function sectionVars(resolved: ResolvedSectionLayout, prefix = '', shift: RowShift = NO_SHIFT) {
   const values = [
     resolved.columns,
     `${resolved.colGap}px`,
     `${resolved.rowGap}px`,
     `${resolved.paddingTop}px`,
     `${resolved.paddingBottom}px`,
+    // Rows collapsed by `isItemVisible` come off the section height too.
+    resolved.rows === undefined
+      ? 'none'
+      : `repeat(${Math.max(1, shift(resolved.rows))}, minmax(var(--row-px), auto))`,
   ];
   return Object.fromEntries(SECTION_VARS.map((name, i) => [`--${prefix}${name}`, values[i]]));
 }
-
-type RowShift = (y: number) => number;
-
-const NO_SHIFT: RowShift = (y) => y;
 
 function occupiedRows(
   items: GridItem[],
@@ -217,10 +222,10 @@ function PreviewSection({
     ? Object.assign(
         {},
         ...responsive.map((bp) =>
-          sectionVars(resolveSection(section, bp, enabledBreakpoints), `vp-${bp}-`),
+          sectionVars(resolveSection(section, bp, enabledBreakpoints), `vp-${bp}-`, shifts[bp]),
         ),
       )
-    : sectionVars(resolveSection(section, breakpoint, enabledBreakpoints));
+    : sectionVars(resolveSection(section, breakpoint, enabledBreakpoints), '', shifts[breakpoint]);
 
   return (
     <div className={preview['preview-section']}>
