@@ -85,6 +85,8 @@ export function GridBlock({
   const resizeStart = useRef<ResizeStart | null>(null);
   const pendingResize = useRef<PlacementRect | null>(null);
   const [resizeDraft, setResizeDraft] = useState<PlacementRect | null>(null);
+  // True from pointer-down on a resize handle until release, before the first move too.
+  const [isResizing, setIsResizing] = useState(false);
   const cellXStep = getCellXStep(cellWidth, colGap);
   const cellStepRef = useRef({ x: cellXStep, y: cellHeight });
   const displayedPlacement = resizeDraft !== null ? { ...placement, ...resizeDraft } : placement;
@@ -160,6 +162,7 @@ export function GridBlock({
         edge,
       };
       resizeStart.current = start;
+      setIsResizing(true);
       setInteracting(true);
 
       const computeResize = (clientX: number, clientY: number): PlacementRect => {
@@ -210,6 +213,7 @@ export function GridBlock({
         pendingResize.current = null;
         resizeStart.current = null;
         setResizeDraft(null);
+        setIsResizing(false);
         setInteracting(false);
         if (
           !cancelled &&
@@ -291,12 +295,13 @@ export function GridBlock({
         className={[
           chrome['grid-block__chrome'],
           isSelected || isDragging ? chrome['grid-block__chrome--active'] : '',
+          isResizing ? chrome['grid-block__chrome--resizing'] : '',
           restricted ? chrome['grid-block__chrome--restricted'] : '',
         ]
           .filter(Boolean)
           .join(' ')}
         style={chromeStyle}
-        aria-hidden={!isSelected && !isDragging}
+        aria-hidden={!isSelected && !isDragging && !isResizing}
       >
         {renderDragHandle ? (
           <div

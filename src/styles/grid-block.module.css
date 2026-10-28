@@ -70,11 +70,14 @@
   z-index: 6;
 }
 
-.grid-block__body--dragging + .grid-block__chrome {
+/* The block being resized (`--resizing`) keeps its outline and handles without `:hover`, which is off while dragging. */
+.grid-block__body--dragging + .grid-block__chrome,
+.grid-block__chrome--resizing {
   z-index: 10;
 }
 
-.grid-block__chrome--active::after {
+.grid-block__chrome--active::after,
+.grid-block__chrome--resizing::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -144,12 +147,14 @@
   .grid-block__handle,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__handle,
 .grid-block__chrome--active .grid-block__handle,
+.grid-block__chrome--resizing .grid-block__handle,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__handle,
 .grid-block__body:hover:where(:not([data-vantage-dragging] *))
   + .grid-block__chrome
   .grid-block__handle-slot,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__handle-slot,
 .grid-block__chrome--active .grid-block__handle-slot,
+.grid-block__chrome--resizing .grid-block__handle-slot,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__handle-slot {
   opacity: 1;
 }
@@ -216,11 +221,13 @@
   .grid-block__delete,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__delete,
 .grid-block__chrome--active .grid-block__delete,
+.grid-block__chrome--resizing .grid-block__delete,
 .grid-block__body:hover:where(:not([data-vantage-dragging] *))
   + .grid-block__chrome
   .grid-block__delete-slot,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__delete-slot,
 .grid-block__chrome--active .grid-block__delete-slot,
+.grid-block__chrome--resizing .grid-block__delete-slot,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__delete-slot {
   opacity: 1;
 }
@@ -252,6 +259,7 @@
   .grid-block__edit,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__edit,
 .grid-block__chrome--active .grid-block__edit,
+.grid-block__chrome--resizing .grid-block__edit,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__edit {
   opacity: 1;
 }
@@ -342,6 +350,7 @@
   .grid-block__resize,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)) .grid-block__resize,
 .grid-block__chrome--active .grid-block__resize,
+.grid-block__chrome--resizing .grid-block__resize,
 .grid-block__body--dragging + .grid-block__chrome .grid-block__resize {
   opacity: 1;
 }
