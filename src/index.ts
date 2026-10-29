@@ -117,7 +117,8 @@ export {
 
 export type { AddItemDefaults, MoveItemToSectionOptions } from './mutations/layout';
 
-export { isValidLayout } from './lib/validate';
+export { isValidLayout, validateLayout } from './lib/validate';
+export type { LayoutValidationResult } from './lib/validate';
 
 export {
   stripData,

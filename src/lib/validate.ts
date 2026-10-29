@@ -1,251 +1,302 @@
-import {
-  BREAKPOINTS,
-  NON_DESKTOP_BREAKPOINTS,
-  type Breakpoint,
-  type BreakpointWidths,
-  type GridItem,
-  type ItemOverride,
-  type Layout,
-  type SectionOverride,
-} from '../types';
+import { BREAKPOINTS, NON_DESKTOP_BREAKPOINTS, type Breakpoint, type Layout } from '../types';
+
+export type LayoutValidationResult = {
+  valid: boolean;
+  /** One message per problem, prefixed with its path, e.g. `sections[0].items[1].w: …`. */
+  errors: string[];
+};
+
+type Report = (path: string, message: string) => void;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isValidMeta(raw: unknown): boolean {
-  return raw === undefined || isPlainObject(raw);
+function checkMeta(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && !isPlainObject(raw)) report(path, 'must be an object');
 }
 
-function isValidItem(raw: unknown): raw is GridItem {
-  if (!isPlainObject(raw)) return false;
-  if (typeof raw.id !== 'string') return false;
-  if (typeof raw.kind !== 'string' || raw.kind.length === 0) return false;
-  if (
-    !Number.isFinite(raw.x) ||
-    !Number.isFinite(raw.y) ||
-    !Number.isFinite(raw.w) ||
-    !Number.isFinite(raw.h)
-  ) {
-    return false;
+/** Required number field: finite and inside `[min, max]`. */
+function checkNumber(raw: unknown, path: string, report: Report, min?: number, max?: number): void {
+  if (!Number.isFinite(raw)) {
+    report(path, 'must be a finite number');
+    return;
   }
-  if (raw.label !== undefined && typeof raw.label !== 'string') return false;
-  if (raw.ref !== undefined && typeof raw.ref !== 'string') return false;
-  if (raw.data !== undefined && !isPlainObject(raw.data)) return false;
-  if (!isValidMeta(raw.meta)) return false;
-  return true;
+  const value = raw as number;
+  if (min !== undefined && value < min) report(path, `must be >= ${min}`);
+  if (max !== undefined && value > max) report(path, `must be <= ${max}`);
 }
 
-const IMAGE_SIZES = new Set(['cover', 'contain', 'auto']);
-const IMAGE_REPEATS = new Set(['no-repeat', 'repeat', 'repeat-x', 'repeat-y']);
-
-function isValidItemOverride(raw: unknown): raw is ItemOverride {
-  if (!isPlainObject(raw)) return false;
-  if (raw.x !== undefined && !Number.isFinite(raw.x)) return false;
-  if (raw.y !== undefined && !Number.isFinite(raw.y)) return false;
-  if (raw.w !== undefined && (!Number.isFinite(raw.w) || (raw.w as number) < 1)) return false;
-  if (raw.h !== undefined && (!Number.isFinite(raw.h) || (raw.h as number) < 1)) return false;
-  if (raw.hidden !== undefined && typeof raw.hidden !== 'boolean') return false;
-  if (raw.data !== undefined && !isPlainObject(raw.data)) return false;
-  return true;
+function checkOptionalNumber(
+  raw: unknown,
+  path: string,
+  report: Report,
+  min?: number,
+  max?: number,
+): void {
+  if (raw !== undefined) checkNumber(raw, path, report, min, max);
 }
 
-function isValidRows(raw: unknown): boolean {
-  return raw === undefined || (Number.isInteger(raw) && (raw as number) >= 1);
+function checkOptionalString(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && typeof raw !== 'string') report(path, 'must be a string');
 }
 
-function isValidSectionOverride(raw: unknown): raw is SectionOverride {
-  if (!isPlainObject(raw)) return false;
-  if (!isValidRows(raw.rows)) return false;
-  if (raw.columns !== undefined && (!Number.isFinite(raw.columns) || (raw.columns as number) < 1)) {
-    return false;
-  }
-  if (raw.colGap !== undefined && (!Number.isFinite(raw.colGap) || (raw.colGap as number) < 0)) {
-    return false;
-  }
-  if (raw.rowGap !== undefined && (!Number.isFinite(raw.rowGap) || (raw.rowGap as number) < 0)) {
-    return false;
-  }
-  if (
-    raw.paddingTop !== undefined &&
-    (!Number.isFinite(raw.paddingTop) || (raw.paddingTop as number) < 0)
-  ) {
-    return false;
-  }
-  if (
-    raw.paddingBottom !== undefined &&
-    (!Number.isFinite(raw.paddingBottom) || (raw.paddingBottom as number) < 0)
-  ) {
-    return false;
-  }
-  if (raw.items !== undefined) {
-    if (!isPlainObject(raw.items)) return false;
-    for (const value of Object.values(raw.items)) {
-      if (!isValidItemOverride(value)) return false;
-    }
-  }
-  return true;
+function checkOptionalObject(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && !isPlainObject(raw)) report(path, 'must be an object');
 }
 
-function isValidOverrides(raw: unknown): boolean {
-  if (raw === undefined) return true;
-  if (!isPlainObject(raw)) return false;
+function checkOptionalBoolean(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && typeof raw !== 'boolean') report(path, 'must be a boolean');
+}
+
+function checkItem(raw: unknown, path: string, report: Report): void {
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
+  if (typeof raw.id !== 'string') report(`${path}.id`, 'must be a string');
+  if (typeof raw.kind !== 'string' || raw.kind.length === 0) {
+    report(`${path}.kind`, 'must be a non-empty string');
+  }
+  for (const key of ['x', 'y', 'w', 'h'] as const) checkNumber(raw[key], `${path}.${key}`, report);
+  checkOptionalString(raw.label, `${path}.label`, report);
+  checkOptionalString(raw.ref, `${path}.ref`, report);
+  checkOptionalObject(raw.data, `${path}.data`, report);
+  checkMeta(raw.meta, `${path}.meta`, report);
+}
+
+const IMAGE_SIZES = ['cover', 'contain', 'auto'];
+const IMAGE_REPEATS = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
+
+function checkItemOverride(raw: unknown, path: string, report: Report): void {
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
+  checkOptionalNumber(raw.x, `${path}.x`, report);
+  checkOptionalNumber(raw.y, `${path}.y`, report);
+  checkOptionalNumber(raw.w, `${path}.w`, report, 1);
+  checkOptionalNumber(raw.h, `${path}.h`, report, 1);
+  checkOptionalBoolean(raw.hidden, `${path}.hidden`, report);
+  checkOptionalObject(raw.data, `${path}.data`, report);
+}
+
+function checkRows(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && !(Number.isInteger(raw) && (raw as number) >= 1)) {
+    report(path, 'must be an integer >= 1');
+  }
+}
+
+function checkSectionOverride(raw: unknown, path: string, report: Report): void {
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
+  checkRows(raw.rows, `${path}.rows`, report);
+  checkOptionalNumber(raw.columns, `${path}.columns`, report, 1);
+  checkOptionalNumber(raw.colGap, `${path}.colGap`, report, 0);
+  checkOptionalNumber(raw.rowGap, `${path}.rowGap`, report, 0);
+  checkOptionalNumber(raw.paddingTop, `${path}.paddingTop`, report, 0);
+  checkOptionalNumber(raw.paddingBottom, `${path}.paddingBottom`, report, 0);
+  if (raw.items === undefined) return;
+  if (!isPlainObject(raw.items)) {
+    report(`${path}.items`, 'must be an object');
+    return;
+  }
+  for (const [id, value] of Object.entries(raw.items)) {
+    checkItemOverride(value, `${path}.items.${id}`, report);
+  }
+}
+
+function checkOverrides(raw: unknown, path: string, report: Report): void {
+  if (raw === undefined) return;
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
   for (const key of Object.keys(raw)) {
     if (!NON_DESKTOP_BREAKPOINTS.includes(key as (typeof NON_DESKTOP_BREAKPOINTS)[number])) {
-      return false;
+      report(`${path}.${key}`, `must be one of ${NON_DESKTOP_BREAKPOINTS.join(', ')}`);
+      continue;
     }
-    if (!isValidSectionOverride(raw[key])) return false;
+    checkSectionOverride(raw[key], `${path}.${key}`, report);
   }
-  return true;
 }
 
-function isValidBackground(raw: unknown): boolean {
-  if (raw === undefined) return true;
-  if (!isPlainObject(raw)) return false;
-  if (raw.color !== undefined && typeof raw.color !== 'string') return false;
-  if (raw.image !== undefined && typeof raw.image !== 'string') return false;
-  if (raw.imageSize !== undefined && !IMAGE_SIZES.has(raw.imageSize as string)) return false;
-  if (raw.imagePosition !== undefined && typeof raw.imagePosition !== 'string') return false;
-  if (raw.imageRepeat !== undefined && !IMAGE_REPEATS.has(raw.imageRepeat as string)) return false;
-  if (
-    raw.objectPositionX !== undefined &&
-    (!Number.isFinite(raw.objectPositionX) ||
-      (raw.objectPositionX as number) < 0 ||
-      (raw.objectPositionX as number) > 100)
-  ) {
-    return false;
+function checkBackground(raw: unknown, path: string, report: Report): void {
+  if (raw === undefined) return;
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
   }
-  if (
-    raw.objectPositionY !== undefined &&
-    (!Number.isFinite(raw.objectPositionY) ||
-      (raw.objectPositionY as number) < 0 ||
-      (raw.objectPositionY as number) > 100)
-  ) {
-    return false;
+  checkOptionalString(raw.color, `${path}.color`, report);
+  checkOptionalString(raw.image, `${path}.image`, report);
+  if (raw.imageSize !== undefined && !IMAGE_SIZES.includes(raw.imageSize as string)) {
+    report(`${path}.imageSize`, `must be one of ${IMAGE_SIZES.join(', ')}`);
   }
-  if (
-    raw.cropScale !== undefined &&
-    (!Number.isFinite(raw.cropScale) ||
-      (raw.cropScale as number) < 0.4 ||
-      (raw.cropScale as number) > 1)
-  ) {
-    return false;
+  checkOptionalString(raw.imagePosition, `${path}.imagePosition`, report);
+  if (raw.imageRepeat !== undefined && !IMAGE_REPEATS.includes(raw.imageRepeat as string)) {
+    report(`${path}.imageRepeat`, `must be one of ${IMAGE_REPEATS.join(', ')}`);
   }
-  if (raw.blur !== undefined && (!Number.isFinite(raw.blur) || (raw.blur as number) < 0)) {
-    return false;
-  }
-  if (
-    raw.opacity !== undefined &&
-    (!Number.isFinite(raw.opacity) || (raw.opacity as number) < 0 || (raw.opacity as number) > 1)
-  ) {
-    return false;
-  }
-  if (raw.parallax !== undefined && typeof raw.parallax !== 'boolean') {
-    return false;
-  }
-  return true;
+  checkOptionalNumber(raw.objectPositionX, `${path}.objectPositionX`, report, 0, 100);
+  checkOptionalNumber(raw.objectPositionY, `${path}.objectPositionY`, report, 0, 100);
+  checkOptionalNumber(raw.cropScale, `${path}.cropScale`, report, 0.4, 1);
+  checkOptionalNumber(raw.blur, `${path}.blur`, report, 0);
+  checkOptionalNumber(raw.opacity, `${path}.opacity`, report, 0, 1);
+  checkOptionalBoolean(raw.parallax, `${path}.parallax`, report);
 }
 
-function isValidSection(raw: unknown): boolean {
-  if (!isPlainObject(raw)) return false;
-  if (typeof raw.id !== 'string') return false;
-  const columns = raw.columns;
-  const colGap = raw.colGap;
-  const rowGap = raw.rowGap;
-  const paddingTop = raw.paddingTop;
-  const paddingBottom = raw.paddingBottom;
-  if (!Number.isFinite(columns) || (columns as number) < 1) return false;
-  if (!Number.isFinite(colGap) || (colGap as number) < 0) return false;
-  if (!Number.isFinite(rowGap) || (rowGap as number) < 0) return false;
-  if (paddingTop !== undefined && (!Number.isFinite(paddingTop) || (paddingTop as number) < 0)) {
-    return false;
+function checkSection(raw: unknown, path: string, report: Report): void {
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
   }
-  if (
-    paddingBottom !== undefined &&
-    (!Number.isFinite(paddingBottom) || (paddingBottom as number) < 0)
-  ) {
-    return false;
+  if (typeof raw.id !== 'string') report(`${path}.id`, 'must be a string');
+  checkNumber(raw.columns, `${path}.columns`, report, 1);
+  checkNumber(raw.colGap, `${path}.colGap`, report, 0);
+  checkNumber(raw.rowGap, `${path}.rowGap`, report, 0);
+  checkOptionalNumber(raw.paddingTop, `${path}.paddingTop`, report, 0);
+  checkOptionalNumber(raw.paddingBottom, `${path}.paddingBottom`, report, 0);
+  checkRows(raw.rows, `${path}.rows`, report);
+  checkOptionalString(raw.label, `${path}.label`, report);
+  checkMeta(raw.meta, `${path}.meta`, report);
+  checkBackground(raw.background, `${path}.background`, report);
+  if (Array.isArray(raw.items)) {
+    // `entries()` visits holes in sparse arrays, so they are reported too.
+    for (const [index, item] of raw.items.entries()) {
+      checkItem(item, `${path}.items[${index}]`, report);
+    }
+  } else {
+    report(`${path}.items`, 'must be an array');
   }
-  if (!isValidRows(raw.rows)) return false;
-  if (raw.label !== undefined && typeof raw.label !== 'string') return false;
-  if (!isValidMeta(raw.meta)) return false;
-  if (!isValidBackground(raw.background)) return false;
-  if (!Array.isArray(raw.items)) return false;
-  if (!raw.items.every(isValidItem)) return false;
-  return isValidOverrides(raw.overrides);
+  checkOverrides(raw.overrides, `${path}.overrides`, report);
 }
 
-function isValidBreakpoints(raw: unknown): boolean {
-  if (!Array.isArray(raw)) return false;
-  if (raw.length === 0) return false;
-  if (!raw.every((bp) => typeof bp === 'string')) return false;
+/** Returns false when the list is too broken to check the width maps against it. */
+function checkBreakpoints(raw: unknown, path: string, report: Report): boolean {
+  if (!Array.isArray(raw)) {
+    report(path, 'must be an array');
+    return false;
+  }
+  if (raw.length === 0) {
+    report(path, 'must not be empty');
+    return false;
+  }
+  if (!raw.every((bp) => typeof bp === 'string')) {
+    report(path, 'must contain only strings');
+    return false;
+  }
+  let ok = true;
   const unique = new Set(raw);
-  if (unique.size !== raw.length) return false;
-  if (!unique.has('desktop')) return false;
-  for (const bp of unique) {
-    if (!BREAKPOINTS.includes(bp as (typeof BREAKPOINTS)[number])) return false;
+  if (unique.size !== raw.length) {
+    report(path, 'must not contain duplicates');
+    ok = false;
   }
-  return true;
+  if (!unique.has('desktop')) {
+    report(path, 'must include "desktop"');
+    ok = false;
+  }
+  for (const bp of unique) {
+    if (!BREAKPOINTS.includes(bp as Breakpoint)) {
+      report(path, `unknown breakpoint "${bp}"`);
+      ok = false;
+    }
+  }
+  return ok;
 }
 
-function isValidBreakpointWidths(
+function checkBreakpointWidths(
   raw: unknown,
+  path: string,
   breakpoints: Breakpoint[],
   enforceOrder: boolean,
-): boolean {
-  if (!isPlainObject(raw)) return false;
-  const enabledNonDesktop = NON_DESKTOP_BREAKPOINTS.filter((bp) => breakpoints.includes(bp));
-  const keys = Object.keys(raw);
-  if (keys.length !== enabledNonDesktop.length) return false;
-  for (const key of keys) {
-    if (!enabledNonDesktop.includes(key as (typeof NON_DESKTOP_BREAKPOINTS)[number])) {
-      return false;
-    }
-    const value = raw[key];
-    if (!Number.isFinite(value) || (value as number) < 1 || !Number.isInteger(value)) {
-      return false;
+  report: Report,
+): void {
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
+  const enabledNonDesktop: string[] = NON_DESKTOP_BREAKPOINTS.filter((bp) =>
+    breakpoints.includes(bp),
+  );
+  for (const bp of enabledNonDesktop) {
+    if (!(bp in raw)) report(`${path}.${bp}`, 'is required for an enabled breakpoint');
+  }
+  for (const [key, value] of Object.entries(raw)) {
+    if (!enabledNonDesktop.includes(key)) {
+      report(`${path}.${key}`, 'is not an enabled non-desktop breakpoint');
+    } else if (!Number.isInteger(value) || (value as number) < 1) {
+      report(`${path}.${key}`, 'must be an integer >= 1');
     }
   }
-  if (enforceOrder) {
-    const widths = raw as BreakpointWidths;
-    if (
-      widths.mobile !== undefined &&
-      widths.tablet !== undefined &&
-      widths.mobile >= widths.tablet
-    ) {
-      return false;
-    }
+  const { mobile, tablet } = raw;
+  if (
+    enforceOrder &&
+    Number.isFinite(mobile) &&
+    Number.isFinite(tablet) &&
+    (mobile as number) >= (tablet as number)
+  ) {
+    report(path, 'mobile must be smaller than tablet');
   }
-  return true;
 }
 
-function hasUniqueLayoutIds(sections: unknown[]): boolean {
+function checkUniqueIds(sections: unknown[], report: Report): void {
   const sectionIds = new Set<string>();
   const itemIds = new Set<string>();
-
-  for (const section of sections) {
-    if (!isPlainObject(section) || typeof section.id !== 'string') return false;
-    if (sectionIds.has(section.id)) return false;
-    sectionIds.add(section.id);
-    if (!Array.isArray(section.items)) return false;
-    for (const item of section.items) {
-      if (!isPlainObject(item) || typeof item.id !== 'string') return false;
-      if (itemIds.has(item.id)) return false;
+  for (const [s, section] of sections.entries()) {
+    if (!isPlainObject(section)) continue;
+    if (typeof section.id === 'string') {
+      if (sectionIds.has(section.id)) {
+        report(`sections[${s}].id`, `duplicate section id "${section.id}"`);
+      }
+      sectionIds.add(section.id);
+    }
+    if (!Array.isArray(section.items)) continue;
+    for (const [i, item] of section.items.entries()) {
+      if (!isPlainObject(item) || typeof item.id !== 'string') continue;
+      if (itemIds.has(item.id)) {
+        report(`sections[${s}].items[${i}].id`, `duplicate item id "${item.id}"`);
+      }
       itemIds.add(item.id);
     }
   }
+}
 
-  return true;
+/**
+ * Check raw data against the `Layout` shape and list every problem found, e.g. to log why
+ * stored data was rejected. `isValidLayout` is the same check as a type guard.
+ */
+export function validateLayout(data: unknown): LayoutValidationResult {
+  const errors: string[] = [];
+  const report: Report = (path, message) => errors.push(path ? `${path}: ${message}` : message);
+
+  if (!isPlainObject(data)) {
+    report('', 'layout must be an object');
+    return { valid: false, errors };
+  }
+  checkMeta(data.meta, 'meta', report);
+  if (checkBreakpoints(data.breakpoints, 'breakpoints', report)) {
+    const breakpoints = data.breakpoints as Breakpoint[];
+    checkBreakpointWidths(data.breakpointWidths, 'breakpointWidths', breakpoints, true, report);
+    checkBreakpointWidths(
+      data.breakpointPreviewWidths,
+      'breakpointPreviewWidths',
+      breakpoints,
+      false,
+      report,
+    );
+  }
+  if (Array.isArray(data.sections)) {
+    checkUniqueIds(data.sections, report);
+    for (const [index, section] of data.sections.entries()) {
+      checkSection(section, `sections[${index}]`, report);
+    }
+  } else {
+    report('sections', 'must be an array');
+  }
+  return { valid: errors.length === 0, errors };
 }
 
 export function isValidLayout(data: unknown): data is Layout {
-  if (!isPlainObject(data)) return false;
-  if (!isValidMeta(data.meta)) return false;
-  if (!isValidBreakpoints(data.breakpoints)) return false;
-  const breakpoints = data.breakpoints as Breakpoint[];
-  if (!isValidBreakpointWidths(data.breakpointWidths, breakpoints, true)) return false;
-  if (!isValidBreakpointWidths(data.breakpointPreviewWidths, breakpoints, false)) return false;
-  if (!Array.isArray(data.sections)) return false;
-  if (!hasUniqueLayoutIds(data.sections)) return false;
-  return data.sections.every(isValidSection);
+  return validateLayout(data).valid;
 }

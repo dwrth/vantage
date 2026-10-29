@@ -129,4 +129,5 @@ exportLayout(layout, registry); // toPersistedData + canonicalize breakpoints
 stripData(layout); // drop payloads; keep ref
 hydrate(layout, entities); // fill data from entities[ref]
 isValidLayout(unknown); // structural type guard (accepts optional ref)
+validateLayout(unknown); // same check as { valid, errors }, one 'path: reason' per problem
 ```

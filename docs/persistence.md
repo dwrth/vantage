@@ -27,7 +27,10 @@ localStorage.setItem(KEY, JSON.stringify(exportLayout(stripData(layout), registr
 
 // Load
 const parsed = JSON.parse(raw);
-if (!isValidLayout(parsed)) return createEmptyLayout();
+if (!isValidLayout(parsed)) {
+  // validateLayout(parsed).errors lists why, e.g. 'sections[0].items[2].w: must be a finite number'
+  return createEmptyLayout();
+}
 const next = hydrate(importLayout(parsed, registry), entities);
 
 // Live resolve without writing entity into layout
