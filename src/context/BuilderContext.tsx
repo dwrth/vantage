@@ -63,6 +63,7 @@ export type BuilderContextValue = {
   showSectionActions: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
   onDuplicateSection?: (sectionId: string) => void;
+  onSaveSection?: (sectionId: string) => void;
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;

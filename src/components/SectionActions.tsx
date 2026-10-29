@@ -30,6 +30,12 @@ const ICONS = {
       <path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5" />
     </>,
   ),
+  save: icon(
+    <>
+      <path d="M3.5 1.5h7l2.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 2 13V3a1.5 1.5 0 0 1 1.5-1.5Z" />
+      <path d="M5 1.5v3.5h5V1.5M5 14.5v-4.5h6v4.5" />
+    </>,
+  ),
   plus: icon(<path d="M8 3v10M3 8h10" />),
 };
 
@@ -38,11 +44,12 @@ type SectionActionsProps = {
 };
 
 /**
- * Builder chrome of a section: move up / down and duplicate (top right), and a button on the
+ * Builder chrome of a section: move up / down, duplicate and (when the host passes
+ * `onSaveSection`) save (top right), and a button on the
  * section's top edge that inserts an empty section above it. Shown on hover or focus.
  */
 export function SectionActions({ section }: SectionActionsProps) {
-  const { layout, sectionActionLabels, onDuplicateSection } = useBuilderContext();
+  const { layout, sectionActionLabels, onDuplicateSection, onSaveSection } = useBuilderContext();
   const { moveSectionBy, duplicateSection, insertSection } = useBuilderActions();
   const labels = { ...DEFAULT_SECTION_ACTION_LABELS, ...sectionActionLabels };
   const index = layout.sections.findIndex((s) => s.id === section.id);
@@ -84,6 +91,9 @@ export function SectionActions({ section }: SectionActionsProps) {
         {button(labels.duplicate(section), ICONS.duplicate, () =>
           onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
         )}
+        {onSaveSection
+          ? button(labels.save(section), ICONS.save, () => onSaveSection(section.id))
+          : null}
       </div>
     </>
   );

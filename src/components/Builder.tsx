@@ -71,6 +71,11 @@ export type VantageBuilderProps = {
    * the items (see `duplicateSection` and `CloneItemOptions`).
    */
   onDuplicateSection?: (sectionId: string) => void;
+  /**
+   * Shows a "save section" button in the section toolbar, e.g. to store the section as a
+   * reusable template. Hidden when omitted.
+   */
+  onSaveSection?: (sectionId: string) => void;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
   isItemRestricted?: (item: GridItem) => boolean;
@@ -109,6 +114,7 @@ export function VantageBuilder({
   showSectionActions = true,
   sectionActionLabels,
   onDuplicateSection,
+  onSaveSection,
   renderEditButton,
   isItemRestricted,
   renderDragHandle,
@@ -193,6 +199,7 @@ export function VantageBuilder({
         showSectionActions,
         sectionActionLabels,
         onDuplicateSection,
+        onSaveSection,
         renderEditButton,
         isItemRestricted,
         renderDragHandle,

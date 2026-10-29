@@ -75,6 +75,28 @@ describe('section actions', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('shows a save button only when the host handles it', () => {
+    const { rerender } = render(
+      <VantageBuilder value={layout} onChange={() => {}} components={components} />,
+    );
+    expect(screen.queryByRole('button', { name: 'Save Hero as template' })).toBeNull();
+
+    const onSaveSection = vi.fn();
+    const onChange = vi.fn();
+    rerender(
+      <VantageBuilder
+        value={layout}
+        onChange={onChange}
+        components={components}
+        onSaveSection={onSaveSection}
+        sectionActionLabels={{ save: (section) => `${section.label} als Vorlage speichern` }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Footer als Vorlage speichern' }));
+    expect(onSaveSection).toHaveBeenCalledWith('b');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('inserts an empty section above a section', () => {
     const onChange = vi.fn();
     render(<VantageBuilder value={layout} onChange={onChange} components={components} />);
