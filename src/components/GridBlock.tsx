@@ -20,6 +20,9 @@ import chrome from '../styles/grid-block.module.css';
 
 const RESIZE_EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
+/** Full-bleed blocks always span the width, so only the vertical edges resize. */
+const FULL_BLEED_RESIZE_EDGES: ResizeEdge[] = ['n', 's'];
+
 const RESIZE_EDGE_CLASS: Record<ResizeEdge, string> = {
   n: 'grid-block__resize--n',
   s: 'grid-block__resize--s',
@@ -106,12 +109,16 @@ export function GridBlock({
   // A drag never grows the section: the block snaps no lower than its last row.
   const clampRow = (row: number) => Math.max(0, Math.min(row, rows - placement.h));
 
+  const fullBleed = item.fullBleed === true;
+  // A full-bleed block spans the section, so it only moves vertically.
   const snappedX =
-    leavingSection && transform
-      ? transform.x
-      : transform
-        ? pxToCell(transform.x, cellXStep) * cellXStep
-        : 0;
+    fullBleed && !leavingSection
+      ? 0
+      : leavingSection && transform
+        ? transform.x
+        : transform
+          ? pxToCell(transform.x, cellXStep) * cellXStep
+          : 0;
   const snappedY =
     leavingSection && transform
       ? transform.y
@@ -132,7 +139,7 @@ export function GridBlock({
           : 0;
 
   const gridPlacement: React.CSSProperties = {
-    gridColumn: `${displayedPlacement.x + 2} / span ${displayedPlacement.w}`,
+    gridColumn: fullBleed ? '1 / -1' : `${displayedPlacement.x + 2} / span ${displayedPlacement.w}`,
     gridRow: `${displayedPlacement.y + 1} / span ${displayedPlacement.h}`,
   };
 
@@ -372,7 +379,7 @@ export function GridBlock({
             ×
           </button>
         )}
-        {RESIZE_EDGES.map((edge) => (
+        {(fullBleed ? FULL_BLEED_RESIZE_EDGES : RESIZE_EDGES).map((edge) => (
           <div
             key={edge}
             className={[chrome['grid-block__resize'], chrome[RESIZE_EDGE_CLASS[edge]]]

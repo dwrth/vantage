@@ -53,6 +53,21 @@ function getMeasuredItemBounds(
   return { top, height: Math.max(0, bottom - top - rowGap) };
 }
 
+/** Free vertical space above the first row of a centered or end-aligned fill-screen grid. */
+function alignOffsetFor(
+  grid: HTMLElement,
+  styles: CSSStyleDeclaration,
+  tracks: number[],
+  rowGap: number,
+  align: 'center' | 'end',
+): number {
+  const padding = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+  const content =
+    tracks.reduce((sum, track) => sum + track, 0) + Math.max(0, tracks.length - 1) * rowGap;
+  const free = Math.max(0, grid.clientHeight - padding - content);
+  return align === 'center' ? free / 2 : free;
+}
+
 function editorCanvasMaxWidth(
   breakpoint: ReturnType<typeof useBuilderContext>['activeBreakpoint'],
   previewWidths: BreakpointWidths,
@@ -66,7 +81,7 @@ function editorCanvasMaxWidth(
 }
 
 export function SectionView({ section }: SectionViewProps) {
-  const { id, items, background } = section;
+  const { id, items, background, fillScreen = false, verticalAlign = 'start' } = section;
   const {
     layout,
     isInteracting,
@@ -129,6 +144,8 @@ export function SectionView({ section }: SectionViewProps) {
 
   const { containerRef, containerWidth } = useContainerWidth<HTMLDivElement>();
   const [measuredRowSteps, setMeasuredRowSteps] = useState<number[]>([]);
+  // Space a fill-screen section leaves above its first row (center/end alignment), in px.
+  const [alignOffset, setAlignOffset] = useState(0);
   const tokens = useVantageTokens();
   const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
   const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
@@ -151,6 +168,11 @@ export function SectionView({ section }: SectionViewProps) {
         const styles = getComputedStyle(grid);
         const tracks = parseGridRows(styles.gridTemplateRows);
         setMeasuredRowSteps(tracks.map((track) => track + rowGap));
+        setAlignOffset(
+          fillScreen && verticalAlign !== 'start'
+            ? alignOffsetFor(grid, styles, tracks, rowGap, verticalAlign)
+            : 0,
+        );
       });
     };
 
@@ -165,18 +187,28 @@ export function SectionView({ section }: SectionViewProps) {
       cancelAnimationFrame(raf);
       observer.disconnect();
     };
-  }, [containerRef, rowGap, resolvedItems, columns, paddingTop, paddingBottom, displayedRows]);
+  }, [
+    containerRef,
+    rowGap,
+    resolvedItems,
+    columns,
+    paddingTop,
+    paddingBottom,
+    displayedRows,
+    fillScreen,
+    verticalAlign,
+  ]);
 
   const hitTestItems: GridItem[] = useMemo(
     () =>
       resolvedItems.map(({ item, placement }) => ({
         ...item,
-        x: placement.x,
+        x: item.fullBleed ? 0 : placement.x,
         y: placement.y,
-        w: placement.w,
+        w: item.fullBleed ? columns : placement.w,
         h: placement.h,
       })),
-    [resolvedItems],
+    [resolvedItems, columns],
   );
 
   const dropWithin = useCallback(
@@ -210,7 +242,7 @@ export function SectionView({ section }: SectionViewProps) {
       if (!grid) return { x: 0, y: 0, w: width, h: height };
       const rect = grid.getBoundingClientRect();
       const left = clientLeft - rect.left - contentOffsetX;
-      const top = clientTop - rect.top - paddingTop;
+      const top = clientTop - rect.top - paddingTop - alignOffset;
       const x = Math.max(0, Math.min(pxToCellIndex(left, cellXStep), columns - width));
       const row = rowSteps
         ? closestRowForOffset(top, rowSteps, cellHeight)
@@ -218,7 +250,17 @@ export function SectionView({ section }: SectionViewProps) {
       const y = Math.max(0, Math.min(row, rows - height));
       return { x, y, w: width, h: height };
     },
-    [containerRef, columns, rows, contentOffsetX, paddingTop, cellXStep, rowSteps, cellHeight],
+    [
+      containerRef,
+      columns,
+      rows,
+      contentOffsetX,
+      paddingTop,
+      alignOffset,
+      cellXStep,
+      rowSteps,
+      cellHeight,
+    ],
   );
 
   const blockSize = useCallback<SectionDropHandle['blockSize']>(
@@ -306,7 +348,7 @@ export function SectionView({ section }: SectionViewProps) {
 
       if (e.altKey) {
         const rect = grid.getBoundingClientRect();
-        const contentOffsetY = parseFloat(getComputedStyle(grid).paddingTop) || 0;
+        const contentOffsetY = (parseFloat(getComputedStyle(grid).paddingTop) || 0) + alignOffset;
         const stack = rowSteps
           ? hitTestItems
               .filter((item) => {
@@ -362,6 +404,7 @@ export function SectionView({ section }: SectionViewProps) {
       rowGap,
       contentOffsetX,
       rowSteps,
+      alignOffset,
       selection?.itemId,
       setSelection,
       id,
@@ -394,6 +437,7 @@ export function SectionView({ section }: SectionViewProps) {
     .join(' ');
   const gridClass = [
     builder['builder-grid'],
+    fillScreen ? builder['builder-grid--fill'] : '',
     isInteracting || isDropTarget ? builder['builder-grid--active'] : '',
   ]
     .filter(Boolean)
@@ -427,6 +471,7 @@ export function SectionView({ section }: SectionViewProps) {
                 '--section-pad-top-px': `${paddingTop}px`,
                 '--section-pad-bottom-px': `${paddingBottom}px`,
                 gridTemplateRows: `repeat(${displayedRows}, minmax(var(--row-px), auto))`,
+                alignContent: fillScreen ? verticalAlign : undefined,
               } as React.CSSProperties
             }
           >
@@ -437,6 +482,7 @@ export function SectionView({ section }: SectionViewProps) {
                 aria-hidden="true"
                 style={
                   {
+                    alignContent: fillScreen ? verticalAlign : undefined,
                     gridTemplateColumns: `repeat(${columns}, var(--cell-px))`,
                     gridTemplateRows: rowSteps
                       .map((step) => `${Math.max(0, step - rowGap)}px`)

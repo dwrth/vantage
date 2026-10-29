@@ -235,3 +235,25 @@ describe('validateLayout', () => {
     expect(validateLayout(layout).errors).toEqual([]);
   });
 });
+
+describe('fill-screen and full-bleed fields', () => {
+  it('accepts fillScreen, verticalAlign and fullBleed', () => {
+    const layout = broken((l) => {
+      Object.assign(s0(l), { fillScreen: true, verticalAlign: 'center' });
+      item0(l).fullBleed = true;
+    });
+    expect(validateLayout(layout).errors).toEqual([]);
+  });
+
+  it('rejects wrongly typed values with their path', () => {
+    const layout = broken((l) => {
+      Object.assign(s0(l), { fillScreen: 'yes', verticalAlign: 'middle' });
+      item0(l).fullBleed = 1;
+    });
+    expect(validateLayout(layout).errors).toEqual([
+      'sections[0].fillScreen: must be a boolean',
+      'sections[0].verticalAlign: must be one of start, center, end',
+      'sections[0].items[0].fullBleed: must be a boolean',
+    ]);
+  });
+});

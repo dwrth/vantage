@@ -555,6 +555,27 @@ export function setItemHidden(
   };
 }
 
+/** Set or clear (`false`) the full-bleed flag of a grid item. */
+export function setItemFullBleed(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  fullBleed: boolean,
+): Layout {
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (section) => ({
+      ...section,
+      items: section.items.map((item) => {
+        if (item.id !== itemId) return item;
+        const next: GridItem = { ...item, fullBleed: true };
+        if (!fullBleed) delete next.fullBleed;
+        return next;
+      }),
+    })),
+  };
+}
+
 export function addItem(
   layout: Layout,
   sectionId: string,
@@ -927,7 +948,11 @@ export function importLayout(data: Layout, registry: ComponentRegistry): Layout 
             ...clampItem(placement, columns),
           };
         }
-        next = withBreakpointOverride(next, bp, { items });
+        // Replace the map: merging into the existing one would keep overrides of removed items.
+        next = pruneSectionOverrides({
+          ...next,
+          overrides: { ...next.overrides, [bp]: { ...ovr, items } },
+        });
       }
       return next;
     }),

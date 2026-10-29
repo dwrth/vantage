@@ -22,6 +22,7 @@ import {
   sendItemBackward,
   sendItemToBack,
   setBreakpointWidth,
+  setItemFullBleed,
   setItemHidden,
   setLayoutBreakpoints,
   setSectionOverride,
@@ -423,5 +424,43 @@ describe('import / export', () => {
     expect(find(next).overrides).toEqual({
       mobile: { columns: 4, items: { a: { x: 0, y: 0, w: 4, h: 1 } } },
     });
+  });
+
+  it('drops breakpoint overrides of item ids that no longer exist on import', () => {
+    const raw = layoutOf(
+      section('s', [item('a', 0, 0, 2, 2)], {
+        overrides: {
+          mobile: { items: { a: { x: 1 }, gone: { x: 2, w: 2 } } },
+          tablet: { items: { gone: { hidden: true } } },
+        },
+      }),
+    );
+    const next = importLayout(raw, {});
+    expect(Object.keys(find(next).overrides?.mobile?.items ?? {})).toEqual(['a']);
+    expect(find(next).overrides?.tablet).toBeUndefined();
+  });
+
+  it('keeps fillScreen, verticalAlign and fullBleed through export and import', () => {
+    const raw = layoutOf(
+      section('s', [{ ...item('a', 0, 0, 2, 2), fullBleed: true }], {
+        fillScreen: true,
+        verticalAlign: 'end',
+      }),
+    );
+    const next = importLayout(exportLayout(raw, {}), {});
+    expect(find(next)).toMatchObject({ fillScreen: true, verticalAlign: 'end' });
+    expect(findItem(next, 'a').fullBleed).toBe(true);
+    expect(isValidLayout(next)).toBe(true);
+  });
+});
+
+describe('setItemFullBleed', () => {
+  it('sets the flag on one item and removes it again', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2), item('b', 2, 0, 2, 2)]));
+    const on = setItemFullBleed(layout, 's', 'a', true);
+    expect(findItem(on, 'a').fullBleed).toBe(true);
+    expect(findItem(on, 'b').fullBleed).toBeUndefined();
+    const off = setItemFullBleed(on, 's', 'a', false);
+    expect('fullBleed' in findItem(off, 'a')).toBe(false);
   });
 });

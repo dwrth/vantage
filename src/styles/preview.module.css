@@ -76,6 +76,13 @@
   gap: var(--row-gap-px) var(--col-gap-px);
 }
 
+/* Fill screen: at least one viewport tall; `align-content` (inline) places the grid rows. */
+.preview-grid--fill {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
 .preview-section__bg {
   border-radius: inherit;
 }
