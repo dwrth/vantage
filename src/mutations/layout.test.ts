@@ -424,4 +424,18 @@ describe('import / export', () => {
       mobile: { columns: 4, items: { a: { x: 0, y: 0, w: 4, h: 1 } } },
     });
   });
+
+  it('drops breakpoint overrides of item ids that no longer exist on import', () => {
+    const raw = layoutOf(
+      section('s', [item('a', 0, 0, 2, 2)], {
+        overrides: {
+          mobile: { items: { a: { x: 1 }, gone: { x: 2, w: 2 } } },
+          tablet: { items: { gone: { hidden: true } } },
+        },
+      }),
+    );
+    const next = importLayout(raw, {});
+    expect(Object.keys(find(next).overrides?.mobile?.items ?? {})).toEqual(['a']);
+    expect(find(next).overrides?.tablet).toBeUndefined();
+  });
 });

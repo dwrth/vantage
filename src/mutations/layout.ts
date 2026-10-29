@@ -927,7 +927,11 @@ export function importLayout(data: Layout, registry: ComponentRegistry): Layout 
             ...clampItem(placement, columns),
           };
         }
-        next = withBreakpointOverride(next, bp, { items });
+        // Replace the map: merging into the existing one would keep overrides of removed items.
+        next = pruneSectionOverrides({
+          ...next,
+          overrides: { ...next.overrides, [bp]: { ...ovr, items } },
+        });
       }
       return next;
     }),
