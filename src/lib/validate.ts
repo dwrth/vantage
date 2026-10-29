@@ -1,4 +1,10 @@
-import { BREAKPOINTS, NON_DESKTOP_BREAKPOINTS, type Breakpoint, type Layout } from '../types';
+import {
+  BREAKPOINTS,
+  NON_DESKTOP_BREAKPOINTS,
+  SECTION_VERTICAL_ALIGNS,
+  type Breakpoint,
+  type Layout,
+} from '../types';
 
 export type LayoutValidationResult = {
   valid: boolean;
@@ -62,6 +68,7 @@ function checkItem(raw: unknown, path: string, report: Report): void {
   checkOptionalString(raw.label, `${path}.label`, report);
   checkOptionalString(raw.ref, `${path}.ref`, report);
   checkOptionalObject(raw.data, `${path}.data`, report);
+  checkOptionalBoolean(raw.fullBleed, `${path}.fullBleed`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
 }
 
@@ -158,6 +165,13 @@ function checkSection(raw: unknown, path: string, report: Report): void {
   checkOptionalNumber(raw.paddingTop, `${path}.paddingTop`, report, 0);
   checkOptionalNumber(raw.paddingBottom, `${path}.paddingBottom`, report, 0);
   checkRows(raw.rows, `${path}.rows`, report);
+  checkOptionalBoolean(raw.fillScreen, `${path}.fillScreen`, report);
+  if (
+    raw.verticalAlign !== undefined &&
+    !SECTION_VERTICAL_ALIGNS.includes(raw.verticalAlign as never)
+  ) {
+    report(`${path}.verticalAlign`, `must be one of ${SECTION_VERTICAL_ALIGNS.join(', ')}`);
+  }
   checkOptionalString(raw.label, `${path}.label`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
   checkBackground(raw.background, `${path}.background`, report);

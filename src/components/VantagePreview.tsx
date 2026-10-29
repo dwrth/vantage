@@ -103,9 +103,16 @@ function rowShiftFor(
   return (y) => y - removed.filter((row) => row < y).length;
 }
 
-function placementStyle(placement: ResolvedItemLayout, shift: RowShift = NO_SHIFT) {
+/** Every grid column plus both outer tracks: the full width of the section. */
+const FULL_BLEED_COLUMN = '1 / -1';
+
+function placementStyle(
+  placement: ResolvedItemLayout,
+  shift: RowShift = NO_SHIFT,
+  fullBleed = false,
+) {
   return {
-    gridColumn: `${placement.x + 2} / span ${placement.w}`,
+    gridColumn: fullBleed ? FULL_BLEED_COLUMN : `${placement.x + 2} / span ${placement.w}`,
     gridRow: `${shift(placement.y) + 1} / span ${placement.h}`,
   };
 }
@@ -230,10 +237,16 @@ function PreviewSection({
   return (
     <div className={preview['preview-section']}>
       <div
-        className={preview['preview-grid']}
+        className={[
+          preview['preview-grid'],
+          section.fillScreen ? preview['preview-grid--fill'] : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         style={
           {
             ...gridVars,
+            alignContent: section.fillScreen ? (section.verticalAlign ?? 'start') : undefined,
             '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
           } as React.CSSProperties
         }
@@ -250,7 +263,7 @@ function PreviewSection({
             const hidden: Breakpoint[] = [];
             for (const bp of responsive) {
               const placement = resolveItem(item, section, bp, enabledBreakpoints);
-              const { gridColumn, gridRow } = placementStyle(placement, shifts[bp]);
+              const { gridColumn, gridRow } = placementStyle(placement, shifts[bp], item.fullBleed);
               style[`--vp-${bp}-col`] = gridColumn;
               style[`--vp-${bp}-row`] = gridRow;
               if (placement.hidden) hidden.push(bp);
@@ -260,7 +273,7 @@ function PreviewSection({
           } else {
             const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
             if (placement.hidden) return null;
-            style = placementStyle(placement, shifts[breakpoint]);
+            style = placementStyle(placement, shifts[breakpoint], item.fullBleed);
           }
           return (
             <PreviewItem

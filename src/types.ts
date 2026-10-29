@@ -11,6 +11,12 @@ export type GridItem<TData = unknown> = {
   /** External entity id. Layout may omit `data` when host resolves via `ref`. */
   ref?: string;
   data?: TData;
+  /**
+   * Stretch the item across the full width of the section, ignoring the section's content
+   * width limit. Applies on every breakpoint; `x` and `w` are kept but not used while set.
+   * The host decides which kinds may use it.
+   */
+  fullBleed?: boolean;
   meta?: Record<string, unknown>;
 };
 
@@ -20,6 +26,10 @@ export type ResolveItemData = (item: GridItem) => unknown | undefined;
 export type SectionBackgroundImageSize = 'cover' | 'contain' | 'auto';
 
 export type SectionBackgroundImageRepeat = 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
+
+export type SectionVerticalAlign = 'start' | 'center' | 'end';
+
+export const SECTION_VERTICAL_ALIGNS: SectionVerticalAlign[] = ['start', 'center', 'end'];
 
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 
@@ -107,6 +117,13 @@ export type Section<TData = unknown> = {
    * dragging; content below it still renders. Unset: height follows the content.
    */
   rows?: number;
+  /**
+   * Make the section at least as tall as the viewport (100svh, 100vh as fallback). The grid
+   * content is positioned by `verticalAlign`. Applies on every breakpoint.
+   */
+  fillScreen?: boolean;
+  /** Where the grid content sits in a `fillScreen` section. Defaults to 'start'. */
+  verticalAlign?: SectionVerticalAlign;
   items: GridItem<TData>[];
   background?: SectionBackground;
   overrides?: Partial<Record<Exclude<Breakpoint, 'desktop'>, SectionOverride>>;
