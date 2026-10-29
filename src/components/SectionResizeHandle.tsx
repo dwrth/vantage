@@ -5,7 +5,8 @@ import { snapSectionRows } from '../lib/rowMetrics';
 import builder from '../styles/builder.module.css';
 
 type SectionResizeHandleProps = {
-  label: string;
+  /** Accessible name of the handle. Defaults to `'Resize section height'`. */
+  label?: string;
   rows: number;
   minRows: number;
   rowSteps: number[] | null;
@@ -17,7 +18,7 @@ type SectionResizeHandleProps = {
 
 /** Bottom edge of a section in the builder. Drag (or arrow keys) to change its height in rows. */
 export function SectionResizeHandle({
-  label,
+  label = 'Resize section height',
   rows,
   minRows,
   rowSteps,

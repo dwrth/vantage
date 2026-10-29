@@ -16,7 +16,7 @@ import type {
   SectionChromeContext,
   SelectionRef,
 } from '../context/BuilderContext';
-import type { Breakpoint, ComponentRegistry, GridItem, Layout } from '../types';
+import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
 import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
@@ -54,6 +54,11 @@ export type VantageBuilderProps = {
   onActiveBreakpointChange?: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
+  /**
+   * Accessible name of a section's bottom resize edge, e.g. for translation.
+   * Default: `Resize ${section.label ?? 'section'} height`.
+   */
+  sectionResizeLabel?: (section: Section) => string;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
   isItemRestricted?: (item: GridItem) => boolean;
@@ -88,6 +93,7 @@ export function VantageBuilder({
   onActiveBreakpointChange,
   renderSectionHeader,
   renderSectionFooter,
+  sectionResizeLabel,
   renderEditButton,
   isItemRestricted,
   renderDragHandle,
@@ -168,6 +174,7 @@ export function VantageBuilder({
         setActiveBreakpoint,
         renderSectionHeader,
         renderSectionFooter,
+        sectionResizeLabel,
         renderEditButton,
         isItemRestricted,
         renderDragHandle,

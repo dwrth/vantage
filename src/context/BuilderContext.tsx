@@ -58,6 +58,7 @@ export type BuilderContextValue = {
   setActiveBreakpoint: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionChromeContext) => ReactNode;
   renderSectionFooter?: (ctx: SectionChromeContext) => ReactNode;
+  sectionResizeLabel?: (section: Section) => string;
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;

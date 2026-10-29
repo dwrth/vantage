@@ -76,6 +76,7 @@ export function SectionView({ section }: SectionViewProps) {
     breakpointPreviewWidths,
     renderSectionHeader,
     renderSectionFooter,
+    sectionResizeLabel,
     externalDrag,
     onExternalDrop,
   } = useBuilderContext();
@@ -476,7 +477,11 @@ export function SectionView({ section }: SectionViewProps) {
               />
             ) : null}
             <SectionResizeHandle
-              label={`Resize ${section.label ?? 'section'} height`}
+              label={
+                sectionResizeLabel
+                  ? sectionResizeLabel(section)
+                  : `Resize ${section.label ?? 'section'} height`
+              }
               rows={rows}
               minRows={minRows}
               rowSteps={rowSteps}
