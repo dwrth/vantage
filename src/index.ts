@@ -7,7 +7,9 @@ export type {
   ItemDeleteButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
+  SectionActionLabels,
 } from './components/Builder';
+export { DEFAULT_SECTION_ACTION_LABELS } from './lib/sectionActionLabels';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
 export { VantageInspector } from './components/VantageInspector';

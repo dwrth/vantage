@@ -193,3 +193,79 @@
 .section--resizing .section-resize::before {
   opacity: 1;
 }
+
+/* Section toolbar (move up / down, duplicate) at the top right, and the insert button on the top edge. */
+.section-actions,
+.section-insert {
+  position: absolute;
+  z-index: 11;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.section-actions {
+  top: 8px;
+  right: 8px;
+  padding: 2px;
+  border: 1px solid #d6dae2;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.section-insert {
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.section-insert--first {
+  transform: translate(-50%, 4px);
+}
+
+.section-insert .section-actions__button {
+  border: 1px solid var(--vantage-drop-color, #2563eb);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--vantage-drop-color, #2563eb);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.section-actions__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #1f2430;
+  cursor: pointer;
+}
+
+.section-actions__button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.section-actions__button:hover:where(:not([data-vantage-dragging] *)):not(:disabled) {
+  background: #f0f2f6;
+}
+
+.section-actions__button:focus-visible {
+  outline: 2px solid var(--vantage-drop-color, #2563eb);
+  outline-offset: 1px;
+}
+
+.section:hover:where(:not([data-vantage-dragging] *)) > .section-actions,
+.section:hover:where(:not([data-vantage-dragging] *)) > .section-insert,
+.section-actions:focus-within,
+.section-insert:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
