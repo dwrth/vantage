@@ -215,3 +215,42 @@ describe('copy and paste items', () => {
     expect(duplicateItem(base, 's', 'missing')).toEqual({ layout: base, itemId: null });
   });
 });
+
+describe('copies of fill-screen sections and full-bleed items', () => {
+  const hero = section(
+    'a',
+    [item('i1', 0, 0, 12, 4, { fullBleed: true }), item('i2', 0, 4, 4, 2)],
+    {
+      fillScreen: true,
+      verticalAlign: 'center',
+    },
+  );
+  const base = layoutOf(hero, section('b', []));
+
+  it('keeps fillScreen and verticalAlign on a duplicated section', () => {
+    const { layout, sectionId } = duplicateSection(base, 'a');
+    const copy = find(layout, sectionId!);
+    expect(copy.fillScreen).toBe(true);
+    expect(copy.verticalAlign).toBe('center');
+    expect(copy.items[0].fullBleed).toBe(true);
+    expect(copy.items[1].fullBleed).toBeUndefined();
+    expect(isValidLayout(layout)).toBe(true);
+  });
+
+  it('keeps fullBleed when duplicating an item', () => {
+    const { layout, itemId } = duplicateItem(base, 'a', 'i1');
+    const copy = find(layout, 'a').items.find((i) => i.id === itemId)!;
+    expect(copy.fullBleed).toBe(true);
+    expect(isValidLayout(layout)).toBe(true);
+  });
+
+  it('keeps fullBleed when pasting into another section', () => {
+    const clipboard = copyItems(base, 'a', ['i1', 'i2'])!;
+    const { layout, ids } = pasteItems(base, 'b', clipboard);
+    const target = find(layout, 'b');
+    expect(target.items.find((i) => i.id === ids.i1)?.fullBleed).toBe(true);
+    expect(target.items.find((i) => i.id === ids.i2)?.fullBleed).toBeUndefined();
+    expect(target.fillScreen).toBeUndefined();
+    expect(isValidLayout(layout)).toBe(true);
+  });
+});
