@@ -21,6 +21,9 @@ import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import { Canvas } from './Canvas';
+import type { SectionActionLabels } from '../lib/sectionActionLabels';
+
+export type { SectionActionLabels } from '../lib/sectionActionLabels';
 
 export type ItemChromeRenderProps = {
   sectionId: string;
@@ -59,6 +62,15 @@ export type VantageBuilderProps = {
    * Default: `Resize ${section.label ?? 'section'} height`.
    */
   sectionResizeLabel?: (section: Section) => string;
+  /** Section toolbar (move up / down, duplicate) and the insert-section button. Default: shown. */
+  showSectionActions?: boolean;
+  /** Accessible names of the section toolbar buttons, e.g. for translation. */
+  sectionActionLabels?: Partial<SectionActionLabels>;
+  /**
+   * Replaces the built-in section duplicate, e.g. when the host must clone the entities behind
+   * the items (see `duplicateSection` and `CloneItemOptions`).
+   */
+  onDuplicateSection?: (sectionId: string) => void;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
   isItemRestricted?: (item: GridItem) => boolean;
@@ -94,6 +106,9 @@ export function VantageBuilder({
   renderSectionHeader,
   renderSectionFooter,
   sectionResizeLabel,
+  showSectionActions = true,
+  sectionActionLabels,
+  onDuplicateSection,
   renderEditButton,
   isItemRestricted,
   renderDragHandle,
@@ -175,6 +190,9 @@ export function VantageBuilder({
         renderSectionHeader,
         renderSectionFooter,
         sectionResizeLabel,
+        showSectionActions,
+        sectionActionLabels,
+        onDuplicateSection,
         renderEditButton,
         isItemRestricted,
         renderDragHandle,

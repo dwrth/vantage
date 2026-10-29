@@ -25,6 +25,7 @@ import { MIN_SECTION_ROWS, type BreakpointWidths, type GridItem, type Section } 
 import builder from '../styles/builder.module.css';
 import { GridBlock } from './GridBlock';
 import { SectionBackground } from './SectionBackground';
+import { SectionActions } from './SectionActions';
 import { SectionResizeHandle } from './SectionResizeHandle';
 
 type SectionViewProps = {
@@ -92,6 +93,7 @@ export function SectionView({ section }: SectionViewProps) {
     renderSectionHeader,
     renderSectionFooter,
     sectionResizeLabel,
+    showSectionActions,
     externalDrag,
     onExternalDrop,
   } = useBuilderContext();
@@ -538,6 +540,7 @@ export function SectionView({ section }: SectionViewProps) {
           </div>
         </div>
       </div>
+      {showSectionActions ? <SectionActions section={section} /> : null}
       {renderSectionFooter ? renderSectionFooter(chromeCtx) : null}
     </section>
   );

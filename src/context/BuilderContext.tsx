@@ -1,5 +1,6 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
+import type { SectionActionLabels } from '../lib/sectionActionLabels';
 import type {
   Breakpoint,
   BreakpointWidths,
@@ -59,6 +60,9 @@ export type BuilderContextValue = {
   renderSectionHeader?: (ctx: SectionChromeContext) => ReactNode;
   renderSectionFooter?: (ctx: SectionChromeContext) => ReactNode;
   sectionResizeLabel?: (section: Section) => string;
+  showSectionActions: boolean;
+  sectionActionLabels?: Partial<SectionActionLabels>;
+  onDuplicateSection?: (sectionId: string) => void;
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;
