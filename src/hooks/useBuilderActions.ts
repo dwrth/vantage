@@ -21,6 +21,38 @@ export function useBuilderActions() {
         apply(result.layout);
         return result.sectionId;
       },
+      insertSection: (index: number) => {
+        const result = mutations.insertSection(layout, index);
+        apply(result.layout);
+        return result.sectionId;
+      },
+      moveSection: (sectionId: string, toIndex: number) =>
+        apply(mutations.moveSection(layout, sectionId, toIndex)),
+      moveSectionBy: (sectionId: string, delta: number) =>
+        apply(mutations.moveSectionBy(layout, sectionId, delta)),
+      duplicateSection: (sectionId: string, options?: mutations.CloneItemOptions) => {
+        const result = mutations.duplicateSection(layout, sectionId, options);
+        apply(result.layout);
+        return result.sectionId;
+      },
+      duplicateItems: (
+        sectionId: string,
+        itemIds: string[],
+        options?: mutations.CloneItemOptions,
+      ) => {
+        const result = mutations.duplicateItems(layout, sectionId, itemIds, options);
+        apply(result.layout);
+        return result.ids;
+      },
+      pasteItems: (
+        sectionId: string,
+        clipboard: mutations.ItemClipboard,
+        options?: mutations.CloneItemOptions,
+      ) => {
+        const result = mutations.pasteItems(layout, sectionId, clipboard, options);
+        apply(result.layout);
+        return result.ids;
+      },
       removeSection: (sectionId: string) => apply(mutations.removeSection(layout, sectionId)),
       updateSection: (sectionId: string, patch: Partial<Omit<Section, 'id' | 'items'>>) =>
         apply(mutations.updateSection(layout, sectionId, patch)),

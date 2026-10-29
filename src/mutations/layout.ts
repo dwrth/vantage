@@ -407,6 +407,14 @@ export function updateItemMeta(
 }
 
 export function addSection(layout: Layout): { layout: Layout; sectionId: string } {
+  return insertSection(layout, layout.sections.length);
+}
+
+/** Insert an empty section at `index` (clamped), e.g. between two sections. */
+export function insertSection(
+  layout: Layout,
+  index: number,
+): { layout: Layout; sectionId: string } {
   const id = createId();
   const count = layout.sections.length + 1;
   const section: Section = {
@@ -415,10 +423,254 @@ export function addSection(layout: Layout): { layout: Layout; sectionId: string 
     ...DEFAULT_SECTION,
     items: [],
   };
+  const at = Math.max(0, Math.min(Math.round(index), layout.sections.length));
+  const sections = [...layout.sections];
+  sections.splice(at, 0, section);
+  return { layout: { ...layout, sections }, sectionId: id };
+}
+
+/** Move a section to `toIndex` (clamped); the other sections keep their order. */
+export function moveSection(layout: Layout, sectionId: string, toIndex: number): Layout {
+  const from = layout.sections.findIndex((s) => s.id === sectionId);
+  if (from < 0) return layout;
+  const to = Math.max(0, Math.min(Math.round(toIndex), layout.sections.length - 1));
+  if (from === to) return layout;
+  const sections = [...layout.sections];
+  const [section] = sections.splice(from, 1);
+  sections.splice(to, 0, section);
+  return { ...layout, sections };
+}
+
+/** Move a section `delta` places (negative: up). */
+export function moveSectionBy(layout: Layout, sectionId: string, delta: number): Layout {
+  const from = layout.sections.findIndex((s) => s.id === sectionId);
+  if (from < 0) return layout;
+  return moveSection(layout, sectionId, from + delta);
+}
+
+/**
+ * Identity of a copied item. Defaults: a fresh `createId()` and the source's `ref`. Hosts that keep
+ * item data in external entities return the id/ref of the entity they cloned for it.
+ */
+export type CloneItemOptions = {
+  cloneItem?: (source: GridItem) => Partial<Pick<GridItem, 'id' | 'ref'>>;
+};
+
+/** Result of a copy: the next layout plus source item id → new item id. */
+export type CloneItemsResult = { layout: Layout; ids: Record<string, string> };
+
+function cloneJson<T>(value: T): T {
+  return value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T);
+}
+
+function cloneIdentity(
+  source: GridItem,
+  taken: Set<string>,
+  options: CloneItemOptions,
+): Pick<GridItem, 'id'> & Partial<Pick<GridItem, 'ref'>> {
+  const identity = options.cloneItem?.(source) ?? {};
+  let id = identity.id ?? createId();
+  if (taken.has(id)) id = createId();
+  taken.add(id);
+  return identity.ref !== undefined ? { id, ref: identity.ref } : { id };
+}
+
+/**
+ * Copy a section with all its items, breakpoint overrides and background, and insert it right
+ * after the original. Items get new ids (see `CloneItemOptions`).
+ */
+export function duplicateSection(
+  layout: Layout,
+  sectionId: string,
+  options: CloneItemOptions = {},
+): CloneItemsResult & { sectionId: string | null } {
+  const index = layout.sections.findIndex((s) => s.id === sectionId);
+  if (index < 0) return { layout, ids: {}, sectionId: null };
+  const source = layout.sections[index];
+  const taken = new Set<string>();
+  const ids: Record<string, string> = {};
+  const items = source.items.map((item) => {
+    const identity = cloneIdentity(item, taken, options);
+    ids[item.id] = identity.id;
+    return { ...cloneJson(item), ...identity };
+  });
+  let overrides: Section['overrides'];
+  if (source.overrides) {
+    overrides = {};
+    for (const bp of NON_DESKTOP_BREAKPOINTS) {
+      const ovr = source.overrides[bp];
+      if (!ovr) continue;
+      const { items: ovrItems, ...fields } = ovr;
+      const next: SectionOverride = cloneJson(fields);
+      if (ovrItems) {
+        next.items = {};
+        for (const [itemId, itemOvr] of Object.entries(ovrItems)) {
+          if (ids[itemId]) next.items[ids[itemId]] = cloneJson(itemOvr);
+        }
+      }
+      overrides[bp] = next;
+    }
+  }
+  const fields: Partial<Section> = { ...source };
+  delete fields.items;
+  delete fields.overrides;
+  const copy: Section = pruneSectionOverrides({
+    ...cloneJson(fields),
+    columns: source.columns,
+    colGap: source.colGap,
+    rowGap: source.rowGap,
+    id: createId(),
+    items,
+    ...(overrides ? { overrides } : {}),
+  });
+  const sections = [...layout.sections];
+  sections.splice(index + 1, 0, copy);
+  return { layout: { ...layout, sections }, ids, sectionId: copy.id };
+}
+
+/**
+ * Serialisable copy of some items of a section (e.g. for a clipboard): their desktop placement,
+ * `data` / `meta`, and per-breakpoint overrides keyed by the source item ids. Paste with
+ * `pasteItems`, which assigns new ids.
+ */
+export type ItemClipboard = {
+  type: 'vantage/items';
+  version: 1;
+  /** Desktop column count of the source section. */
+  columns: number;
+  /** Copied items in stack order (back to front), with their source ids. */
+  items: GridItem[];
+  overrides: Partial<Record<NonDesktopBreakpoint, Record<string, ItemOverride>>>;
+};
+
+export function isItemClipboard(value: unknown): value is ItemClipboard {
+  return (
+    isPlainObject(value) &&
+    value.type === 'vantage/items' &&
+    value.version === 1 &&
+    Array.isArray(value.items) &&
+    isPlainObject(value.overrides)
+  );
+}
+
+/** Copy `itemIds` of a section. Returns `null` when none of them exist. */
+export function copyItems(
+  layout: Layout,
+  sectionId: string,
+  itemIds: string[],
+): ItemClipboard | null {
+  const section = layout.sections.find((s) => s.id === sectionId);
+  if (!section) return null;
+  const wanted = new Set(itemIds);
+  const items = section.items.filter((item) => wanted.has(item.id));
+  if (items.length === 0) return null;
+  const overrides: ItemClipboard['overrides'] = {};
+  for (const bp of NON_DESKTOP_BREAKPOINTS) {
+    const ovrItems = section.overrides?.[bp]?.items;
+    if (!ovrItems) continue;
+    const picked: Record<string, ItemOverride> = {};
+    for (const item of items) {
+      if (ovrItems[item.id]) picked[item.id] = ovrItems[item.id];
+    }
+    if (Object.keys(picked).length > 0) overrides[bp] = picked;
+  }
+  return cloneJson({
+    type: 'vantage/items',
+    version: 1,
+    columns: section.columns,
+    items,
+    overrides,
+  });
+}
+
+const PLACEMENT_KEYS = ['x', 'y', 'w', 'h'] as const;
+
+/**
+ * Paste copied items into a section, below its content: the copies keep their placement relative
+ * to each other on every breakpoint, get new ids (see `CloneItemOptions`) and land on top of the
+ * stack. Overrides for breakpoints the layout doesn't enable are dropped.
+ */
+export function pasteItems(
+  layout: Layout,
+  sectionId: string,
+  clipboard: ItemClipboard,
+  options: CloneItemOptions = {},
+): CloneItemsResult {
+  const target = layout.sections.find((s) => s.id === sectionId);
+  if (!target || clipboard.items.length === 0) return { layout, ids: {} };
+
+  const taken = new Set(target.items.map((item) => item.id));
+  const ids: Record<string, string> = {};
+  const top = Math.min(...clipboard.items.map((item) => item.y));
+  const below = nextSlot(target.items).y;
+  const copies: GridItem[] = clipboard.items.map((source) => {
+    const identity = cloneIdentity(source, taken, options);
+    ids[source.id] = identity.id;
+    const placement = clampItem(
+      { x: source.x, y: below + source.y - top, w: source.w, h: source.h },
+      target.columns,
+    );
+    return { ...cloneJson(source), ...identity, ...placement };
+  });
+
+  let next: Section = { ...target, items: [...target.items, ...copies] };
+  for (const bp of NON_DESKTOP_BREAKPOINTS) {
+    const copied = clipboard.overrides[bp];
+    if (!copied || !layout.breakpoints.includes(bp)) continue;
+    const placed = Object.values(copied).filter((ovr) => ovr.y !== undefined);
+    const bpTop = placed.length > 0 ? Math.min(...placed.map((ovr) => ovr.y!)) : 0;
+    const bpBelow = sectionContentRows(target, bp, layout.breakpoints);
+    const columns = resolveSection(target, bp, layout.breakpoints).columns;
+    const items: Record<string, ItemOverride> = {};
+    for (const [sourceId, ovr] of Object.entries(copied)) {
+      const id = ids[sourceId];
+      if (!id) continue;
+      const patch: ItemOverride = cloneJson(ovr);
+      if (PLACEMENT_KEYS.some((key) => ovr[key] !== undefined)) {
+        const copy = copies.find((item) => item.id === id)!;
+        const placement = clampItem(
+          {
+            x: ovr.x ?? copy.x,
+            y: ovr.y !== undefined ? bpBelow + ovr.y - bpTop : copy.y,
+            w: ovr.w ?? copy.w,
+            h: ovr.h ?? copy.h,
+          },
+          columns,
+        );
+        Object.assign(patch, placement);
+      }
+      items[id] = patch;
+    }
+    next = withBreakpointOverride(next, bp, { items });
+  }
+
   return {
-    layout: { ...layout, sections: [...layout.sections, section] },
-    sectionId: id,
+    layout: { ...layout, sections: mapSection(layout.sections, sectionId, () => next) },
+    ids,
   };
+}
+
+/** Duplicate items within their section (copy + paste below the content). */
+export function duplicateItems(
+  layout: Layout,
+  sectionId: string,
+  itemIds: string[],
+  options: CloneItemOptions = {},
+): CloneItemsResult {
+  const clipboard = copyItems(layout, sectionId, itemIds);
+  if (!clipboard) return { layout, ids: {} };
+  return pasteItems(layout, sectionId, clipboard, options);
+}
+
+/** Duplicate one item; returns the copy's id (`null` when the item doesn't exist). */
+export function duplicateItem(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  options: CloneItemOptions = {},
+): { layout: Layout; itemId: string | null } {
+  const result = duplicateItems(layout, sectionId, [itemId], options);
+  return { layout: result.layout, itemId: result.ids[itemId] ?? null };
 }
 
 export function removeSection(layout: Layout, sectionId: string): Layout {

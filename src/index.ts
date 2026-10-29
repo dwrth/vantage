@@ -72,6 +72,10 @@ export {
   createEmptyLayout,
   exportLayout,
   addSection,
+  insertSection,
+  moveSection,
+  moveSectionBy,
+  duplicateSection,
   removeSection,
   updateSection,
   updateLayoutMeta,
@@ -99,6 +103,11 @@ export {
   setBreakpointWidth,
   setBreakpointPreviewWidth,
   autoArrangeBreakpoint,
+  copyItems,
+  pasteItems,
+  duplicateItems,
+  duplicateItem,
+  isItemClipboard,
 } from './mutations/layout';
 
 export type { SelectionRef, ExternalDragItem, ExternalDropEvent } from './context/BuilderContext';
@@ -115,7 +124,13 @@ export {
   type ItemDataProviderProps,
 } from './hooks/useItemData';
 
-export type { AddItemDefaults, MoveItemToSectionOptions } from './mutations/layout';
+export type {
+  AddItemDefaults,
+  MoveItemToSectionOptions,
+  CloneItemOptions,
+  CloneItemsResult,
+  ItemClipboard,
+} from './mutations/layout';
 
 export { isValidLayout, validateLayout } from './lib/validate';
 export type { LayoutValidationResult } from './lib/validate';

@@ -69,6 +69,9 @@ For undo/redo, wrap your host `onChange` with [`useVantageHistory`](history.md) 
 
 ```ts
 const { layout: next, sectionId } = addSection(layout); // appends a default section
+insertSection(layout, index);                          // empty section at index, e.g. between two
+moveSection(layout, sectionId, toIndex);               // reorder; moveSectionBy(layout, id, -1 | 1)
+duplicateSection(layout, sectionId, { cloneItem? });   // copy inserted after the original
 removeSection(layout, sectionId);
 updateSection(layout, sectionId, { columns: 16, colGap: 4, paddingTop: 48 });
 resizeSection(layout, sectionId, rows, breakpoint?);  // height in rows; never below content
@@ -96,6 +99,20 @@ reorderItemAtIndex(layout, sectionId, fromIndex, toIndex); // for layers-panel D
 `moveItemToSection` keeps the item's id, size, `ref`, `data` and `meta`, puts it on top of the target stack and carries per-breakpoint `hidden` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsRemoved` + `itemsAdded`.
 
 `moveItem` / `resizeItem` / `updateItemData` write to the section's items when `breakpoint === 'desktop'` (the default) and to that breakpoint's overrides otherwise. For `updateItemData`, the patch is shallow-merged on top of the resolved data (base + any existing override) so unaffected fields keep falling through from desktop.
+
+### Duplicate, copy and paste
+
+```ts
+duplicateItem(layout, sectionId, itemId, { cloneItem? }); // → { layout, itemId }
+duplicateItems(layout, sectionId, itemIds, { cloneItem? }); // → { layout, ids }
+const clipboard = copyItems(layout, sectionId, itemIds);  // ItemClipboard | null, plain JSON
+pasteItems(layout, targetSectionId, clipboard, { cloneItem? }); // → { layout, ids }
+isItemClipboard(value);                                   // type guard for stored clipboards
+```
+
+An `ItemClipboard` holds the copied items (desktop placement, `data`, `meta`, `ref`) and their per-breakpoint overrides, keyed by the source ids. It is plain JSON, so it can go to storage or across pages. `pasteItems` puts the copies below the target section's content on every breakpoint, keeping their placement relative to each other, clamps them to the target's columns, and drops overrides for breakpoints the layout doesn't enable. Copies always get new ids; `ids` maps source id → new id.
+
+By default a copy gets a fresh `createId()` and keeps the source `ref`. Hosts that store item content in external entities pass `cloneItem: (source) => ({ id, ref })` with the id of the entity they cloned for it. `duplicateSection` takes the same option.
 
 ### Layering (z-order within a section)
 
