@@ -100,9 +100,9 @@ export type BuilderContextValue = {
   showSectionToolbar: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
   /** Defaults merged in. */
-  blockLabels: BlockLabels;
+  blockLabels: Required<BlockLabels>;
   /** Defaults merged in. */
-  announcements: BlockAnnouncements;
+  announcements: Required<BlockAnnouncements>;
   /** Says `message` through the builder's polite live region. */
   announce: (message: string) => void;
   /** Built-in toolbar (align, delete) above a multi-selection. */

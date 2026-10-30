@@ -39,8 +39,8 @@ type KeyboardState = {
   isInteracting: boolean;
   emitChange: (next: Layout, options?: LayoutChangeOptions) => void;
   history?: BuilderHistory;
-  blockLabels: BlockLabels;
-  announcements: BlockAnnouncements;
+  blockLabels: Required<BlockLabels>;
+  announcements: Required<BlockAnnouncements>;
   announce: (message: string) => void;
   /** Content minimum per block key, as the mounted blocks report it. */
   minSizes: MutableRefObject<Map<string, GridMinSize>>;

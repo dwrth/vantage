@@ -12,6 +12,7 @@ import { useBuilderKeyboard, type BuilderHistory } from '../hooks/useBuilderKeyb
 import {
   DEFAULT_BLOCK_ANNOUNCEMENTS,
   DEFAULT_BLOCK_LABELS,
+  withDefaults,
   type BlockAnnouncements,
   type BlockLabels,
 } from '../lib/keyboardLabels';
@@ -298,11 +299,11 @@ export function VantageBuilder({
   );
 
   const blockLabels = useMemo(
-    () => ({ ...DEFAULT_BLOCK_LABELS, ...blockLabelsProp }),
+    () => withDefaults(DEFAULT_BLOCK_LABELS, blockLabelsProp),
     [blockLabelsProp],
   );
   const announcements = useMemo(
-    () => ({ ...DEFAULT_BLOCK_ANNOUNCEMENTS, ...announcementsProp }),
+    () => withDefaults(DEFAULT_BLOCK_ANNOUNCEMENTS, announcementsProp),
     [announcementsProp],
   );
   const blockInstructionsId = useId();

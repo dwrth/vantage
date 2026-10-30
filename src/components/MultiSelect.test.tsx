@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SelectionRef } from '../context/BuilderContext';
+import type { BlockAnnouncements, BlockLabels } from '../lib/keyboardLabels';
 import { useVantageHistory } from '../hooks/useVantageHistory';
 import type { ComponentRegistry, GridItem, Layout } from '../types';
 import { VantageBuilder, type VantageBuilderProps } from './Builder';
@@ -186,6 +187,35 @@ describe('single selection stays unchanged', () => {
     expect(onSelectionChange).toHaveBeenLastCalledWith(ref('b'));
     expect(screen.getByTestId('single').textContent).toBe('b');
     expect(selected()).toEqual(['A', 'B']);
+  });
+
+  it('full label objects written before multi-select stay valid and get the group defaults', () => {
+    // Exactly the fields `BlockLabels` / `BlockAnnouncements` had before; must still type-check.
+    const blockLabels: BlockLabels = {
+      block: (i) => `Baustein ${i.label}`,
+      roleDescription: 'Baustein',
+      instructions: 'Hilfe',
+      dragHandle: () => 'Ziehen',
+      deleteButton: () => 'Entfernen',
+      overlapWarning: () => 'Überlappung',
+      moveBelow: 'Darunter',
+      keepOverlap: 'Behalten',
+    };
+    const announcements: BlockAnnouncements = {
+      moved: () => 'verschoben',
+      resized: () => 'skaliert',
+      deleted: () => 'gelöscht',
+      broughtForward: () => 'vor',
+      sentBackward: () => 'zurück',
+      deselected: () => 'abgewählt',
+      undone: () => 'rückgängig',
+      redone: () => 'wiederholt',
+    };
+    render(<Host blockLabels={blockLabels} announcements={announcements} />);
+    fireEvent.pointerDown(block('Baustein A'), { button: 0 });
+    fireEvent.pointerDown(block('Baustein B'), { button: 0, shiftKey: true });
+    expect(status()).toBe('2 blocks selected');
+    expect(screen.getByRole('button', { name: 'Align left' })).toBeTruthy();
   });
 
   it('a selectedItem outside the group replaces the group', () => {
