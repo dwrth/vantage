@@ -43,7 +43,7 @@ One held key is one undo step: its changes share a `mergeKey` (see [Undo / histo
   selects its block. The drag handle is not a tab stop; the block itself is the keyboard
   equivalent. The eight resize handles are pointer-only (`aria-hidden`); Shift+arrows replace
   them.
-- Focused blocks show an outline (`:focus-visible`, colour `--vantage-focus-color`).
+- Focusing a block selects it, so the selection outline is the focus indicator; no separate focus ring is drawn.
 
 ## Announcements
 
