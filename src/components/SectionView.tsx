@@ -1,7 +1,9 @@
 import type { DragEndEvent } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveItem, resolveSection, sectionContentRows, sectionRows } from '../lib/breakpoint';
+import { resolveItemVerticalAlign } from '../lib/contentAlign';
 import { resolveEffectiveItemData } from '../lib/entities';
+import { computeAlignment, type GuideRect } from '../lib/guides';
 import {
   CELL_MAX_PX,
   ROW_MAX_PX,
@@ -25,6 +27,7 @@ import { parsePxToken } from '../theme/tokens';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import { MIN_SECTION_ROWS, type BreakpointWidths, type GridItem, type Section } from '../types';
 import builder from '../styles/builder.module.css';
+import { AlignmentGuides } from './AlignmentGuides';
 import { GridBlock } from './GridBlock';
 import { SectionBackground } from './SectionBackground';
 import { SectionActions } from './SectionActions';
@@ -65,6 +68,8 @@ function alignOffsetFor(
   const free = Math.max(0, grid.clientHeight - padding - content);
   return align === 'center' ? free / 2 : free;
 }
+
+const DROP_GHOST_ID = '\u0000drop-ghost';
 
 function editorCanvasMaxWidth(
   breakpoint: ReturnType<typeof useBuilderContext>['activeBreakpoint'],
@@ -121,6 +126,12 @@ export function SectionView({ section }: SectionViewProps) {
           },
           fullBleed: item.fullBleed,
           placement: resolveItem(item, section, activeBreakpoint, enabledBreakpoints),
+          verticalAlign: resolveItemVerticalAlign(
+            item,
+            section,
+            activeBreakpoint,
+            enabledBreakpoints,
+          ),
         })),
       ).filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
@@ -212,6 +223,23 @@ export function SectionView({ section }: SectionViewProps) {
           h: placement.h,
         })),
     [resolvedItems, columns],
+  );
+
+  // Block of this section being dragged or resized, at the cells it would land on.
+  const [draft, setDraft] = useState<GuideRect | null>(null);
+  const onDraftRect = useCallback((itemId: string, rect: GuideRect | null) => {
+    setDraft((prev) => (rect ? rect : prev?.id === itemId ? null : prev));
+  }, []);
+
+  const guideRects = useMemo(
+    () =>
+      new Map<string, GuideRect>(
+        resolvedItems.map(({ item, placement }) => [
+          item.id,
+          { id: item.id, ...placement, fullBleed: item.fullBleed },
+        ]),
+      ),
+    [resolvedItems],
   );
 
   const dropWithin = useCallback(
@@ -365,6 +393,18 @@ export function SectionView({ section }: SectionViewProps) {
   const canvasMaxWidth = editorCanvasMaxWidth(activeBreakpoint, breakpointPreviewWidths);
 
   const ghost = dropTarget?.sectionId === id ? dropTarget : null;
+  // A block arriving from elsewhere (other section, palette) lines up via its drop ghost.
+  const moving = useMemo<GuideRect | null>(
+    () => (ghost ? { id: DROP_GHOST_ID, x: ghost.x, y: ghost.y, w: ghost.w, h: ghost.h } : draft),
+    [ghost, draft],
+  );
+  const alignment = useMemo(
+    () =>
+      moving
+        ? computeAlignment(moving, [...guideRects.values()], { columns, rows: displayedRows })
+        : null,
+    [moving, guideRects, columns, displayedRows],
+  );
   const isDropTarget = ghost !== null;
   const hasSelection = selection?.sectionId === id;
   const chromeCtx = { section, activeBreakpoint, hasSelection, isDropTarget };
@@ -440,7 +480,7 @@ export function SectionView({ section }: SectionViewProps) {
                 )}
               </div>
             ) : null}
-            {resolvedItems.map(({ item, placement, stackIndex }) => (
+            {resolvedItems.map(({ item, placement, stackIndex, verticalAlign }) => (
               <GridBlock
                 key={item.id}
                 zIndex={stackIndex + 1}
@@ -454,8 +494,27 @@ export function SectionView({ section }: SectionViewProps) {
                 breakpoint={activeBreakpoint}
                 rowSteps={rowSteps}
                 rows={displayedRows}
+                verticalAlign={verticalAlign}
+                onDraftRect={onDraftRect}
               />
             ))}
+            {alignment && moving ? (
+              <AlignmentGuides
+                result={alignment}
+                moving={moving}
+                others={guideRects}
+                columns={columns}
+                geometry={{
+                  contentOffsetX,
+                  contentOffsetY: paddingTop + alignOffset,
+                  cellXStep,
+                  colGap,
+                  rowSteps,
+                  cellHeight,
+                  rowGap,
+                }}
+              />
+            ) : null}
             {ghost ? (
               <div
                 className={builder['drop-ghost']}

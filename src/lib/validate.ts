@@ -1,5 +1,6 @@
 import {
   BREAKPOINTS,
+  ITEM_VERTICAL_ALIGNS,
   NON_DESKTOP_BREAKPOINTS,
   SECTION_VERTICAL_ALIGNS,
   type Breakpoint,
@@ -55,6 +56,12 @@ function checkOptionalBoolean(raw: unknown, path: string, report: Report): void 
   if (raw !== undefined && typeof raw !== 'boolean') report(path, 'must be a boolean');
 }
 
+function checkItemVerticalAlign(raw: unknown, path: string, report: Report): void {
+  if (raw !== undefined && !ITEM_VERTICAL_ALIGNS.includes(raw as never)) {
+    report(path, `must be one of ${ITEM_VERTICAL_ALIGNS.join(', ')}`);
+  }
+}
+
 function checkItem(raw: unknown, path: string, report: Report): void {
   if (!isPlainObject(raw)) {
     report(path, 'must be an object');
@@ -70,6 +77,7 @@ function checkItem(raw: unknown, path: string, report: Report): void {
   checkOptionalObject(raw.data, `${path}.data`, report);
   checkOptionalBoolean(raw.fullBleed, `${path}.fullBleed`, report);
   checkOptionalBoolean(raw.hidden, `${path}.hidden`, report);
+  checkItemVerticalAlign(raw.verticalAlign, `${path}.verticalAlign`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
 }
 
@@ -86,6 +94,7 @@ function checkItemOverride(raw: unknown, path: string, report: Report): void {
   checkOptionalNumber(raw.w, `${path}.w`, report, 1);
   checkOptionalNumber(raw.h, `${path}.h`, report, 1);
   checkOptionalBoolean(raw.hidden, `${path}.hidden`, report);
+  checkItemVerticalAlign(raw.verticalAlign, `${path}.verticalAlign`, report);
   checkOptionalObject(raw.data, `${path}.data`, report);
 }
 

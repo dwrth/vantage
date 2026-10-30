@@ -19,6 +19,7 @@ import {
   type ComponentRegistry,
   type GridItem,
   type ItemOverride,
+  type ItemVerticalAlign,
   type KindDescriptor,
   type Layout,
   type Section,
@@ -846,6 +847,54 @@ export function setItemFullBleed(
   };
 }
 
+/**
+ * Set where the content of a grid item sits vertically in its cell. Desktop writes the item's
+ * own value, which tablet and mobile inherit; tablet / mobile write that breakpoint's override.
+ * `undefined` clears the value (on tablet / mobile: back to inheriting desktop).
+ */
+export function setItemVerticalAlign(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  verticalAlign: ItemVerticalAlign | undefined,
+  breakpoint: Breakpoint = 'desktop',
+): Layout {
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (section) => {
+      if (!section.items.some((item) => item.id === itemId)) return section;
+      if (breakpoint === 'desktop') {
+        return {
+          ...section,
+          items: section.items.map((item) => {
+            if (item.id !== itemId) return item;
+            const next: GridItem = { ...item, verticalAlign };
+            if (verticalAlign === undefined) delete next.verticalAlign;
+            return next;
+          }),
+        };
+      }
+      if (verticalAlign !== undefined) {
+        return writeItemOverride(section, itemId, breakpoint, { verticalAlign });
+      }
+      const ovr = section.overrides?.[breakpoint];
+      const current = ovr?.items?.[itemId];
+      if (current?.verticalAlign === undefined) return section;
+      const rest = { ...current };
+      delete rest.verticalAlign;
+      const items = { ...ovr!.items };
+      if (Object.keys(rest).length > 0) items[itemId] = rest;
+      else delete items[itemId];
+      const nextOvr: SectionOverride = { ...ovr, items };
+      if (Object.keys(items).length === 0) delete nextOvr.items;
+      return pruneSectionOverrides({
+        ...section,
+        overrides: { ...section.overrides, [breakpoint]: nextOvr },
+      });
+    }),
+  };
+}
+
 export function addItem(
   layout: Layout,
   sectionId: string,
@@ -935,7 +984,8 @@ export type MoveItemToSectionOptions = {
  * Move an item into another section. The item keeps its id, size, ref, data and meta and lands
  * on top of the target stack. Desktop placement goes to `x` / `y` (or the next free slot);
  * when `breakpoint` is not desktop, `x` / `y` become that breakpoint's override instead.
- * Per-breakpoint `hidden` / `data` overrides travel along; positions from the old grid do not.
+ * Per-breakpoint `hidden` / `verticalAlign` / `data` overrides travel along; positions from the
+ * old grid do not.
  * Same-section calls behave like `moveItem`.
  */
 export function moveItemToSection(
@@ -987,6 +1037,7 @@ export function moveItemToSection(
     const carried = source.overrides?.[bp]?.items?.[item.id];
     const patch: ItemOverride = {};
     if (carried?.hidden !== undefined) patch.hidden = carried.hidden;
+    if (carried?.verticalAlign !== undefined) patch.verticalAlign = carried.verticalAlign;
     if (carried?.data !== undefined) patch.data = carried.data;
     if (Object.keys(patch).length > 0) {
       nextTarget = withBreakpointOverride(nextTarget, bp, { items: { [moved.id]: patch } });

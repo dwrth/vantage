@@ -157,6 +157,74 @@
   background: color-mix(in srgb, var(--vantage-drop-color, #2563eb) 14%, transparent);
 }
 
+/*
+ * Alignment guides and size-match markers while a block is dragged or resized. Above the
+ * dragged block (z-top + 2) and the drop ghost (z-top + 3); never interactive.
+ */
+.alignment-guide {
+  position: absolute;
+  z-index: calc(var(--vantage-z-top, 0) + 4);
+  pointer-events: none;
+  border-color: var(--vantage-guide-color, #f97316);
+}
+
+.alignment-guide--vertical {
+  border-left: 1px solid;
+  border-left-color: inherit;
+  margin-left: -0.5px;
+}
+
+.alignment-guide--horizontal {
+  border-top: 1px solid;
+  border-top-color: inherit;
+  margin-top: -0.5px;
+}
+
+/* The section's centre line is dashed, so it reads apart from block-to-block guides. */
+.alignment-guide--section.alignment-guide--vertical {
+  border-left-style: dashed;
+}
+
+.alignment-guide--section.alignment-guide--horizontal {
+  border-top-style: dashed;
+}
+
+.size-marker {
+  position: relative;
+  z-index: calc(var(--vantage-z-top, 0) + 4);
+  min-width: 0;
+  min-height: 0;
+  pointer-events: none;
+}
+
+/* A short bar with end ticks across the middle of the matching side. */
+.size-marker::before {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+  border: 0 solid var(--vantage-size-match-color, var(--vantage-guide-color, #f97316));
+}
+
+.size-marker--w::before {
+  left: 25%;
+  right: 25%;
+  bottom: 6px;
+  height: 7px;
+  border-width: 0 2px;
+  background: linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat;
+  color: var(--vantage-size-match-color, var(--vantage-guide-color, #f97316));
+}
+
+.size-marker--h::before {
+  top: 25%;
+  bottom: 25%;
+  right: 6px;
+  width: 7px;
+  border-width: 2px 0;
+  background: linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat;
+  color: var(--vantage-size-match-color, var(--vantage-guide-color, #f97316));
+}
+
 /* Bottom edge of a section: drag to change its height in rows. Builder only. */
 .section-resize {
   position: absolute;

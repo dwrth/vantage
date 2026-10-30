@@ -275,3 +275,27 @@ describe('desktop hidden', () => {
     ]);
   });
 });
+
+describe('item verticalAlign', () => {
+  const mobileItem = (l: Mutable) =>
+    (l.sections[0]!.overrides!.mobile!.items as Record<string, Record<string, unknown>>).b!;
+
+  it('accepts it on items and item overrides', () => {
+    const layout = broken((l) => {
+      item0(l).verticalAlign = 'center';
+      mobileItem(l).verticalAlign = 'end';
+    });
+    expect(validateLayout(layout).errors).toEqual([]);
+  });
+
+  it('rejects unknown values with their path', () => {
+    const layout = broken((l) => {
+      item0(l).verticalAlign = 'middle';
+      mobileItem(l).verticalAlign = 'bottom';
+    });
+    expect(validateLayout(layout).errors).toEqual([
+      'sections[0].items[0].verticalAlign: must be one of start, center, end',
+      'sections[0].overrides.mobile.items.b.verticalAlign: must be one of start, center, end',
+    ]);
+  });
+});

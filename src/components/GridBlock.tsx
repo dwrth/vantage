@@ -15,7 +15,8 @@ import { trackPointerDrag } from '../lib/pointerDrag';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
-import type { Breakpoint, GridItem } from '../types';
+import type { GuideRect } from '../lib/guides';
+import type { Breakpoint, GridItem, ItemVerticalAlign } from '../types';
 import chrome from '../styles/grid-block.module.css';
 
 const RESIZE_EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -48,6 +49,10 @@ type GridBlockProps = {
   rows: number;
   /** Stacking position (1 = bottom). DOM order is reading order, so stacking needs z-index. */
   zIndex: number;
+  /** Content alignment at the active breakpoint (unset: the kind's own). */
+  verticalAlign?: ItemVerticalAlign;
+  /** Reports the cells the block would land on while dragged or resized; `null` when done. */
+  onDraftRect?: (itemId: string, rect: GuideRect | null) => void;
 };
 
 type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
@@ -64,6 +69,8 @@ export function GridBlock({
   rowSteps,
   rows,
   zIndex,
+  verticalAlign,
+  onDraftRect,
 }: GridBlockProps) {
   const {
     components,
@@ -113,24 +120,67 @@ export function GridBlock({
         : transform
           ? pxToCell(transform.x, cellXStep) * cellXStep
           : 0;
+  // Row the block snaps to while dragged inside its section.
+  const draggedRow = !transform
+    ? placement.y
+    : rowSteps
+      ? clampRow(
+          closestRowForOffset(
+            getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
+            rowSteps,
+            cellHeight,
+          ),
+        )
+      : clampRow(placement.y + pxToCell(transform.y, cellHeight));
   const snappedY =
     leavingSection && transform
       ? transform.y
       : transform && rowSteps
-        ? getRowStart(
-            clampRow(
-              closestRowForOffset(
-                getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
-                rowSteps,
-                cellHeight,
-              ),
-            ),
-            rowSteps,
-            cellHeight,
-          ) - getRowStart(placement.y, rowSteps, cellHeight)
+        ? getRowStart(draggedRow, rowSteps, cellHeight) -
+          getRowStart(placement.y, rowSteps, cellHeight)
         : transform
-          ? (clampRow(placement.y + pxToCell(transform.y, cellHeight)) - placement.y) * cellHeight
+          ? (draggedRow - placement.y) * cellHeight
           : 0;
+
+  // Cells the block would land on right now (drag inside the section, or resize), for guides.
+  const draft: PlacementRect | null = isResizing
+    ? displayedPlacement
+    : isDragging && transform && !leavingSection
+      ? {
+          x: fullBleed
+            ? placement.x
+            : Math.max(
+                0,
+                Math.min(placement.x + pxToCell(transform.x, cellXStep), columns - placement.w),
+              ),
+          y: draggedRow,
+          w: placement.w,
+          h: placement.h,
+        }
+      : null;
+  const draftX = draft?.x;
+  const draftY = draft?.y;
+  const draftW = draft?.w;
+  const draftH = draft?.h;
+  const onDraftRectRef = useRef(onDraftRect);
+  useEffect(() => {
+    onDraftRectRef.current = onDraftRect;
+  });
+  useEffect(() => {
+    const report = onDraftRectRef.current;
+    if (!report) return;
+    report(
+      item.id,
+      draftX === undefined
+        ? null
+        : { x: draftX, y: draftY!, w: draftW!, h: draftH!, id: item.id, fullBleed },
+    );
+  }, [item.id, draftX, draftY, draftW, draftH, fullBleed]);
+  // An unmounting block (e.g. dropped into another section) takes its guides along.
+  useEffect(() => {
+    const id = item.id;
+    return () => onDraftRectRef.current?.(id, null);
+  }, [item.id]);
 
   const gridPlacement: React.CSSProperties = {
     gridColumn: fullBleed ? '1 / -1' : `${displayedPlacement.x + 2} / span ${displayedPlacement.w}`,
@@ -317,6 +367,7 @@ export function GridBlock({
         aria-label={blockName}
         aria-describedby={blockInstructionsId}
         data-vantage-block={blockKey}
+        data-valign={verticalAlign}
         onFocus={onFocus}
         onKeyDown={onBodyKeyDown}
         onPointerDownCapture={onPointerDownCapture}

@@ -173,3 +173,27 @@ describe('VantagePreview desktop hidden', () => {
     expect(css.match(/data-vp-hidden~="desktop"/g)).toHaveLength(1);
   });
 });
+
+describe('VantagePreview content alignment', () => {
+  it('adds no alignment for items without one', () => {
+    const html = render({}, {}, ['desktop', 'mobile']);
+    expect(html).not.toContain('data-valign');
+    expect(html).not.toContain('data-vp-valign=');
+  });
+
+  it('marks the alignment in single-breakpoint mode', () => {
+    expect(render({}, { verticalAlign: 'center' })).toContain('data-valign="center"');
+  });
+
+  it('emits one token per breakpoint in responsive mode, overrides included', () => {
+    const html = render(
+      { overrides: { mobile: { items: { a: { verticalAlign: 'end' } } } } },
+      { verticalAlign: 'center' },
+      ['desktop', 'mobile'],
+    );
+    expect(html).toContain('data-vp-valign="desktop-center mobile-end"');
+    // Scoped rules pick the token of the active breakpoint.
+    expect(html).toContain('[data-vp-valign~="mobile-end"]{justify-content:flex-end');
+    expect(html).toContain('[data-vp-valign~="desktop-center"]{justify-content:center');
+  });
+});
