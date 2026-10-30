@@ -90,10 +90,6 @@ const guides = () =>
     left: el.style.left,
     top: el.style.top,
   }));
-const sizeMarkers = () =>
-  [...document.querySelectorAll<HTMLElement>('[data-vantage-size-match]')].map(
-    (el) => `${el.getAttribute('data-vantage-size-match')} ${el.style.gridColumn}`,
-  );
 
 describe('alignment guides while resizing', () => {
   const layout = layoutWith([
@@ -101,7 +97,7 @@ describe('alignment guides while resizing', () => {
     { id: 'b', kind: 'block', x: 0, y: 2, w: 4, h: 2 },
   ]);
 
-  it('shows edge guides and size matches during the resize and removes them after', () => {
+  it('shows edge guides during the resize and removes them after', () => {
     render(<VantageBuilder value={layout} onChange={() => {}} components={components} />);
     expect(guides()).toEqual([]);
 
@@ -113,21 +109,9 @@ describe('alignment guides while resizing', () => {
     // Two columns wider: now as wide as b, so left, centre and right line up.
     fireEvent.pointerMove(window, pointer(384, 24));
     expect(guides().map((g) => g.left)).toEqual(['0px', '192px', '384px']);
-    expect(sizeMarkers()).toEqual(['w 2 / span 4', 'w 2 / span 4']);
 
     fireEvent.pointerUp(window, pointer(384, 24));
     expect(guides()).toEqual([]);
-    expect(sizeMarkers()).toEqual([]);
-  });
-
-  it('marks equal heights', () => {
-    render(<VantageBuilder value={layout} onChange={() => {}} components={components} />);
-    const south = document.querySelector('[data-vantage-block="s:a"] [data-edge="s"]')!;
-    fireEvent.pointerDown(south, pointer(96, 48));
-    fireEvent.pointerMove(window, pointer(96, 96));
-    expect(sizeMarkers()).toContain('h 2 / span 2');
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(sizeMarkers()).toEqual([]);
   });
 });
 

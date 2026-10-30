@@ -14,7 +14,7 @@ function lines(result: ReturnType<typeof computeAlignment>) {
 describe('computeAlignment guides', () => {
   it('finds nothing for a lone block off the section centre', () => {
     const result = computeAlignment(rect('m', 0, 1, 3, 3), [], section);
-    expect(result).toEqual({ guides: [], sizeMatches: [] });
+    expect(result).toEqual({ guides: [] });
   });
 
   it('matches left edges and spans both blocks', () => {
@@ -112,7 +112,6 @@ describe('computeAlignment with full-bleed blocks', () => {
   it('ignores the sides of a full-bleed block', () => {
     const result = computeAlignment(rect('m', 0, 4, 3, 2), [rect('a', 0, 0, 3, 2, true)], section);
     expect(result.guides.filter((g) => g.orientation === 'vertical')).toEqual([]);
-    expect(result.sizeMatches).toEqual([{ dimension: 'h', itemIds: ['a'] }]);
   });
 
   it('still aligns tops and bottoms with a full-bleed block', () => {
@@ -123,26 +122,6 @@ describe('computeAlignment with full-bleed blocks', () => {
   it('a moving full-bleed block gets horizontal guides only', () => {
     const result = computeAlignment(rect('m', 0, 2, 2, 3, true), [rect('a', 0, 2, 2, 3)], section);
     expect(result.guides.every((g) => g.orientation === 'horizontal')).toBe(true);
-    expect(result.sizeMatches).toEqual([{ dimension: 'h', itemIds: ['a'] }]);
-  });
-});
-
-describe('computeAlignment size matches', () => {
-  it('reports equal widths and heights separately', () => {
-    const result = computeAlignment(
-      rect('m', 0, 6, 4, 2),
-      [rect('a', 6, 0, 4, 3), rect('b', 8, 3, 1, 2), rect('c', 0, 0, 2, 1)],
-      section,
-    );
-    expect(result.sizeMatches).toEqual([
-      { dimension: 'w', itemIds: ['a'] },
-      { dimension: 'h', itemIds: ['b'] },
-    ]);
-  });
-
-  it('reports nothing when no size matches', () => {
-    const result = computeAlignment(rect('m', 0, 6, 4, 2), [rect('a', 5, 0, 3, 3)], section);
-    expect(result.sizeMatches).toEqual([]);
   });
 });
 

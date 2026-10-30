@@ -184,7 +184,6 @@ export type {
   GuideEdge,
   GuideGeometry,
   GuideRect,
-  SizeMatch,
 } from './lib/guides';
 
 export { resolveSelectedItem } from './lib/inspector';

@@ -501,9 +501,6 @@ export function SectionView({ section }: SectionViewProps) {
             {alignment && moving ? (
               <AlignmentGuides
                 result={alignment}
-                moving={moving}
-                others={guideRects}
-                columns={columns}
                 geometry={{
                   contentOffsetX,
                   contentOffsetY: paddingTop + alignOffset,

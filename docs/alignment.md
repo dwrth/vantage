@@ -6,9 +6,8 @@ While a block is dragged or resized, the builder draws thin lines (`--vantage-gu
 
 - **Edges and centres.** Left, centre and right of the block against the same edges of every other block (vertical lines), and top, middle and bottom (horizontal lines). Only like edges are compared: a block whose left edge touches another block's right edge is a neighbour, not aligned, and gets no line.
 - **Section centre.** A dashed line when the block is centred in the section, horizontally (`columns / 2`) or vertically (`rows / 2`).
-- **Size matches.** A small bar with end ticks (`--vantage-size-match-color`, defaults to the guide colour) on the block and on every block of the same width (bar at the bottom) or height (bar on the right).
 
-A block dragged in from another section or a palette is compared through its drop ghost. Full-bleed blocks take part only vertically: their sides are the section's sides. Guides and markers disappear on drop, on Escape and when the gesture is cancelled. They are `aria-hidden` and ignore the pointer.
+A block dragged in from another section or a palette is compared through its drop ghost. Full-bleed blocks take part only vertically: their sides are the section's sides. Guides disappear on drop, on Escape and when the gesture is cancelled. They are `aria-hidden` and ignore the pointer.
 
 **No snapping to guides.** Placements already snap to whole cells, so a guide is simply "same column or row value as block K", exact in grid units, and the grid snap that exists today puts the block on the guide. Extra snapping would only help with sub-cell positions, which do not exist, and a magnetic pull within one cell would make it impossible to place a block one column next to another. The guides are visual hints.
 
@@ -17,13 +16,12 @@ The computation is pure and exported for hosts that draw their own overlay:
 ```ts
 import { computeAlignment, guideBox } from 'vantage';
 
-const { guides, sizeMatches } = computeAlignment(
+const { guides } = computeAlignment(
   { id: 'a', x: 2, y: 0, w: 4, h: 2 }, // moving block (cells), `fullBleed?` optional
   otherBlocks, // GuideRect[]; the moving id is skipped
   { columns: 12, rows: 8 },
 );
 // guides: { orientation, edge, position, from, to, itemIds, sectionCenter }[] (grid units)
-// sizeMatches: { dimension: 'w' | 'h', itemIds }[]
 guideBox(guides[0], geometry); // { left, top, width, height } in px inside the grid element
 ```
 

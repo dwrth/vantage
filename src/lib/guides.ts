@@ -1,7 +1,7 @@
 import type { PlacementRect } from './grid';
 
 /**
- * Alignment guides and size-match markers for a block being dragged or resized, in grid units.
+ * Alignment guides for a block being dragged or resized, in grid units.
  *
  * Placements already snap to whole cells, so "aligned" means equal grid values: no tolerance
  * and no extra snapping. Only like edges are compared (left with left, centre with centre,
@@ -30,15 +30,8 @@ export type AlignmentGuide = {
   sectionCenter: boolean;
 };
 
-export type SizeMatch = {
-  /** `w`: the moving rect's width equals theirs; `h`: its height. */
-  dimension: 'w' | 'h';
-  itemIds: string[];
-};
-
 export type AlignmentResult = {
   guides: AlignmentGuide[];
-  sizeMatches: SizeMatch[];
 };
 
 export type AlignmentSection = {
@@ -125,7 +118,7 @@ function guidesOnAxis(
 }
 
 /**
- * Guides and size matches for `moving` against `others` (the moving rect itself is skipped by
+ * Guides for `moving` against `others` (the moving rect itself is skipped by
  * id). Full-bleed rects take part only vertically: their left / right edges and width are the
  * section's, which would match every block at the section edge.
  */
@@ -146,15 +139,7 @@ export function computeAlignment(
     ...guidesOnAxis(Y_AXIS, movingRect, all, section),
   ];
 
-  const sizeMatches: SizeMatch[] = [];
-  const sameWidth = moving.fullBleed
-    ? []
-    : narrow.filter(({ rect }) => rect.w === movingRect.w).map(({ id }) => id);
-  if (sameWidth.length > 0) sizeMatches.push({ dimension: 'w', itemIds: sameWidth });
-  const sameHeight = all.filter(({ rect }) => rect.h === movingRect.h).map(({ id }) => id);
-  if (sameHeight.length > 0) sizeMatches.push({ dimension: 'h', itemIds: sameHeight });
-
-  return { guides, sizeMatches };
+  return { guides };
 }
 
 /** Grid geometry of a section in px, measured from the grid element's padding box. */
