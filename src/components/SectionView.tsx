@@ -92,6 +92,7 @@ export function SectionView({ section }: SectionViewProps) {
     activeBreakpoint,
     breakpointPreviewWidths,
     renderSectionHeader,
+    sectionHeaderPlacement,
     renderSectionFooter,
     sectionResizeLabel,
     showSectionActions,
@@ -425,6 +426,7 @@ export function SectionView({ section }: SectionViewProps) {
   const isDropTarget = ghost !== null;
   const hasSelection = selection?.sectionId === id;
   const chromeCtx = { section, activeBreakpoint, hasSelection, isDropTarget };
+  const header = renderSectionHeader ? renderSectionHeader(chromeCtx) : null;
   const sectionClass = [
     builder.section,
     draftRows !== null ? builder['section--resizing'] : '',
@@ -448,8 +450,10 @@ export function SectionView({ section }: SectionViewProps) {
       data-vantage-section-selected={hasSelection ? '' : undefined}
       data-vantage-drop-target={isDropTarget ? '' : undefined}
     >
-      {renderSectionHeader ? renderSectionHeader(chromeCtx) : null}
+      {sectionHeaderPlacement === 'section' ? header : null}
       <div className={builder['canvas-frame']} style={{ maxWidth: canvasMaxWidth }}>
+        {/* Outside canvas-wrap (the grid's container-query box) and the grid, so grid math ignores it. */}
+        {sectionHeaderPlacement === 'canvas' ? header : null}
         <div className={builder['canvas-wrap']}>
           <div
             ref={containerRef}

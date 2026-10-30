@@ -46,6 +46,12 @@ export type SectionChromeContext = {
   isDropTarget: boolean;
 };
 
+/**
+ * Where `renderSectionHeader` goes. `section`: first child of the section, full section width.
+ * `canvas`: inside the breakpoint-width canvas frame, flush above the grid.
+ */
+export type SectionHeaderPlacement = 'section' | 'canvas';
+
 export type BuilderContextValue = {
   layout: Layout;
   enabledBreakpoints: Breakpoint[];
@@ -60,6 +66,7 @@ export type BuilderContextValue = {
   activeBreakpoint: Breakpoint;
   setActiveBreakpoint: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionChromeContext) => ReactNode;
+  sectionHeaderPlacement: SectionHeaderPlacement;
   renderSectionFooter?: (ctx: SectionChromeContext) => ReactNode;
   sectionResizeLabel?: (section: Section) => string;
   showSectionActions: boolean;

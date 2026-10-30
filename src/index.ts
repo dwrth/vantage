@@ -7,6 +7,7 @@ export type {
   ItemDeleteButtonRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
+  SectionHeaderPlacement,
   SectionActionLabels,
   BuilderHistory,
   BlockLabels,

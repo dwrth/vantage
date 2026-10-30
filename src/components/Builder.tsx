@@ -21,6 +21,7 @@ import type {
   ExternalDropEvent,
   ItemContextMenuEvent,
   SectionChromeContext,
+  SectionHeaderPlacement,
   SelectionRef,
 } from '../context/BuilderContext';
 import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
@@ -74,6 +75,13 @@ export type VantageBuilderProps = {
   defaultActiveBreakpoint?: Breakpoint;
   onActiveBreakpointChange?: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionHeaderRenderProps) => ReactNode;
+  /**
+   * `section` (default): the header is the section's first child and spans the full section width.
+   * `canvas`: the header sits flush above the grid inside the canvas frame, so it matches the active
+   * breakpoint's preview width. Either way it is in flow outside the grid, so it never shifts the
+   * grid math (drop targets, resize, hit testing) and blocks cannot overlap it.
+   */
+  sectionHeaderPlacement?: SectionHeaderPlacement;
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
   /**
    * Accessible name of a section's bottom resize edge, e.g. for translation.
@@ -126,6 +134,7 @@ export type VantageBuilderProps = {
 export type SectionChromeRenderProps = SectionChromeContext;
 
 export type SectionHeaderRenderProps = SectionChromeRenderProps;
+export type { SectionHeaderPlacement };
 export type SectionFooterRenderProps = SectionChromeRenderProps;
 
 export function VantageBuilder({
@@ -141,6 +150,7 @@ export function VantageBuilder({
   defaultActiveBreakpoint = 'desktop',
   onActiveBreakpointChange,
   renderSectionHeader,
+  sectionHeaderPlacement = 'section',
   renderSectionFooter,
   sectionResizeLabel,
   showSectionActions = true,
@@ -261,6 +271,7 @@ export function VantageBuilder({
         activeBreakpoint,
         setActiveBreakpoint,
         renderSectionHeader,
+        sectionHeaderPlacement,
         renderSectionFooter,
         sectionResizeLabel,
         showSectionActions,
