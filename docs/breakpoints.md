@@ -47,7 +47,7 @@ next = autoArrangeBreakpoint(next, 'mobile', sectionId); // one section
 - **Mobile** — `columns` becomes `DEFAULT_MOBILE_COLUMNS`; items are stacked top-to-bottom at full width. Items that overlap (e.g. text layered on an image) form a group that is scaled as a unit, so layering survives.
 - **Tablet** — `columns` becomes 2/3 of desktop; every item is scaled proportionally, arrangement unchanged.
 
-It overwrites `columns` and item `x` / `y` / `w` / `h` for that breakpoint and keeps gaps, paddings, `hidden` flags and `data` patches. Items hidden on the breakpoint are skipped when stacking.
+It overwrites `columns` and item `x` / `y` / `w` / `h` for that breakpoint and keeps gaps, paddings, `hidden` flags and `data` patches. Items hidden on the breakpoint are skipped when stacking (see [Hiding items](#hiding-items)).
 
 ## Per-breakpoint overrides
 
@@ -65,6 +65,24 @@ clearItemOverride(layout, sectionId, 'mobile', itemId);
 ```
 
 Section `rows` follow the same rule: resizing a section on tablet or mobile writes `overrides[bp].rows`; without it the breakpoint inherits the desktop `rows` (grown to fit that breakpoint's content).
+
+## Hiding items
+
+`setItemHidden(layout, sectionId, itemId, breakpoint, hidden)` works on every breakpoint, desktop included:
+
+- **Desktop** stores the flag on the item itself (`item.hidden`), next to its desktop `x` / `y` / `w` / `h`. `hidden: false` removes the key.
+- **Tablet / mobile** store it in `overrides[bp].items[id].hidden`.
+
+Each breakpoint reads only its own flag: a desktop-hidden item still shows on tablet and mobile unless they hide it too, and the other way round. A breakpoint that is not enabled falls back to desktop, flag included.
+
+A hidden item behaves the same on every breakpoint:
+
+- The builder canvas does not render it; the host's layers panel still lists it (`resolveItem(...).hidden`).
+- It takes no space in the section height (`sectionContentRows` / `sectionRows`), so a section can shrink once its bottom item is hidden, and moving or resizing another item does not pin the height to it.
+- New, pasted and duplicated items go below the visible content (desktop placement skips desktop-hidden items).
+- `VantagePreview` does not render it, or hides it with `data-vp-hidden` inside that breakpoint's `@container` range. The desktop range is everything above the widest enabled non-desktop breakpoint.
+- Rows inside the section that only it occupied keep their height (unlike `isItemVisible`, which collapses them).
+- `autoArrangeBreakpoint` skips items hidden on the target breakpoint. Desktop-hidden items are shown on tablet and mobile, so they are arranged from their desktop placement.
 
 ## Resolution helpers
 
