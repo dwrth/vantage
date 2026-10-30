@@ -249,6 +249,11 @@ function pinSectionRows(
   return { section: withSectionRows(section, breakpoint, rows), rows };
 }
 
+/** Items shown on desktop; desktop-hidden items take no space when placing new ones. */
+function desktopVisibleItems(items: GridItem[]): GridItem[] {
+  return items.filter((item) => item.hidden !== true);
+}
+
 function descriptorForKind(registry: ComponentRegistry, kind: string): KindDescriptor | undefined {
   return registry[kind];
 }
@@ -602,7 +607,7 @@ export function pasteItems(
   const taken = new Set(target.items.map((item) => item.id));
   const ids: Record<string, string> = {};
   const top = Math.min(...clipboard.items.map((item) => item.y));
-  const below = nextSlot(target.items).y;
+  const below = nextSlot(desktopVisibleItems(target.items)).y;
   const copies: GridItem[] = clipboard.items.map((source) => {
     const identity = cloneIdentity(source, taken, options);
     ids[source.id] = identity.id;
@@ -798,7 +803,20 @@ export function setItemHidden(
   breakpoint: Breakpoint,
   hidden: boolean,
 ): Layout {
-  if (breakpoint === 'desktop') return layout;
+  if (breakpoint === 'desktop') {
+    return {
+      ...layout,
+      sections: mapSection(layout.sections, sectionId, (section) => ({
+        ...section,
+        items: section.items.map((item) => {
+          if (item.id !== itemId) return item;
+          const next: GridItem = { ...item, hidden: true };
+          if (!hidden) delete next.hidden;
+          return next;
+        }),
+      })),
+    };
+  }
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (section) =>
@@ -846,7 +864,7 @@ export function addItem(
         defaults.y !== undefined
           ? pinSectionRows(current, 'desktop')
           : { section: current, rows: undefined };
-      const slot = nextSlot(section.items);
+      const slot = nextSlot(desktopVisibleItems(section.items));
       const placement = clampItem(
         { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
         section.columns,
@@ -950,7 +968,7 @@ export function moveItemToSection(
   // Neither section changes height on the breakpoint being edited.
   const pinnedSource = pinSectionRows(source, breakpoint).section;
   const { section: pinnedTarget, rows: targetRows } = pinSectionRows(target, breakpoint);
-  const slot = nextSlot(target.items);
+  const slot = nextSlot(desktopVisibleItems(target.items));
   const placement = clampItem(
     {
       x: isDesktop ? (options.x ?? slot.x) : slot.x,
