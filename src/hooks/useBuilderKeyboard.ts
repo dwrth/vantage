@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, type MutableRefObject, type RefObject } from 'react';
 import type { SelectionRef } from '../context/BuilderContext';
 import type { LayoutChangeOptions } from '../lib/diff';
+import type { GridMinSize } from '../lib/grid';
 import { applyBlockAction, keyToAction } from '../lib/keyboard';
 import type { BlockAnnouncements, BlockLabels } from '../lib/keyboardLabels';
 import { blocksInReadingOrder } from '../lib/readingOrder';
@@ -37,6 +38,8 @@ type KeyboardState = {
   blockLabels: BlockLabels;
   announcements: BlockAnnouncements;
   announce: (message: string) => void;
+  /** Content minimum per block key, as the mounted blocks report it. */
+  minSizes: MutableRefObject<Map<string, GridMinSize>>;
 };
 
 /**
@@ -132,7 +135,9 @@ export function useBuilderKeyboard(rootRef: RefObject<HTMLElement | null>, state
         return;
       }
 
-      const result = applyBlockAction(s.layout, selection, action, s.activeBreakpoint);
+      const result = applyBlockAction(s.layout, selection, action, s.activeBreakpoint, {
+        minSize: s.minSizes.current.get(blockKey(selection)),
+      });
       if (!result) return;
       e.preventDefault();
       const { item } = result;

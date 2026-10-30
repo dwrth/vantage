@@ -7,6 +7,7 @@ import {
   sendItemBackward,
 } from '../mutations/layout';
 import type { Breakpoint, GridItem, Layout } from '../types';
+import { resizeFloor, type GridMinSize } from './grid';
 import { getEnabledBreakpoints, resolveItem, resolveSection, sectionRows } from './breakpoint';
 
 /**
@@ -69,9 +70,15 @@ export type BlockEditResult = {
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(value, Math.max(min, max)));
 
+export type BlockActionOptions = {
+  /** Content minimum of the block on this grid; resizes do not shrink below it. */
+  minSize?: GridMinSize;
+};
+
 /**
  * Applies a keyboard edit to the selected block on `breakpoint`'s grid. Moves and resizes stay
- * inside the section (columns and rows), like pointer drags. Returns `null` when the block is
+ * inside the section (columns and rows), like pointer drags, and resizes respect
+ * `options.minSize` like pointer resizes (see `resizeFloor`). Returns `null` when the block is
  * missing or hidden on that breakpoint.
  */
 export function applyBlockAction(
@@ -79,6 +86,7 @@ export function applyBlockAction(
   selection: SelectionRef,
   action: BlockEditAction,
   breakpoint: Breakpoint,
+  options: BlockActionOptions = {},
 ): BlockEditResult | null {
   const enabled = getEnabledBreakpoints(layout);
   const section = layout.sections.find((s) => s.id === selection.sectionId);
@@ -108,8 +116,11 @@ export function applyBlockAction(
       };
     }
     case 'resize': {
-      const w = fullBleed ? placement.w : clamp(placement.w + action.dw, 1, columns - placement.x);
-      const h = clamp(placement.h + action.dh, 1, rows - placement.y);
+      const floor = resizeFloor(placement, options.minSize);
+      const w = fullBleed
+        ? placement.w
+        : clamp(placement.w + action.dw, floor.w, columns - placement.x);
+      const h = clamp(placement.h + action.dh, floor.h, rows - placement.y);
       if (w === placement.w && h === placement.h) return { layout, item: current };
       return {
         layout: resizeItem(layout, sectionId, itemId, placement.x, placement.y, w, h, breakpoint),

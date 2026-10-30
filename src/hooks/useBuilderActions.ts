@@ -155,6 +155,17 @@ export function useBuilderActions() {
         apply(mutations.resizeSection(layout, sectionId, rows, breakpoint ?? activeBreakpoint)),
       removeItem: (sectionId: string, itemId: string) =>
         apply(mutations.removeItem(layout, sectionId, itemId)),
+      moveItemBelowOverlaps: (sectionId: string, itemId: string, breakpoint?: Breakpoint) =>
+        apply(
+          mutations.moveItemBelowOverlaps(
+            layout,
+            sectionId,
+            itemId,
+            breakpoint ?? activeBreakpoint,
+          ),
+        ),
+      setItemAllowOverlap: (sectionId: string, itemId: string, allowOverlap: boolean) =>
+        apply(mutations.setItemAllowOverlap(layout, sectionId, itemId, allowOverlap)),
       bringItemForward: (sectionId: string, itemId: string) =>
         apply(mutations.bringItemForward(layout, sectionId, itemId)),
       sendItemBackward: (sectionId: string, itemId: string) =>

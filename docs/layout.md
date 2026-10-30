@@ -35,7 +35,10 @@ type GridItem<TData = unknown> = {
   ref?: string; // external entity id (optional)
   data?: TData; // block payload (optional when `ref` resolves externally)
   fullBleed?: boolean; // span the section width
+  hidden?: boolean; // hidden on desktop; tablet / mobile use `overrides[bp].items[id].hidden`
   verticalAlign?: 'start' | 'center' | 'end'; // content position in the cell; unset = kind decides
+  allowOverlap?: boolean; // intended layering: no overlap warning in the builder
+  meta?: Record<string, unknown>; // host data, kept as is
 };
 ```
 
@@ -126,7 +129,10 @@ bringItemToFront(layout, sectionId, itemId); // move to top of stack
 sendItemToBack(layout, sectionId, itemId); // move to bottom of stack
 ```
 
-Edge positions are no-ops. The demo wires these to a right-click context menu (`demo/src/App.tsx` → `ContextMenu`):
+Edge positions are no-ops. Blocks that overlap by accident get a warning in the builder; see
+[Overlap safety](overlap.md) for `findOverlaps`, `moveItemBelowOverlaps` and `setItemAllowOverlap`.
+
+The demo wires these to a right-click context menu (`demo/src/App.tsx` → `ContextMenu`):
 
 ```tsx
 <VantageBuilder

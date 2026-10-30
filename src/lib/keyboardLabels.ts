@@ -12,6 +12,12 @@ export type BlockLabels = {
   dragHandle: (item: GridItem) => string;
   /** Default delete button (when no `renderDeleteButton`). */
   deleteButton: (item: GridItem) => string;
+  /** Built-in overlap warning of a block that overlaps others (when no `renderOverlapWarning`). */
+  overlapWarning: (item: GridItem) => string;
+  /** Built-in overlap warning: button that moves the block below the blocks it overlaps. */
+  moveBelow: string;
+  /** Built-in overlap warning: button that keeps the overlap as intended layering. */
+  keepOverlap: string;
 };
 
 /** What a keyboard action did to a block. Positions and sizes are 1-based grid cells. */
@@ -46,6 +52,9 @@ export const DEFAULT_BLOCK_LABELS: BlockLabels = {
     'Arrow keys move the block, Shift and arrow keys resize it. Delete removes it, Escape deselects it. Ctrl or Cmd with Shift and up or down arrow changes the layer.',
   dragHandle: (item) => `Drag ${nameOf(item)}`,
   deleteButton: (item) => `Delete ${nameOf(item)}`,
+  overlapWarning: (item) => `${nameOf(item)} overlaps another block`,
+  moveBelow: 'Move below',
+  keepOverlap: 'Keep overlap',
 };
 
 export const DEFAULT_BLOCK_ANNOUNCEMENTS: BlockAnnouncements = {

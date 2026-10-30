@@ -15,6 +15,7 @@ import {
   exportLayout,
   importLayout,
   moveItem,
+  moveItemBelowOverlaps,
   moveItemToSection,
   removeItem,
   removeSection,
@@ -23,6 +24,7 @@ import {
   sendItemBackward,
   sendItemToBack,
   setBreakpointWidth,
+  setItemAllowOverlap,
   setItemFullBleed,
   setItemHidden,
   setItemVerticalAlign,
@@ -576,5 +578,85 @@ describe('setItemVerticalAlign', () => {
   it('is a no-op for unknown items', () => {
     const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2)]));
     expect(setItemVerticalAlign(layout, 's', 'x', 'end', 'mobile')).toEqual(layout);
+  });
+});
+
+describe('setItemAllowOverlap', () => {
+  it('sets the flag, passes validation and removes it again', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2)]));
+    const on = setItemAllowOverlap(layout, 's', 'a', true);
+    expect(findItem(on, 'a').allowOverlap).toBe(true);
+    expect(isValidLayout(on)).toBe(true);
+    const off = setItemAllowOverlap(on, 's', 'a', false);
+    expect('allowOverlap' in findItem(off, 'a')).toBe(false);
+  });
+});
+
+describe('moveItemBelowOverlaps', () => {
+  it('moves the item to the free rows below the block it overlaps, keeping column and size', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 6, 3), item('b', 4, 1, 4, 2)], { rows: 6 }),
+    );
+    const next = moveItemBelowOverlaps(layout, 's', 'b');
+    expect(findItem(next, 'b')).toMatchObject({ x: 4, y: 3, w: 4, h: 2 });
+    expect(find(next).rows).toBe(6);
+    expect(findItem(next, 'a')).toEqual(findItem(layout, 'a'));
+  });
+
+  it('grows the section when the item lands below its last row', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 6, 4), item('b', 0, 2, 4, 2)], { rows: 4 }),
+    );
+    const next = moveItemBelowOverlaps(layout, 's', 'b');
+    expect(findItem(next, 'b')).toMatchObject({ y: 4 });
+    expect(find(next).rows).toBe(6);
+  });
+
+  it('skips blocks in the way below', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 6, 2), item('b', 0, 1, 4, 2), item('c', 2, 2, 2, 3)], {
+        rows: 8,
+      }),
+    );
+    // b overlaps a and c; the first rows free of both start at c's bottom.
+    expect(findItem(moveItemBelowOverlaps(layout, 's', 'b'), 'b')).toMatchObject({ y: 5 });
+  });
+
+  it("writes the breakpoint override and that breakpoint's rows off desktop", () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 6, 2), item('b', 6, 0, 6, 2)], {
+        rows: 2,
+        overrides: {
+          mobile: {
+            columns: 4,
+            items: { a: { x: 0, y: 0, w: 4, h: 2 }, b: { x: 0, y: 1, w: 4, h: 2 } },
+          },
+        },
+      }),
+    );
+    const next = moveItemBelowOverlaps(layout, 's', 'b', 'mobile');
+    expect(find(next).overrides!.mobile!.items!.b).toMatchObject({ x: 0, y: 2, w: 4, h: 2 });
+    expect(find(next).overrides!.mobile!.rows).toBe(4);
+    expect(findItem(next, 'b')).toEqual(findItem(layout, 'b'));
+    expect(find(next).rows).toBe(2);
+  });
+
+  it('returns the layout unchanged without an unintended overlap', () => {
+    const apart = layoutOf(section('s', [item('a', 0, 0, 2, 2), item('b', 2, 0, 2, 2)]));
+    expect(moveItemBelowOverlaps(apart, 's', 'b')).toBe(apart);
+    const layered = setItemAllowOverlap(
+      layoutOf(section('s', [item('a', 0, 0, 4, 4), item('b', 1, 1, 2, 2)])),
+      's',
+      'b',
+      true,
+    );
+    expect(moveItemBelowOverlaps(layered, 's', 'b')).toBe(layered);
+  });
+
+  it('leaves section rows unset when the section follows its content', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 4, 2), item('b', 0, 1, 4, 2)]));
+    const next = moveItemBelowOverlaps(layout, 's', 'b');
+    expect(findItem(next, 'b').y).toBe(2);
+    expect(find(next).rows).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import type { GridItem } from '../types';
+import type { GridItem, ItemMinSize } from '../types';
 
 export const CELL_MAX_PX = 96;
 export const ROW_MAX_PX = 48;
@@ -86,10 +86,26 @@ export function resizeEdgeAxes(edge: ResizeEdge): {
   };
 }
 
+/** Smallest size, in cells, a resize may leave a block at. */
+export type GridMinSize = { w: number; h: number };
+
+/**
+ * Lower size bound of one resize gesture: `minSize`, but never above the size the gesture
+ * started at. A block already smaller than its content can still be resized, just not
+ * shrunk further; the resize does not force it up to the minimum.
+ */
+export function resizeFloor(start: Pick<PlacementRect, 'w' | 'h'>, minSize?: GridMinSize) {
+  return {
+    w: Math.max(1, Math.min(minSize?.w ?? 1, start.w)),
+    h: Math.max(1, Math.min(minSize?.h ?? 1, start.h)),
+  };
+}
+
 /**
  * Apply cell-snapped `dw` / `dh` from a resize handle, anchoring the opposite edge(s).
  * Pass deltas already snapped to the grid (incl. rowSteps for vertical). With `rows`, the
- * south edge stops at the section's bottom.
+ * south edge stops at the section's bottom. With `minSize`, the block does not shrink below
+ * it (see `resizeFloor`).
  */
 export function resizeByHandle(
   start: PlacementRect,
@@ -98,31 +114,33 @@ export function resizeByHandle(
   dh: number,
   columns: number,
   rows?: number,
+  minSize?: GridMinSize,
 ): PlacementRect {
   const { moveE, moveW, moveN, moveS } = resizeEdgeAxes(edge);
+  const floor = resizeFloor(start, minSize);
   let { x, y, w, h } = start;
 
   if (moveE) {
-    w = Math.max(1, Math.min(start.w + dw, columns - start.x));
+    w = Math.max(floor.w, Math.min(start.w + dw, columns - start.x));
   } else if (moveW) {
     const right = start.x + start.w;
-    x = Math.max(0, Math.min(start.x + dw, right - 1));
+    x = Math.max(0, Math.min(start.x + dw, right - floor.w));
     w = right - x;
   }
 
   if (moveS) {
     const maxH = rows === undefined ? Infinity : rows - start.y;
-    h = Math.max(1, Math.min(start.h + dh, maxH));
+    h = Math.max(floor.h, Math.min(start.h + dh, maxH));
   } else if (moveN) {
     const bottom = start.y + start.h;
-    y = Math.max(0, Math.min(start.y + dh, bottom - 1));
+    y = Math.max(0, Math.min(start.y + dh, bottom - floor.h));
     h = bottom - y;
   }
 
   return clampItem({ x, y, w, h }, columns, rows);
 }
 
-export function overlaps(a: GridItem, b: GridItem): boolean {
+export function overlaps(a: PlacementRect, b: PlacementRect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
@@ -135,6 +153,27 @@ export function getCellWidth(
   if (columns <= 0) return 0;
   const inner = getGridContentWidth(containerWidth, columns, gap, cellMaxPx);
   return Math.max(0, (inner - gap * (columns - 1)) / columns);
+}
+
+/**
+ * Rows a block needs to be at least `heightPx` tall, at the base row height (`cellHeight` is
+ * one row plus the row gap, as from `getCellHeight`). Rows that grow with content are ignored.
+ */
+export function rowsForHeight(heightPx: number, cellHeight: number, rowGap: number): number {
+  if (!(heightPx > 0) || !(cellHeight > 0)) return 1;
+  // h rows are h * cellHeight - rowGap tall; allow a hair of sub-pixel rounding.
+  return Math.max(1, Math.ceil((heightPx + rowGap - 0.5) / cellHeight));
+}
+
+/** Turn a host-reported `ItemMinSize` into whole cells on a grid with `columns`. */
+export function resolveMinSize(
+  min: ItemMinSize | null | undefined,
+  grid: { columns: number; cellHeight: number; rowGap: number },
+): GridMinSize {
+  const w = Math.max(1, Math.min(Math.ceil(min?.w ?? 1), grid.columns));
+  const fromPx =
+    min?.heightPx !== undefined ? rowsForHeight(min.heightPx, grid.cellHeight, grid.rowGap) : 1;
+  return { w, h: Math.max(1, Math.ceil(min?.h ?? 1), fromPx) };
 }
 
 export function getCellHeight(rowHeight: number, gap: number): number {

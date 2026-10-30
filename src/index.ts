@@ -5,6 +5,7 @@ export type {
   ItemEditButtonRenderProps,
   ItemDragHandleRenderProps,
   ItemDeleteButtonRenderProps,
+  ItemOverlapWarningRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
   SectionHeaderPlacement,
@@ -32,6 +33,7 @@ export type {
   SectionVerticalAlign,
   ItemVerticalAlign,
   ItemOverride,
+  ItemMinSize,
   Breakpoint,
   BreakpointWidths,
   GridItem,
@@ -105,6 +107,8 @@ export {
   setItemHidden,
   setItemFullBleed,
   setItemVerticalAlign,
+  setItemAllowOverlap,
+  moveItemBelowOverlaps,
   bringItemForward,
   sendItemBackward,
   bringItemToFront,
@@ -186,6 +190,9 @@ export type {
   GuideRect,
 } from './lib/guides';
 
+export { findOverlaps, overlappingItems, rowBelowOverlaps } from './lib/overlap';
+export type { ItemOverlap } from './lib/overlap';
+
 export { resolveSelectedItem } from './lib/inspector';
 export type { ResolvedSelection } from './lib/inspector';
 
@@ -220,11 +227,14 @@ export {
   itemsAtPointer,
   resizeByHandle,
   resizeEdgeAxes,
+  resizeFloor,
+  resolveMinSize,
+  rowsForHeight,
   CELL_MAX_PX,
   ROW_MAX_PX,
   MOBILE_BREAKPOINT_PX,
 } from './lib/grid';
-export type { ResizeEdge, PlacementRect } from './lib/grid';
+export type { ResizeEdge, PlacementRect, GridMinSize } from './lib/grid';
 
 export {
   DEFAULT_VANTAGE_TOKENS,

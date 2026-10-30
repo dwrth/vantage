@@ -380,3 +380,60 @@
 .grid-block__body--dragging + .grid-block__chrome .grid-block__resize {
   opacity: 1;
 }
+
+/* Overlap warning: amber outline and badge while the block overlaps others unintentionally. */
+.grid-block__chrome--overlap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px dashed #d97706;
+  pointer-events: none;
+}
+
+.grid-block__overlap {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  z-index: 2;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 12px);
+  pointer-events: auto;
+}
+
+.grid-block__overlap-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #d97706;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.16);
+}
+
+.grid-block__overlap-action {
+  padding: 2px 8px;
+  border: 1px solid #f59e0b;
+  border-radius: 5px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.grid-block__overlap-action:hover:where(:not([data-vantage-dragging] *)) {
+  background: #fef3c7;
+}
+
+.grid-block__overlap-action:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

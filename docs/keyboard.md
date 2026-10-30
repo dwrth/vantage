@@ -18,7 +18,8 @@ Text fields (`input`, `textarea`, `select`, contenteditable) keep every key.
 | Shift+Cmd/Ctrl+Z, Cmd/Ctrl+Y                   | Redo (needs the `history` prop)         |
 
 Moves and resizes stay inside the section, like pointer drags, and write the active
-breakpoint's override off desktop. Full-bleed blocks only move and resize vertically.
+breakpoint's override off desktop. Resizes stop at the block's content minimum
+(`getItemMinSize`, see [Overlap safety](overlap.md)), like pointer resizes. Full-bleed blocks only move and resize vertically.
 
 **Not handled by the library:** Cmd/Ctrl+C, V, D and every other key. Copy, paste and duplicate
 need host decisions (entity records, clipboard scope), so the host binds them. Each key has
