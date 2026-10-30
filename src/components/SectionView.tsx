@@ -13,6 +13,7 @@ import {
   getFlexRowHeight,
   itemsAtPointer,
 } from '../lib/grid';
+import { gridCellAt } from '../lib/dropTargeting';
 import { sortByReadingOrder } from '../lib/readingOrder';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { useBuilderActions } from '../hooks/useBuilderActions';
@@ -32,11 +33,6 @@ import { SectionResizeHandle } from './SectionResizeHandle';
 type SectionViewProps = {
   section: Section;
 };
-
-/** Nearest whole cell index for a pixel offset (no sign handling: offsets below 0 clamp later). */
-function pxToCellIndex(px: number, step: number): number {
-  return step > 0 ? Math.round(px / step) : 0;
-}
 
 function parseGridRows(value: string): number[] {
   return Array.from(value.matchAll(/([\d.]+)px/g), (match) => Number(match[1])).filter((v) =>
@@ -96,10 +92,8 @@ export function SectionView({ section }: SectionViewProps) {
     renderSectionFooter,
     sectionResizeLabel,
     showSectionActions,
-    externalDrag,
-    onExternalDrop,
   } = useBuilderContext();
-  const { registerSection, dropTarget, setDropTarget, dragSourceSectionId } = useCanvasDnd();
+  const { registerSection, dropTarget, dragSourceSectionId } = useCanvasDnd();
   const { moveItem, resizeSection } = useBuilderActions();
   const resolveEntity = useResolveItemData();
   const enabledBreakpoints = layout.breakpoints;
@@ -243,22 +237,24 @@ export function SectionView({ section }: SectionViewProps) {
   );
 
   const cellAt = useCallback<SectionDropHandle['cellAt']>(
-    (clientLeft, clientTop, w, h) => {
-      const grid = containerRef.current;
-      const width = Math.max(1, Math.min(w, columns));
-      // Blocks taller than the section shrink to fit, like blocks wider than the grid.
-      const height = Math.max(1, Math.min(h, rows));
-      if (!grid) return { x: 0, y: 0, w: width, h: height };
-      const rect = grid.getBoundingClientRect();
-      const left = clientLeft - rect.left - contentOffsetX;
-      const top = clientTop - rect.top - paddingTop - alignOffset;
-      const x = Math.max(0, Math.min(pxToCellIndex(left, cellXStep), columns - width));
-      const row = rowSteps
-        ? closestRowForOffset(top, rowSteps, cellHeight)
-        : pxToCellIndex(top, cellHeight);
-      const y = Math.max(0, Math.min(row, rows - height));
-      return { x, y, w: width, h: height };
-    },
+    (clientLeft, clientTop, w, h) =>
+      gridCellAt(
+        {
+          // Read live: the grid moves while the page scrolls during a drag.
+          rect: containerRef.current?.getBoundingClientRect() ?? { left: 0, top: 0 },
+          contentOffsetX,
+          contentOffsetY: paddingTop + alignOffset,
+          columns,
+          rows,
+          cellXStep,
+          cellHeight,
+          rowSteps,
+        },
+        clientLeft,
+        clientTop,
+        w,
+        h,
+      ),
     [
       containerRef,
       columns,
@@ -294,60 +290,6 @@ export function SectionView({ section }: SectionViewProps) {
         dropWithin: (event) => handleRef.current.dropWithin(event),
       }),
     [registerSection, id, containerRef],
-  );
-
-  const acceptsExternal = Boolean(externalDrag && onExternalDrop);
-
-  const externalTarget = useCallback(
-    (e: React.DragEvent) => {
-      if (!externalDrag) return null;
-      const size = blockSize(externalDrag.w, externalDrag.h);
-      const cell = cellAt(
-        e.clientX - size.width / 2,
-        e.clientY - size.height / 2,
-        externalDrag.w,
-        externalDrag.h,
-      );
-      return { sectionId: id, ...cell };
-    },
-    [externalDrag, blockSize, cellAt, id],
-  );
-
-  const onExternalDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      const target = externalTarget(e);
-      if (!target) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-      setDropTarget(target);
-    },
-    [externalTarget, setDropTarget],
-  );
-
-  const onExternalDragLeave = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      const next = e.relatedTarget as Node | null;
-      if (next && e.currentTarget.contains(next)) return;
-      if (dropTarget?.sectionId === id) setDropTarget(null);
-    },
-    [dropTarget?.sectionId, id, setDropTarget],
-  );
-
-  const onExternalDropEvent = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      const target = externalTarget(e);
-      if (!target || !onExternalDrop) return;
-      e.preventDefault();
-      setDropTarget(null);
-      onExternalDrop({
-        sectionId: id,
-        x: target.x,
-        y: target.y,
-        breakpoint: activeBreakpoint,
-        dataTransfer: e.dataTransfer,
-      });
-    },
-    [externalTarget, onExternalDrop, setDropTarget, id, activeBreakpoint],
   );
 
   const onGridPointerDownCapture = useCallback(
@@ -461,9 +403,6 @@ export function SectionView({ section }: SectionViewProps) {
             data-vantage-section-frame={id}
             tabIndex={-1}
             onPointerDownCapture={onGridPointerDownCapture}
-            onDragOver={acceptsExternal ? onExternalDragOver : undefined}
-            onDragLeave={acceptsExternal ? onExternalDragLeave : undefined}
-            onDrop={acceptsExternal ? onExternalDropEvent : undefined}
             style={
               {
                 '--cols': columns,
