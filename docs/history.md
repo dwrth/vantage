@@ -59,6 +59,8 @@ Keep those in separate state. They never touch the history stack.
 One gesture is one undo step. Merging is by gesture, not by time:
 
 - **Pointer drag, resize and section resize** emit once at the end, so each is one step.
+- **Group move, align and delete** (multi-selection, see [Selection](selection.md)) are one
+  layout change each, so one step for the whole group.
 - **Keyboard:** the builder tags the changes of one held key (auto-repeat) with the same
   `mergeKey`. Three separate presses are three steps; holding the key is one.
 - **Inspector:** `VantageInspector` tags edits with a key per item, breakpoint and patched

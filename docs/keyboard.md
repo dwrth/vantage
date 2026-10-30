@@ -17,6 +17,10 @@ Text fields (`input`, `textarea`, `select`, contenteditable) keep every key.
 | Cmd/Ctrl+Z                                     | Undo (needs the `history` prop)         |
 | Shift+Cmd/Ctrl+Z, Cmd/Ctrl+Y                   | Redo (needs the `history` prop)         |
 
+With several blocks selected (see [Selection](selection.md)), the keys act from any selected
+block: arrows move the whole group as a unit, Delete / Backspace removes it and Escape clears
+it. Shift+arrows and the layer keys do nothing for a group.
+
 Moves and resizes stay inside the section, like pointer drags, and write the active
 breakpoint's override off desktop. Resizes stop at the block's content minimum
 (`getItemMinSize`, see [Overlap safety](overlap.md)), like pointer resizes. Full-bleed blocks only move and resize vertically.
@@ -58,4 +62,6 @@ with `announcements` and `blockLabels`:
 />
 ```
 
-Positions and sizes in `BlockAnnouncementContext` are 1-based grid cells.
+Positions and sizes in `BlockAnnouncementContext` are 1-based grid cells. Selection and group
+messages (`selectionChanged`, `groupMoved`, `groupAligned`, `groupDeleted`) get a
+`GroupAnnouncementContext` (`{ count, items }`).
