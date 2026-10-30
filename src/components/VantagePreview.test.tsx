@@ -100,3 +100,76 @@ describe('VantagePreview reading order', () => {
     expect(orders).toEqual(['2', '1', '0']);
   });
 });
+
+describe('VantagePreview desktop hidden', () => {
+  const labelled: ComponentRegistry = {
+    block: {
+      component: ({ item }) => <span>{item.id}</span>,
+      defaults: { w: 1, h: 1 },
+    },
+  };
+
+  function layoutWith(breakpoints: string[]): Layout {
+    return {
+      breakpoints,
+      breakpointWidths: { tablet: 1023, mobile: 640 },
+      breakpointPreviewWidths: {},
+      sections: [
+        {
+          id: 's',
+          columns: 12,
+          colGap: 8,
+          rowGap: 8,
+          items: [
+            { id: 'shown', kind: 'block', x: 0, y: 0, w: 4, h: 2 },
+            { id: 'gone', kind: 'block', x: 0, y: 2, w: 4, h: 2, hidden: true },
+          ],
+        },
+      ],
+    } as Layout;
+  }
+
+  it('does not render a desktop-hidden item when only desktop is enabled', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview value={layoutWith(['desktop'])} components={labelled} />,
+    );
+    expect(html).toContain('<span>shown</span>');
+    expect(html).not.toContain('<span>gone</span>');
+  });
+
+  it('does not render it when desktop is forced', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={layoutWith(['desktop', 'mobile'])}
+        components={labelled}
+        breakpoint="desktop"
+      />,
+    );
+    expect(html).not.toContain('<span>gone</span>');
+  });
+
+  it('renders it when a smaller breakpoint is forced', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={layoutWith(['desktop', 'mobile'])}
+        components={labelled}
+        breakpoint="mobile"
+      />,
+    );
+    expect(html).toContain('<span>gone</span>');
+  });
+
+  it('hides it with CSS above the widest smaller breakpoint only', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview value={layoutWith(['desktop', 'tablet', 'mobile'])} components={labelled} />,
+    );
+    expect(html).toContain('<span>gone</span>');
+    expect(html).toContain('data-vp-hidden="desktop"');
+    // The desktop hide rule sits in the desktop range, never outside a container query.
+    const css = html.match(/<style>(.*?)<\/style>/)![1];
+    expect(css).toMatch(
+      /@container \(width > 1023px\)\{[^{}]*\[data-vp-hidden~="desktop"\]\{display:none\}\}/,
+    );
+    expect(css.match(/data-vp-hidden~="desktop"/g)).toHaveLength(1);
+  });
+});

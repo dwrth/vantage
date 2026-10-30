@@ -123,19 +123,30 @@ function placementStyle(
  * scoped `@container` stylesheet picks the active one. Layout is correct before hydration /
  * measurement (no desktop/mobile flash); JS only resolves per-breakpoint `data` patches.
  */
-function breakpointRules(scope: string, bp: Breakpoint): string {
-  const grid = `[data-vantage-preview="${scope}"]>.${preview['preview-section']}>.${preview['preview-grid']}`;
+function gridSelector(scope: string): string {
+  return `[data-vantage-preview="${scope}"]>.${preview['preview-section']}>.${preview['preview-grid']}`;
+}
+
+function hiddenRule(scope: string, bp: Breakpoint): string {
+  return `${gridSelector(scope)}>[data-vp-hidden~="${bp}"]{display:none}`;
+}
+
+function placementRules(scope: string, bp: Breakpoint): string {
+  const grid = gridSelector(scope);
   const vars = SECTION_VARS.map((name) => `--${name}:var(--vp-${bp}-${name})`).join(';');
   return (
     `${grid}{${vars}}` +
-    `${grid}>.${preview['preview-block']}{grid-column:var(--vp-${bp}-col);grid-row:var(--vp-${bp}-row)}` +
-    `${grid}>[data-vp-hidden~="${bp}"]{display:none}`
+    `${grid}>.${preview['preview-block']}{grid-column:var(--vp-${bp}-col);grid-row:var(--vp-${bp}-row)}`
   );
 }
 
-/** Desktop rules apply unconditionally; each non-desktop breakpoint owns a disjoint width range. */
+/**
+ * Desktop placement applies unconditionally (the other ranges override it); desktop `hidden`
+ * applies only above the widest non-desktop breakpoint. Each non-desktop breakpoint owns a
+ * disjoint width range.
+ */
 function responsiveCss(scope: string, breakpoints: Breakpoint[], widths: BreakpointWidths): string {
-  let css = breakpointRules(scope, 'desktop');
+  let css = placementRules(scope, 'desktop');
   let lower: number | undefined;
   const sorted = NON_DESKTOP_BREAKPOINTS.filter(
     (bp) => breakpoints.includes(bp) && widths[bp] !== undefined,
@@ -144,9 +155,13 @@ function responsiveCss(scope: string, breakpoints: Breakpoint[], widths: Breakpo
     const upper = widths[bp];
     const range =
       lower === undefined ? `(width <= ${upper}px)` : `(${lower}px < width <= ${upper}px)`;
-    css += `@container ${range}{${breakpointRules(scope, bp)}}`;
+    css += `@container ${range}{${placementRules(scope, bp)}${hiddenRule(scope, bp)}}`;
     lower = upper;
   }
+  css +=
+    lower === undefined
+      ? hiddenRule(scope, 'desktop')
+      : `@container (width > ${lower}px){${hiddenRule(scope, 'desktop')}}`;
   return css;
 }
 
