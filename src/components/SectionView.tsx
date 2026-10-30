@@ -13,6 +13,7 @@ import {
   getFlexRowHeight,
   itemsAtPointer,
 } from '../lib/grid';
+import { sortByReadingOrder } from '../lib/readingOrder';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
@@ -108,10 +109,11 @@ export function SectionView({ section }: SectionViewProps) {
   );
   const { columns, colGap, rowGap, paddingTop, paddingBottom } = resolved;
 
+  // DOM (and tab) order is reading order; `stackIndex` keeps the stacking order via z-index.
   const resolvedItems = useMemo(
     () =>
-      items
-        .map((item) => ({
+      sortByReadingOrder(
+        items.map((item) => ({
           item: {
             ...item,
             data: resolveEffectiveItemData(
@@ -122,9 +124,10 @@ export function SectionView({ section }: SectionViewProps) {
               resolveEntity?.(item),
             ),
           },
+          fullBleed: item.fullBleed,
           placement: resolveItem(item, section, activeBreakpoint, enabledBreakpoints),
-        }))
-        .filter(({ placement }) => !placement.hidden),
+        })),
+      ).filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
   );
 
@@ -201,15 +204,18 @@ export function SectionView({ section }: SectionViewProps) {
     verticalAlign,
   ]);
 
+  // Stacking order (bottom to top), which the Alt+click cycle relies on.
   const hitTestItems: GridItem[] = useMemo(
     () =>
-      resolvedItems.map(({ item, placement }) => ({
-        ...item,
-        x: item.fullBleed ? 0 : placement.x,
-        y: placement.y,
-        w: item.fullBleed ? columns : placement.w,
-        h: placement.h,
-      })),
+      [...resolvedItems]
+        .sort((a, b) => a.stackIndex - b.stackIndex)
+        .map(({ item, placement }) => ({
+          ...item,
+          x: item.fullBleed ? 0 : placement.x,
+          y: placement.y,
+          w: item.fullBleed ? columns : placement.w,
+          h: placement.h,
+        })),
     [resolvedItems, columns],
   );
 
@@ -413,16 +419,6 @@ export function SectionView({ section }: SectionViewProps) {
     ],
   );
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (selection?.sectionId !== id) return;
-      setSelection(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selection?.sectionId, id, setSelection]);
-
   const canvasMaxWidth = editorCanvasMaxWidth(activeBreakpoint, breakpointPreviewWidths);
 
   const ghost = dropTarget?.sectionId === id ? dropTarget : null;
@@ -472,6 +468,8 @@ export function SectionView({ section }: SectionViewProps) {
                 '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
                 '--section-pad-top-px': `${paddingTop}px`,
                 '--section-pad-bottom-px': `${paddingBottom}px`,
+                // Blocks stack at z-index 1..n (see GridBlock); overlay and chrome go above.
+                '--vantage-z-top': items.length + 1,
                 gridTemplateRows: `repeat(${displayedRows}, minmax(var(--row-px), auto))`,
                 alignContent: fillScreen ? verticalAlign : undefined,
               } as React.CSSProperties
@@ -499,9 +497,10 @@ export function SectionView({ section }: SectionViewProps) {
                 )}
               </div>
             ) : null}
-            {resolvedItems.map(({ item, placement }) => (
+            {resolvedItems.map(({ item, placement, stackIndex }) => (
               <GridBlock
                 key={item.id}
+                zIndex={stackIndex + 1}
                 sectionId={id}
                 item={item}
                 placement={placement}

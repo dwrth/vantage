@@ -1,5 +1,5 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BuilderContext } from '../context/BuilderContext';
 import {
   getBreakpointPreviewWidths,
@@ -7,7 +7,14 @@ import {
   getEnabledBreakpoints,
   isBreakpointEnabled,
 } from '../lib/breakpoint';
-import { diffLayouts, type LayoutChangeset } from '../lib/diff';
+import { diffLayouts, type LayoutChangeOptions, type LayoutChangeset } from '../lib/diff';
+import { useBuilderKeyboard, type BuilderHistory } from '../hooks/useBuilderKeyboard';
+import {
+  DEFAULT_BLOCK_ANNOUNCEMENTS,
+  DEFAULT_BLOCK_LABELS,
+  type BlockAnnouncements,
+  type BlockLabels,
+} from '../lib/keyboardLabels';
 import { resolveRegistry } from '../lib/registry';
 import type {
   ExternalDragItem,
@@ -20,10 +27,17 @@ import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '.
 import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
+import builderStyles from '../styles/builder.module.css';
 import { Canvas } from './Canvas';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
 
 export type { SectionActionLabels } from '../lib/sectionActionLabels';
+export type { BuilderHistory } from '../hooks/useBuilderKeyboard';
+export type {
+  BlockAnnouncementContext,
+  BlockAnnouncements,
+  BlockLabels,
+} from '../lib/keyboardLabels';
 
 export type ItemChromeRenderProps = {
   sectionId: string;
@@ -45,7 +59,11 @@ export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
 
 export type VantageBuilderProps = {
   value: Layout;
-  onChange: (next: Layout, changeset: LayoutChangeset) => void;
+  /**
+   * `options.mergeKey` marks changes of one gesture (e.g. a held arrow key); forward it to
+   * `useVantageHistory`'s `onChange` so the gesture is one undo step.
+   */
+  onChange: (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => void;
   components: ComponentRegistry;
   className?: string;
   children?: ReactNode;
@@ -71,6 +89,15 @@ export type VantageBuilderProps = {
    * the items (see `duplicateSection` and `CloneItemOptions`).
    */
   onDuplicateSection?: (sectionId: string) => void;
+  /**
+   * Enables Cmd/Ctrl+Z (undo) and Shift+Cmd/Ctrl+Z / Cmd/Ctrl+Y (redo), e.g. the result of
+   * `useVantageHistory`. Without it the builder leaves those keys alone.
+   */
+  history?: BuilderHistory;
+  /** Accessible names and keyboard help of blocks, e.g. for translation. */
+  blockLabels?: Partial<BlockLabels>;
+  /** Screen-reader messages for keyboard edits, e.g. for translation. */
+  announcements?: Partial<BlockAnnouncements>;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
   isItemRestricted?: (item: GridItem) => boolean;
@@ -109,6 +136,9 @@ export function VantageBuilder({
   showSectionActions = true,
   sectionActionLabels,
   onDuplicateSection,
+  history,
+  blockLabels: blockLabelsProp,
+  announcements: announcementsProp,
   renderEditButton,
   isItemRestricted,
   renderDragHandle,
@@ -164,9 +194,40 @@ export function VantageBuilder({
   );
 
   const emitChange = useCallback(
-    (next: Layout) => onChange(next, diffLayouts(value, next)),
+    (next: Layout, options?: LayoutChangeOptions) =>
+      onChange(next, diffLayouts(value, next), options),
     [onChange, value],
   );
+
+  const blockLabels = useMemo(
+    () => ({ ...DEFAULT_BLOCK_LABELS, ...blockLabelsProp }),
+    [blockLabelsProp],
+  );
+  const announcements = useMemo(
+    () => ({ ...DEFAULT_BLOCK_ANNOUNCEMENTS, ...announcementsProp }),
+    [announcementsProp],
+  );
+  const blockInstructionsId = useId();
+  const [liveMessage, setLiveMessage] = useState('');
+  // A repeated message must still change the region's text, or screen readers stay silent.
+  const announce = useCallback(
+    (message: string) =>
+      setLiveMessage((prev) => (prev === message ? `${message}\u00a0` : message)),
+    [],
+  );
+  const rootRef = useRef<HTMLDivElement>(null);
+  useBuilderKeyboard(rootRef, {
+    layout: value,
+    selection,
+    setSelection,
+    activeBreakpoint,
+    isInteracting,
+    emitChange,
+    history,
+    blockLabels,
+    announcements,
+    announce,
+  });
 
   const registryEmpty = Object.keys(components).length === 0;
   const tokens = useVantageTokens();
@@ -192,6 +253,8 @@ export function VantageBuilder({
         sectionResizeLabel,
         showSectionActions,
         sectionActionLabels,
+        blockLabels,
+        blockInstructionsId,
         onDuplicateSection,
         renderEditButton,
         isItemRestricted,
@@ -204,10 +267,23 @@ export function VantageBuilder({
     >
       {/* While anything is dragged, hover styles are off (CSS guards on `[data-vantage-dragging]`). */}
       <div
+        ref={rootRef}
         className={root.className}
         style={root.style}
         data-vantage-dragging={isInteracting || externalDrag ? '' : undefined}
       >
+        <div id={blockInstructionsId} hidden>
+          {blockLabels.instructions}
+        </div>
+        <div
+          className={builderStyles['sr-only']}
+          role="status"
+          data-vantage-announcer=""
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {liveMessage}
+        </div>
         {children}
         {registryEmpty ? (
           <div

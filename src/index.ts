@@ -8,8 +8,13 @@ export type {
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
   SectionActionLabels,
+  BuilderHistory,
+  BlockLabels,
+  BlockAnnouncements,
+  BlockAnnouncementContext,
 } from './components/Builder';
 export { DEFAULT_SECTION_ACTION_LABELS } from './lib/sectionActionLabels';
+export { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from './lib/keyboardLabels';
 export { VantagePreview } from './components/VantagePreview';
 export type { VantagePreviewProps } from './components/VantagePreview';
 export { VantageInspector } from './components/VantageInspector';
@@ -170,11 +175,13 @@ export type { ResolvedSelection } from './lib/inspector';
 export {
   diffLayouts,
   emitLayoutChange,
+  type LayoutChangeOptions,
   type LayoutChangeset,
   type ItemAddedEvent,
   type ItemRemovedEvent,
   type ItemUpdatedEvent,
   type ItemMovedEvent,
+  type LayoutChangeOptions,
   type ItemsReorderedEvent,
   type SectionAddedEvent,
   type SectionRemovedEvent,

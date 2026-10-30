@@ -90,7 +90,8 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Selection](docs/selection.md)             | Controlled / uncontrolled selection                  |
 | [Section backgrounds](docs/backgrounds.md) | Color, image, blur, focal crop, parallax             |
 | [Persistence](docs/persistence.md)         | `ref`, strip/hydrate, kind persist hooks, file I/O   |
-| [Undo / history](docs/history.md)          | `useVantageHistory`, coalesce, reset                 |
+| [Undo / history](docs/history.md)          | `useVantageHistory`, gesture merging, reset          |
+| [Keyboard & a11y](docs/keyboard.md)        | Shortcuts, focus, reading order, announcements       |
 | [Custom blocks](docs/blocks.md)            | `defineKind` patterns, interactivity, pitfalls       |
 | [Theme / tokens](docs/theme.md)            | `VantageThemeProvider`, opaque CSS token maps        |
 | [Host panels](docs/panels.md)              | `VantageInspector`, layers, toolbars (demo patterns) |

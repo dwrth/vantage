@@ -211,10 +211,21 @@ export function diffLayouts(prev: Layout, next: Layout): LayoutChangeset {
   };
 }
 
+/** Extra information about a layout change, passed as `onChange`'s third argument. */
+export type LayoutChangeOptions = {
+  /**
+   * Consecutive changes with the same key form one gesture and one undo step in
+   * `useVantageHistory` (e.g. holding an arrow key, or typing into one field). Omit it for a
+   * change that is a step of its own.
+   */
+  mergeKey?: string;
+};
+
 export function emitLayoutChange(
   prev: Layout,
   next: Layout,
-  onChange: (next: Layout, changeset: LayoutChangeset) => void,
+  onChange: (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => void,
+  options?: LayoutChangeOptions,
 ): void {
-  onChange(next, diffLayouts(prev, next));
+  onChange(next, diffLayouts(prev, next), options);
 }

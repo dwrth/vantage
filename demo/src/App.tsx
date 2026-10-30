@@ -376,6 +376,7 @@ function App() {
                   <VantageBuilder
                     value={layout}
                     onChange={pushLayoutChange}
+                    history={{ undo, redo, canUndo, canRedo }}
                     components={demoComponents}
                     className="min-h-[70vh]"
                     renderSectionHeader={(ctx) => (

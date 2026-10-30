@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { diffLayouts, type LayoutChangeset } from '../lib/diff';
+import { diffLayouts, type LayoutChangeOptions, type LayoutChangeset } from '../lib/diff';
 import type { Layout } from '../types';
 
 export type VantageHistoryOptions = {
   /** Max past entries. Default 50. */
   capacity?: number;
-  /** Merge rapid edits into one stack entry. Default 400. `0` disables. */
+  /**
+   * @deprecated Ignored. Edits merge by gesture (`LayoutChangeOptions.mergeKey`), not by time.
+   */
   coalesceMs?: number;
 };
 
 export type VantageHistory = {
   layout: Layout;
-  onChange: (next: Layout, changeset: LayoutChangeset) => void;
+  /**
+   * Records the change, then forwards it. Consecutive changes with the same
+   * `options.mergeKey` become one undo step.
+   */
+  onChange: (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -21,7 +27,6 @@ export type VantageHistory = {
 };
 
 const DEFAULT_CAPACITY = 50;
-const DEFAULT_COALESCE_MS = 400;
 
 type HistoryStacks = {
   past: Layout[];
@@ -38,15 +43,14 @@ export function useVantageHistory(
   opts?: VantageHistoryOptions,
 ): VantageHistory {
   const capacity = opts?.capacity ?? DEFAULT_CAPACITY;
-  const coalesceMs = opts?.coalesceMs ?? DEFAULT_COALESCE_MS;
 
   const [stacks, setStacks] = useState<HistoryStacks>({ past: [], future: [] });
-  const lastPushAtRef = useRef(0);
+  // Merge key of the gesture the newest past entry started; null once anything else happens.
+  const gestureRef = useRef<string | null>(null);
 
   const layoutRef = useRef(layout);
   const onChangeRef = useRef(onChange);
   const capacityRef = useRef(capacity);
-  const coalesceMsRef = useRef(coalesceMs);
   const stacksRef = useRef(stacks);
 
   useEffect(() => {
@@ -61,33 +65,28 @@ export function useVantageHistory(
     capacityRef.current = capacity;
   }, [capacity]);
 
-  useEffect(() => {
-    coalesceMsRef.current = coalesceMs;
-  }, [coalesceMs]);
-
   const commitStacks = useCallback((next: HistoryStacks) => {
     stacksRef.current = next;
     setStacks(next);
   }, []);
 
   const wrappedOnChange = useCallback(
-    (next: Layout, changeset: LayoutChangeset) => {
+    (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => {
       const current = layoutRef.current;
       if (next === current) return;
 
-      const now = Date.now();
-      const windowMs = coalesceMsRef.current;
-      const shouldCoalesce =
-        windowMs > 0 && lastPushAtRef.current > 0 && now - lastPushAtRef.current < windowMs;
+      const key = options?.mergeKey ?? null;
+      const continuesGesture =
+        key !== null && key === gestureRef.current && stacksRef.current.past.length > 0;
 
-      if (!shouldCoalesce) {
+      if (!continuesGesture) {
         const { past } = stacksRef.current;
         commitStacks({
           past: trimPast([...past, current], capacityRef.current),
           future: [],
         });
       }
-      lastPushAtRef.current = now;
+      gestureRef.current = key;
       onChangeRef.current(next, changeset);
     },
     [commitStacks],
@@ -99,7 +98,7 @@ export function useVantageHistory(
     const restored = past[past.length - 1]!;
     const current = layoutRef.current;
     commitStacks({ past: past.slice(0, -1), future: [...future, current] });
-    lastPushAtRef.current = 0;
+    gestureRef.current = null;
     onChangeRef.current(restored, diffLayouts(current, restored));
   }, [commitStacks]);
 
@@ -112,7 +111,7 @@ export function useVantageHistory(
       past: trimPast([...past, current], capacityRef.current),
       future: future.slice(0, -1),
     });
-    lastPushAtRef.current = 0;
+    gestureRef.current = null;
     onChangeRef.current(restored, diffLayouts(current, restored));
   }, [commitStacks]);
 
@@ -120,7 +119,7 @@ export function useVantageHistory(
     (_baseline: Layout) => {
       void _baseline;
       commitStacks({ past: [], future: [] });
-      lastPushAtRef.current = 0;
+      gestureRef.current = null;
     },
     [commitStacks],
   );

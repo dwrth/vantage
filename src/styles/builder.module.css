@@ -67,7 +67,8 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 140ms ease-out;
-  z-index: 1;
+  /* Above every block (z-index 1..n), below active chrome. */
+  z-index: var(--vantage-z-top, 1);
 }
 
 .builder-grid--active .grid-overlay {
@@ -147,7 +148,7 @@
 
 .drop-ghost {
   position: relative;
-  z-index: 20;
+  z-index: calc(var(--vantage-z-top, 0) + 3);
   min-width: 0;
   min-height: 0;
   pointer-events: none;
@@ -160,7 +161,7 @@
 .section-resize {
   position: absolute;
   inset: auto 0 0;
-  z-index: 30;
+  z-index: calc(var(--vantage-z-top, 0) + 4);
   height: 12px;
   display: flex;
   align-items: center;
@@ -274,4 +275,17 @@
 .section-insert:focus-within {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Visually hidden, still read by screen readers (live region for keyboard edits). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
