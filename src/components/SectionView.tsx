@@ -17,6 +17,10 @@ import {
   resolveMinSize,
 } from '../lib/grid';
 import { overlappingItems } from '../lib/overlap';
+import { trackPointerDrag } from '../lib/pointerDrag';
+import { marqueeHits, mergeSelection, rectFromPoints, sameSelection } from '../lib/selection';
+import { groupBounds, groupMoveRange } from '../mutations/group';
+import type { SelectionRef } from '../context/BuilderContext';
 import { gridCellAt } from '../lib/dropTargeting';
 import { sortByReadingOrder } from '../lib/readingOrder';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
@@ -31,6 +35,7 @@ import { MIN_SECTION_ROWS, type BreakpointWidths, type GridItem, type Section } 
 import builder from '../styles/builder.module.css';
 import { AlignmentGuides } from './AlignmentGuides';
 import { GridBlock } from './GridBlock';
+import { GroupToolbar } from './GroupToolbar';
 import { SectionBackground } from './SectionBackground';
 import { SectionActions } from './SectionActions';
 import { SectionResizeHandle } from './SectionResizeHandle';
@@ -92,6 +97,12 @@ export function SectionView({ section }: SectionViewProps) {
     isInteracting,
     selection,
     setSelection,
+    selectedItems,
+    setSelectedItems,
+    setInteracting,
+    announce,
+    announcements,
+    showGroupToolbar,
     activeBreakpoint,
     breakpointPreviewWidths,
     renderSectionHeader,
@@ -103,7 +114,7 @@ export function SectionView({ section }: SectionViewProps) {
     showOverlapWarnings,
   } = useBuilderContext();
   const { registerSection, dropTarget, dragSourceSectionId } = useCanvasDnd();
-  const { moveItem, resizeSection } = useBuilderActions();
+  const { moveItem, moveItems, resizeSection } = useBuilderActions();
   const resolveEntity = useResolveItemData();
   const enabledBreakpoints = layout.breakpoints;
 
@@ -154,6 +165,24 @@ export function SectionView({ section }: SectionViewProps) {
     () => sectionRows(section, activeBreakpoint, enabledBreakpoints),
     [section, activeBreakpoint, enabledBreakpoints],
   );
+  // Multi-selection in this section (two or more blocks): moves as a unit.
+  const groupIds = useMemo(
+    () =>
+      selectedItems.length > 1 && selectedItems[0]!.sectionId === id
+        ? selectedItems.map((ref) => ref.itemId)
+        : null,
+    [selectedItems, id],
+  );
+  const groupRange = useMemo(
+    () =>
+      groupIds ? groupMoveRange(section, groupIds, activeBreakpoint, enabledBreakpoints) : null,
+    [groupIds, section, activeBreakpoint, enabledBreakpoints],
+  );
+  const groupBox = useMemo(
+    () => (groupIds ? groupBounds(section, groupIds, activeBreakpoint, enabledBreakpoints) : null),
+    [groupIds, section, activeBreakpoint, enabledBreakpoints],
+  );
+
   const minRows = useMemo(
     () =>
       Math.max(MIN_SECTION_ROWS, sectionContentRows(section, activeBreakpoint, enabledBreakpoints)),
@@ -239,20 +268,37 @@ export function SectionView({ section }: SectionViewProps) {
   );
 
   // Block of this section being dragged or resized, at the cells it would land on.
-  const [draft, setDraft] = useState<GuideRect | null>(null);
-  const onDraftRect = useCallback((itemId: string, rect: GuideRect | null) => {
-    setDraft((prev) => (rect ? rect : prev?.id === itemId ? null : prev));
-  }, []);
+  const [draft, setDraft] = useState<(GuideRect & { mode: 'move' | 'resize' }) | null>(null);
+  const onDraftRect = useCallback(
+    (itemId: string, rect: GuideRect | null, mode: 'move' | 'resize') => {
+      setDraft((prev) => (rect ? { ...rect, mode } : prev?.id === itemId ? null : prev));
+    },
+    [],
+  );
+
+  // Cells the rest of the group follows the dragged block by.
+  const groupDrag = useMemo(() => {
+    if (!draft || draft.mode !== 'move' || !groupIds?.includes(draft.id)) return null;
+    const entry = resolvedItems.find(({ item }) => item.id === draft.id);
+    if (!entry) return null;
+    return {
+      draggedId: draft.id,
+      offset: { dx: draft.x - entry.placement.x, dy: draft.y - entry.placement.y },
+    };
+  }, [draft, groupIds, resolvedItems]);
 
   const guideRects = useMemo(
     () =>
       new Map<string, GuideRect>(
-        resolvedItems.map(({ item, placement }) => [
-          item.id,
-          { id: item.id, ...placement, fullBleed: item.fullBleed },
-        ]),
+        resolvedItems
+          // The group moves together, so its blocks are no guide targets for each other.
+          .filter(({ item }) => !groupDrag || !groupIds?.includes(item.id))
+          .map(({ item, placement }) => [
+            item.id,
+            { id: item.id, ...placement, fullBleed: item.fullBleed },
+          ]),
       ),
-    [resolvedItems],
+    [resolvedItems, groupDrag, groupIds],
   );
 
   const dropWithin = useCallback(
@@ -269,12 +315,28 @@ export function SectionView({ section }: SectionViewProps) {
             cellHeight,
           )
         : entry.placement.y + dy;
+      if (groupIds?.includes(entry.item.id)) {
+        // The whole group moves by the same cells, clamped as a unit (one change, one undo step).
+        moveItems(id, groupIds, dx, nextY - entry.placement.y, activeBreakpoint);
+        return;
+      }
       // The section keeps its height: a block dropped past the bottom stops at the last row.
       const clampedY = Math.max(0, Math.min(nextY, rows - entry.placement.h));
       if (dx === 0 && clampedY === entry.placement.y) return;
       moveItem(id, entry.item.id, entry.placement.x + dx, clampedY, activeBreakpoint);
     },
-    [resolvedItems, cellXStep, cellHeight, rowSteps, rows, moveItem, id, activeBreakpoint],
+    [
+      resolvedItems,
+      cellXStep,
+      cellHeight,
+      rowSteps,
+      rows,
+      moveItem,
+      moveItems,
+      groupIds,
+      id,
+      activeBreakpoint,
+    ],
   );
 
   const cellAt = useCallback<SectionDropHandle['cellAt']>(
@@ -333,6 +395,92 @@ export function SectionView({ section }: SectionViewProps) {
     [registerSection, id, containerRef],
   );
 
+  // Marquee in client coordinates relative to the grid, while dragging on empty grid space.
+  const [marquee, setMarquee] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const selectionRef = useRef(selectedItems);
+  useLayoutEffect(() => {
+    selectionRef.current = selectedItems;
+  });
+
+  const startMarquee = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, grid: HTMLDivElement) => {
+      const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+      const before = selectionRef.current;
+      const base = additive && before[0]?.sectionId === id ? before : [];
+      if (!additive) setSelection(null);
+      const origin = { x: e.clientX, y: e.clientY };
+      let started = false;
+      let current: SelectionRef[] = base;
+
+      trackPointerDrag(e, {
+        onMove: (ev) => {
+          if (!started && Math.hypot(ev.clientX - origin.x, ev.clientY - origin.y) < 4) return;
+          if (!started) {
+            started = true;
+            setInteracting(true);
+            window.getSelection()?.removeAllRanges();
+          }
+          const gridRect = grid.getBoundingClientRect();
+          // The marquee stays inside this section's grid.
+          const clampX = (x: number) => Math.max(gridRect.left, Math.min(x, gridRect.right));
+          const clampY = (y: number) => Math.max(gridRect.top, Math.min(y, gridRect.bottom));
+          const box = rectFromPoints(
+            clampX(origin.x),
+            clampY(origin.y),
+            clampX(ev.clientX),
+            clampY(ev.clientY),
+          );
+          setMarquee({
+            left: box.left - gridRect.left,
+            top: box.top - gridRect.top,
+            width: box.right - box.left,
+            height: box.bottom - box.top,
+          });
+          const prefix = `${id}:`;
+          const blocks = Array.from(
+            grid.querySelectorAll<HTMLElement>('[data-vantage-block][tabindex]'),
+          ).flatMap((el) => {
+            const key = el.getAttribute('data-vantage-block') ?? '';
+            if (!key.startsWith(prefix)) return [];
+            const r = el.getBoundingClientRect();
+            const itemId = key.slice(prefix.length);
+            return [{ id: itemId, left: r.left, top: r.top, right: r.right, bottom: r.bottom }];
+          });
+          const hits = marqueeHits(blocks, box).map((itemId) => ({ sectionId: id, itemId }));
+          const next = mergeSelection(base, hits);
+          if (!sameSelection(next, current)) {
+            current = next;
+            setSelectedItems(next);
+          }
+        },
+        onEnd: (cancelled) => {
+          setMarquee(null);
+          if (!started) return;
+          setInteracting(false);
+          if (cancelled) {
+            setSelectedItems(before);
+            return;
+          }
+          announce(announcements.selectionChanged({ count: current.length, items: [] }));
+          // Keyboard moves act from a focused selected block.
+          const primary = current.at(-1);
+          if (primary) {
+            const key = `${primary.sectionId}:${primary.itemId}`;
+            Array.from(grid.querySelectorAll<HTMLElement>('[data-vantage-block][tabindex]'))
+              .find((el) => el.getAttribute('data-vantage-block') === key)
+              ?.focus({ preventScroll: true });
+          }
+        },
+      });
+    },
+    [id, setSelection, setSelectedItems, setInteracting, announce, announcements],
+  );
+
   const onGridPointerDownCapture = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const grid = containerRef.current;
@@ -382,7 +530,9 @@ export function SectionView({ section }: SectionViewProps) {
         return;
       }
 
-      if (e.target === grid) {
+      if (e.target === grid && e.button === 0) {
+        startMarquee(e, grid);
+      } else if (e.target === grid) {
         setSelection(null);
       }
     },
@@ -399,6 +549,7 @@ export function SectionView({ section }: SectionViewProps) {
       alignOffset,
       selection?.itemId,
       setSelection,
+      startMarquee,
       id,
     ],
   );
@@ -434,6 +585,7 @@ export function SectionView({ section }: SectionViewProps) {
     builder['builder-grid'],
     fillScreen ? builder['builder-grid--fill'] : '',
     isInteracting || isDropTarget ? builder['builder-grid--active'] : '',
+    marquee ? builder['builder-grid--marquee'] : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -515,8 +667,30 @@ export function SectionView({ section }: SectionViewProps) {
                   rowGap,
                 })}
                 overlapsWith={overlaps.get(item.id)}
+                moveRange={groupIds?.includes(item.id) ? (groupRange ?? undefined) : undefined}
+                groupOffset={
+                  groupDrag && groupDrag.draggedId !== item.id && groupIds?.includes(item.id)
+                    ? groupDrag.offset
+                    : undefined
+                }
               />
             ))}
+            {groupIds && groupBox && showGroupToolbar && !isInteracting ? (
+              <GroupToolbar sectionId={id} itemIds={groupIds} bounds={groupBox} />
+            ) : null}
+            {marquee ? (
+              <div
+                className={builder.marquee}
+                aria-hidden="true"
+                data-vantage-marquee=""
+                style={{
+                  left: marquee.left,
+                  top: marquee.top,
+                  width: marquee.width,
+                  height: marquee.height,
+                }}
+              />
+            ) : null}
             {alignment && moving ? (
               <AlignmentGuides
                 result={alignment}

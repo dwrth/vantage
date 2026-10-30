@@ -14,6 +14,7 @@ export type {
   BlockLabels,
   BlockAnnouncements,
   BlockAnnouncementContext,
+  GroupAnnouncementContext,
 } from './components/Builder';
 export { DEFAULT_SECTION_ACTION_LABELS } from './lib/sectionActionLabels';
 export { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from './lib/keyboardLabels';
@@ -126,6 +127,25 @@ export {
   duplicateItem,
   isItemClipboard,
 } from './mutations/layout';
+
+export {
+  moveItems,
+  alignItems,
+  removeItems,
+  groupBounds,
+  groupMoveRange,
+  clampGroupDelta,
+  GROUP_ALIGNMENTS,
+} from './mutations/group';
+export type { GroupAlignment, GroupMoveRange } from './mutations/group';
+export {
+  toggleSelection,
+  marqueeHits,
+  mergeSelection,
+  rectFromPoints,
+  sameSelection,
+} from './lib/selection';
+export type { ClientRect } from './lib/selection';
 
 export type { SelectionRef, ExternalDragItem, ExternalDropEvent } from './context/BuilderContext';
 export { useSelection, useSelectedItem } from './hooks/useSelection';

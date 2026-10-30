@@ -17,8 +17,17 @@ import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
 import type { GuideRect } from '../lib/guides';
+import { toggleSelection } from '../lib/selection';
+import type { GroupMoveRange } from '../mutations/group';
 import type { Breakpoint, GridItem, ItemVerticalAlign } from '../types';
 import chrome from '../styles/grid-block.module.css';
+
+function isTextTarget(target: Element): boolean {
+  return (
+    target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]') !==
+    null
+  );
+}
 
 const RESIZE_EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
@@ -53,7 +62,11 @@ type GridBlockProps = {
   /** Content alignment at the active breakpoint (unset: the kind's own). */
   verticalAlign?: ItemVerticalAlign;
   /** Reports the cells the block would land on while dragged or resized; `null` when done. */
-  onDraftRect?: (itemId: string, rect: GuideRect | null) => void;
+  onDraftRect?: (itemId: string, rect: GuideRect | null, mode: 'move' | 'resize') => void;
+  /** Set while the block is part of a multi-selection: a drag moves the group, clamped to this. */
+  moveRange?: GroupMoveRange;
+  /** Cells this block is shifted by while another block of its group is dragged. */
+  groupOffset?: { dx: number; dy: number };
   /** Content minimum on this grid; resizes do not shrink the block below it. */
   minSize?: GridMinSize;
   /** Ids of blocks this one overlaps unintentionally; shows the overlap warning. */
@@ -78,13 +91,19 @@ export function GridBlock({
   onDraftRect,
   minSize,
   overlapsWith,
+  moveRange,
+  groupOffset,
 }: GridBlockProps) {
   const {
     components,
     setInteracting,
     onItemContextMenu,
-    selection,
+    layout,
     setSelection,
+    selectedItems,
+    setSelectedItems,
+    announce,
+    announcements,
     renderEditButton,
     isItemRestricted,
     renderDragHandle,
@@ -114,7 +133,17 @@ export function GridBlock({
   const [isResizing, setIsResizing] = useState(false);
   const cellXStep = getCellXStep(cellWidth, colGap);
   const cellStepRef = useRef({ x: cellXStep, y: cellHeight });
-  const displayedPlacement = resizeDraft !== null ? { ...placement, ...resizeDraft } : placement;
+  const fullBleed = item.fullBleed === true;
+  const displayedPlacement =
+    resizeDraft !== null
+      ? { ...placement, ...resizeDraft }
+      : groupOffset
+        ? {
+            ...placement,
+            x: fullBleed ? placement.x : placement.x + groupOffset.dx,
+            y: placement.y + groupOffset.dy,
+          }
+        : placement;
 
   const { dropTarget } = useCanvasDnd();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -131,7 +160,13 @@ export function GridBlock({
   // A drag never grows the section: the block snaps no lower than its last row.
   const clampRow = (row: number) => Math.max(0, Math.min(row, rows - placement.h));
 
-  const fullBleed = item.fullBleed === true;
+  // A group moves as a unit: its range keeps every selected block inside the section.
+  const clampDx = (dx: number) =>
+    moveRange ? Math.max(moveRange.minDx, Math.min(dx, moveRange.maxDx)) : dx;
+  const clampDragRow = (row: number) =>
+    moveRange
+      ? placement.y + Math.max(moveRange.minDy, Math.min(row - placement.y, moveRange.maxDy))
+      : clampRow(row);
   // A full-bleed block spans the section, so it only moves vertically.
   const snappedX =
     fullBleed && !leavingSection
@@ -139,20 +174,20 @@ export function GridBlock({
       : leavingSection && transform
         ? transform.x
         : transform
-          ? pxToCell(transform.x, cellXStep) * cellXStep
+          ? clampDx(pxToCell(transform.x, cellXStep)) * cellXStep
           : 0;
   // Row the block snaps to while dragged inside its section.
   const draggedRow = !transform
     ? placement.y
     : rowSteps
-      ? clampRow(
+      ? clampDragRow(
           closestRowForOffset(
             getRowStart(placement.y, rowSteps, cellHeight) + transform.y,
             rowSteps,
             cellHeight,
           ),
         )
-      : clampRow(placement.y + pxToCell(transform.y, cellHeight));
+      : clampDragRow(placement.y + pxToCell(transform.y, cellHeight));
   const snappedY =
     leavingSection && transform
       ? transform.y
@@ -170,10 +205,12 @@ export function GridBlock({
       ? {
           x: fullBleed
             ? placement.x
-            : Math.max(
-                0,
-                Math.min(placement.x + pxToCell(transform.x, cellXStep), columns - placement.w),
-              ),
+            : moveRange
+              ? placement.x + clampDx(pxToCell(transform.x, cellXStep))
+              : Math.max(
+                  0,
+                  Math.min(placement.x + pxToCell(transform.x, cellXStep), columns - placement.w),
+                ),
           y: draggedRow,
           w: placement.w,
           h: placement.h,
@@ -195,12 +232,13 @@ export function GridBlock({
       draftX === undefined
         ? null
         : { x: draftX, y: draftY!, w: draftW!, h: draftH!, id: item.id, fullBleed },
+      isResizing ? 'resize' : 'move',
     );
-  }, [item.id, draftX, draftY, draftW, draftH, fullBleed]);
+  }, [item.id, draftX, draftY, draftW, draftH, fullBleed, isResizing]);
   // An unmounting block (e.g. dropped into another section) takes its guides along.
   useEffect(() => {
     const id = item.id;
-    return () => onDraftRectRef.current?.(id, null);
+    return () => onDraftRectRef.current?.(id, null, 'move');
   }, [item.id]);
 
   const gridPlacement: React.CSSProperties = {
@@ -337,8 +375,14 @@ export function GridBlock({
   );
 
   const restricted = isItemRestricted?.(item) ?? false;
-  const isSelected = selection?.sectionId === sectionId && selection?.itemId === item.id;
-  const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !isSelected;
+  // Part of the selection (the only block, or one of a group). Chrome and render props use this.
+  const isSelected = selectedItems.some(
+    (ref) => ref.sectionId === sectionId && ref.itemId === item.id,
+  );
+  const grouped = isSelected && selectedItems.length > 1;
+  // Content editing (edit renderer, overlap fixes) needs a single selection.
+  const soleSelected = isSelected && !grouped;
+  const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !soleSelected;
 
   let body: React.ReactNode;
   if (usePlaceholder) {
@@ -349,12 +393,47 @@ export function GridBlock({
     body = createElement(resolveRenderer(components, item, 'preview'), { item });
   }
 
-  const onPointerDownCapture = useCallback(() => {
-    setSelection({ sectionId, itemId: item.id });
-  }, [setSelection, sectionId, item.id]);
+  // Set by a pointer press so that the focus it causes does not change the selection again.
+  const pointerFocus = useRef(false);
+  const onPointerDownCapture = useCallback(
+    (e: React.PointerEvent) => {
+      const ref = { sectionId, itemId: item.id };
+      const toggle =
+        (e.shiftKey || e.metaKey || e.ctrlKey) &&
+        !(e.target instanceof Element && isTextTarget(e.target));
+      if (!toggle) {
+        setSelection(ref);
+        return;
+      }
+      pointerFocus.current = true;
+      setTimeout(() => {
+        pointerFocus.current = false;
+      }, 0);
+      const next = toggleSelection(selectedItems, ref);
+      setSelectedItems(next);
+      const sectionItems = layout.sections.find((x) => x.id === sectionId)?.items ?? [];
+      announce(
+        announcements.selectionChanged({
+          count: next.length,
+          items: sectionItems.filter((i) => next.some((r) => r.itemId === i.id)),
+        }),
+      );
+    },
+    [
+      setSelection,
+      setSelectedItems,
+      selectedItems,
+      announce,
+      announcements,
+      layout,
+      sectionId,
+      item.id,
+    ],
+  );
 
   // Selection follows focus, so Tab / Shift+Tab walk the blocks in reading order.
   const onFocus = useCallback(() => {
+    if (pointerFocus.current) return;
     if (!isSelected) setSelection({ sectionId, itemId: item.id });
   }, [isSelected, setSelection, sectionId, item.id]);
 
@@ -399,6 +478,7 @@ export function GridBlock({
           .join(' ')}
         style={bodyStyle}
         data-vantage-overlap={overlapping ? '' : undefined}
+        data-vantage-selected={isSelected ? '' : undefined}
         role="group"
         tabIndex={0}
         aria-roledescription={blockLabels.roleDescription}
@@ -417,6 +497,7 @@ export function GridBlock({
         className={[
           chrome['grid-block__chrome'],
           isSelected || isDragging ? chrome['grid-block__chrome--active'] : '',
+          grouped ? chrome['grid-block__chrome--grouped'] : '',
           isResizing ? chrome['grid-block__chrome--resizing'] : '',
           restricted ? chrome['grid-block__chrome--restricted'] : '',
           overlapping ? chrome['grid-block__chrome--overlap'] : '',
@@ -441,7 +522,7 @@ export function GridBlock({
                 >
                   !
                 </span>
-                {isSelected ? (
+                {soleSelected ? (
                   <>
                     <button
                       type="button"
