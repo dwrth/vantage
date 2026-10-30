@@ -133,4 +133,17 @@ describe('section actions', () => {
     );
     expect(screen.queryAllByRole('toolbar')).toEqual([]);
   });
+
+  it('can hide only the toolbar and keep the insert button', () => {
+    render(
+      <VantageBuilder
+        value={layout}
+        onChange={() => {}}
+        components={components}
+        showSectionToolbar={false}
+      />,
+    );
+    expect(screen.queryAllByRole('toolbar')).toEqual([]);
+    expect(screen.getAllByRole('button', { name: /^Add section above/ }).length).toBeGreaterThan(0);
+  });
 });

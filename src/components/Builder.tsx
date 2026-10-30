@@ -82,6 +82,11 @@ export type VantageBuilderProps = {
   sectionResizeLabel?: (section: Section) => string;
   /** Section toolbar (move up / down, duplicate) and the insert-section button. Default: shown. */
   showSectionActions?: boolean;
+  /**
+   * Only the toolbar (move / duplicate / save) of the section actions; the insert-section button on the
+   * section edge stays. Set to false when the host renders its own toolbar. Default: shown.
+   */
+  showSectionToolbar?: boolean;
   /** Accessible names of the section toolbar buttons, e.g. for translation. */
   sectionActionLabels?: Partial<SectionActionLabels>;
   /**
@@ -139,6 +144,7 @@ export function VantageBuilder({
   renderSectionFooter,
   sectionResizeLabel,
   showSectionActions = true,
+  showSectionToolbar = true,
   sectionActionLabels,
   onDuplicateSection,
   history,
@@ -258,6 +264,7 @@ export function VantageBuilder({
         renderSectionFooter,
         sectionResizeLabel,
         showSectionActions,
+        showSectionToolbar,
         sectionActionLabels,
         blockLabels,
         blockInstructionsId,

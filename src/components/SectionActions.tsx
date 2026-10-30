@@ -49,7 +49,8 @@ type SectionActionsProps = {
  * section's top edge that inserts an empty section above it. Shown on hover or focus.
  */
 export function SectionActions({ section }: SectionActionsProps) {
-  const { layout, sectionActionLabels, onDuplicateSection, onSaveSection } = useBuilderContext();
+  const { layout, sectionActionLabels, onDuplicateSection, onSaveSection, showSectionToolbar } =
+    useBuilderContext();
   const { moveSectionBy, duplicateSection, insertSection } = useBuilderActions();
   const labels = { ...DEFAULT_SECTION_ACTION_LABELS, ...sectionActionLabels };
   const index = layout.sections.findIndex((s) => s.id === section.id);
@@ -81,20 +82,22 @@ export function SectionActions({ section }: SectionActionsProps) {
       >
         {button(labels.insertBefore(section), ICONS.plus, () => insertSection(index))}
       </div>
-      <div
-        className={builder['section-actions']}
-        role="toolbar"
-        aria-label={labels.toolbar(section)}
-      >
-        {button(labels.moveUp(section), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
-        {button(labels.moveDown(section), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
-        {button(labels.duplicate(section), ICONS.duplicate, () =>
-          onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
-        )}
-        {onSaveSection
-          ? button(labels.save(section), ICONS.save, () => onSaveSection(section.id))
-          : null}
-      </div>
+      {showSectionToolbar ? (
+        <div
+          className={builder['section-actions']}
+          role="toolbar"
+          aria-label={labels.toolbar(section)}
+        >
+          {button(labels.moveUp(section), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
+          {button(labels.moveDown(section), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
+          {button(labels.duplicate(section), ICONS.duplicate, () =>
+            onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
+          )}
+          {onSaveSection
+            ? button(labels.save(section), ICONS.save, () => onSaveSection(section.id))
+            : null}
+        </div>
+      ) : null}
     </>
   );
 }
