@@ -20,11 +20,20 @@ import type {
   ExternalDragItem,
   ExternalDropEvent,
   ItemContextMenuEvent,
+  ItemOverlapContext,
   SectionChromeContext,
   SectionHeaderPlacement,
   SelectionRef,
 } from '../context/BuilderContext';
-import type { Breakpoint, ComponentRegistry, GridItem, Layout, Section } from '../types';
+import type { GridMinSize } from '../lib/grid';
+import type {
+  Breakpoint,
+  ComponentRegistry,
+  GridItem,
+  ItemMinSize,
+  Layout,
+  Section,
+} from '../types';
 import { vantageRootProps } from '../theme/applyRoot';
 import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
@@ -57,6 +66,8 @@ export type ItemDragHandleRenderProps = ItemChromeRenderProps & {
 export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
   onDelete: () => void;
 };
+
+export type ItemOverlapWarningRenderProps = ItemOverlapContext;
 
 export type VantageBuilderProps = {
   value: Layout;
@@ -129,6 +140,19 @@ export type VantageBuilderProps = {
   externalDrag?: ExternalDragItem | null;
   /** Called when an `externalDrag` is dropped on a section. Insert the block there. */
   onExternalDrop?: (event: ExternalDropEvent) => void;
+  /**
+   * Smallest size the item's content needs at `breakpoint`, e.g. its measured content height
+   * as `heightPx`. Pointer and keyboard resizes never shrink a block below it. Called on render,
+   * so keep it cheap.
+   */
+  getItemMinSize?: (item: GridItem, breakpoint: Breakpoint) => ItemMinSize | null | undefined;
+  /**
+   * Mark blocks that overlap others (see `findOverlaps`) and offer "move below" and "keep
+   * overlap". Edit mode only. Default: shown.
+   */
+  showOverlapWarnings?: boolean;
+  /** Replaces the built-in overlap warning of a block (labels: `blockLabels.overlap*`). */
+  renderOverlapWarning?: (ctx: ItemOverlapWarningRenderProps) => ReactNode;
 };
 
 export type SectionChromeRenderProps = SectionChromeContext;
@@ -168,6 +192,9 @@ export function VantageBuilder({
   onItemContextMenu,
   externalDrag = null,
   onExternalDrop,
+  getItemMinSize,
+  showOverlapWarnings = true,
+  renderOverlapWarning,
 }: VantageBuilderProps) {
   const enabledBreakpoints = useMemo(() => getEnabledBreakpoints(value), [value]);
   const breakpointWidths = useMemo(() => getBreakpointWidths(value), [value]);
@@ -238,7 +265,9 @@ export function VantageBuilder({
     [],
   );
   const rootRef = useRef<HTMLDivElement>(null);
+  const minSizesRef = useRef(new Map<string, GridMinSize>());
   useBuilderKeyboard(rootRef, {
+    minSizes: minSizesRef,
     layout: value,
     selection,
     setSelection,
@@ -288,6 +317,10 @@ export function VantageBuilder({
         onItemContextMenu,
         externalDrag,
         onExternalDrop,
+        getItemMinSize,
+        minSizesRef,
+        showOverlapWarnings,
+        renderOverlapWarning,
       }}
     >
       {/* While anything is dragged, hover styles are off (CSS guards on `[data-vantage-dragging]`). */}

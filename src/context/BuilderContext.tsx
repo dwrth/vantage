@@ -1,5 +1,12 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
-import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  type MouseEvent,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react';
+import type { GridMinSize } from '../lib/grid';
 import type { LayoutChangeOptions } from '../lib/diff';
 import type { BlockLabels } from '../lib/keyboardLabels';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
@@ -7,6 +14,7 @@ import type {
   Breakpoint,
   BreakpointWidths,
   GridItem,
+  ItemMinSize,
   Layout,
   ResolvedComponentRegistry,
   Section,
@@ -35,6 +43,19 @@ export type ExternalDropEvent = {
   y: number;
   breakpoint: Breakpoint;
   dataTransfer: DataTransfer;
+};
+
+/** A block that overlaps other blocks without `allowOverlap`, for `renderOverlapWarning`. */
+export type ItemOverlapContext = {
+  sectionId: string;
+  item: GridItem;
+  isSelected: boolean;
+  /** Ids of the blocks it overlaps at the active breakpoint. */
+  overlapsWith: string[];
+  /** Move the block to the first free rows below them (one undo step). */
+  moveBelow: () => void;
+  /** Keep the overlap as intended layering: sets `allowOverlap`, which hides the warning. */
+  allowOverlap: () => void;
 };
 
 export type SectionChromeContext = {
@@ -97,6 +118,11 @@ export type BuilderContextValue = {
     onDelete: () => void;
   }) => ReactNode;
   onItemContextMenu?: (event: MouseEvent, ctx: ItemContextMenuEvent) => void;
+  getItemMinSize?: (item: GridItem, breakpoint: Breakpoint) => ItemMinSize | null | undefined;
+  /** Content minimum per mounted block (`sectionId:itemId`), in cells; read by the keyboard. */
+  minSizesRef: MutableRefObject<Map<string, GridMinSize>>;
+  showOverlapWarnings: boolean;
+  renderOverlapWarning?: (ctx: ItemOverlapContext) => ReactNode;
 };
 
 export const BuilderContext = createContext<BuilderContextValue | null>(null);

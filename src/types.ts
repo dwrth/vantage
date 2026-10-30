@@ -28,7 +28,25 @@ export type GridItem<TData = unknown> = {
    * which is usually the top. Content that fills its cell is unaffected.
    */
   verticalAlign?: ItemVerticalAlign;
+  /**
+   * Intended layering: the item may overlap other items without an overlap warning in the
+   * builder. Applies on every breakpoint. No effect on the published render.
+   */
+  allowOverlap?: boolean;
   meta?: Record<string, unknown>;
+};
+
+/**
+ * Smallest size an item's content needs, reported by the host (see `getItemMinSize`).
+ * Resizing never goes below it. `heightPx` is converted to rows at the section's row height.
+ */
+export type ItemMinSize = {
+  /** Columns. */
+  w?: number;
+  /** Rows. */
+  h?: number;
+  /** Content height in px; the builder turns it into rows. */
+  heightPx?: number;
 };
 
 /** Sync host resolver for entity payloads keyed by `item.ref`. */

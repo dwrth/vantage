@@ -1,5 +1,6 @@
 import {
   defaultColumnsForBreakpoint,
+  getEnabledBreakpoints,
   resolveItem,
   resolveSection,
   sectionContentRows,
@@ -7,6 +8,7 @@ import {
 } from '../lib/breakpoint';
 import { clampItem, nextSlot } from '../lib/grid';
 import { createId } from '../lib/id';
+import { rowBelowOverlaps } from '../lib/overlap';
 import {
   BREAKPOINTS,
   DEFAULT_BREAKPOINT_PREVIEW_WIDTHS,
@@ -844,6 +846,63 @@ export function setItemFullBleed(
         return next;
       }),
     })),
+  };
+}
+
+/**
+ * Mark a grid item as intentionally layered (`allowOverlap`), so overlap detection ignores it;
+ * `false` clears the flag.
+ */
+export function setItemAllowOverlap(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  allowOverlap: boolean,
+): Layout {
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (section) => ({
+      ...section,
+      items: section.items.map((item) => {
+        if (item.id !== itemId) return item;
+        const next: GridItem = { ...item, allowOverlap: true };
+        if (!allowOverlap) delete next.allowOverlap;
+        return next;
+      }),
+    })),
+  };
+}
+
+/**
+ * Resolve an overlap: move the item down to the first free rows below the blocks it overlaps
+ * at `breakpoint` (see `findOverlaps`), keeping its column and size. The section grows when the
+ * item ends up below its last row. Desktop writes the item, tablet / mobile their override.
+ * Returns `layout` unchanged when the item overlaps nothing.
+ */
+export function moveItemBelowOverlaps(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  breakpoint: Breakpoint = 'desktop',
+): Layout {
+  const enabled = getEnabledBreakpoints(layout);
+  const source = layout.sections.find((section) => section.id === sectionId);
+  const item = source?.items.find((i) => i.id === itemId);
+  if (!source || !item) return layout;
+  const y = rowBelowOverlaps(source, itemId, breakpoint, enabled);
+  if (y === null) return layout;
+  const { h } = resolveItem(item, source, breakpoint, enabled);
+  return {
+    ...layout,
+    sections: mapSection(layout.sections, sectionId, (section) => {
+      let next: Section =
+        breakpoint === 'desktop'
+          ? { ...section, items: section.items.map((i) => (i.id === itemId ? { ...i, y } : i)) }
+          : writeItemOverride(section, itemId, breakpoint, { y });
+      const { rows } = resolveSection(next, breakpoint, enabled);
+      if (rows !== undefined && rows < y + h) next = withSectionRows(next, breakpoint, y + h);
+      return next;
+    }),
   };
 }
 

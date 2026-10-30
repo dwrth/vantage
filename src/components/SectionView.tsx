@@ -14,7 +14,9 @@ import {
   getCellXStep,
   getFlexRowHeight,
   itemsAtPointer,
+  resolveMinSize,
 } from '../lib/grid';
+import { overlappingItems } from '../lib/overlap';
 import { gridCellAt } from '../lib/dropTargeting';
 import { sortByReadingOrder } from '../lib/readingOrder';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
@@ -97,6 +99,8 @@ export function SectionView({ section }: SectionViewProps) {
     renderSectionFooter,
     sectionResizeLabel,
     showSectionActions,
+    getItemMinSize,
+    showOverlapWarnings,
   } = useBuilderContext();
   const { registerSection, dropTarget, dragSourceSectionId } = useCanvasDnd();
   const { moveItem, resizeSection } = useBuilderActions();
@@ -135,6 +139,15 @@ export function SectionView({ section }: SectionViewProps) {
         })),
       ).filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
+  );
+
+  // Unintended overlaps at this breakpoint, by block id.
+  const overlaps = useMemo(
+    () =>
+      showOverlapWarnings
+        ? overlappingItems(section, activeBreakpoint, enabledBreakpoints)
+        : new Map<string, string[]>(),
+    [showOverlapWarnings, section, activeBreakpoint, enabledBreakpoints],
   );
 
   const rows = useMemo(
@@ -496,6 +509,12 @@ export function SectionView({ section }: SectionViewProps) {
                 rows={displayedRows}
                 verticalAlign={verticalAlign}
                 onDraftRect={onDraftRect}
+                minSize={resolveMinSize(getItemMinSize?.(item, activeBreakpoint), {
+                  columns,
+                  cellHeight,
+                  rowGap,
+                })}
+                overlapsWith={overlaps.get(item.id)}
               />
             ))}
             {alignment && moving ? (
