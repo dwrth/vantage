@@ -17,6 +17,12 @@ export type GridItem<TData = unknown> = {
    * The host decides which kinds may use it.
    */
   fullBleed?: boolean;
+  /**
+   * Where the block's content sits vertically inside its cell (desktop value; tablet and
+   * mobile inherit it unless their `ItemOverride` sets their own). Unset: the kind decides,
+   * which is usually the top. Content that fills its cell is unaffected.
+   */
+  verticalAlign?: ItemVerticalAlign;
   meta?: Record<string, unknown>;
 };
 
@@ -30,6 +36,11 @@ export type SectionBackgroundImageRepeat = 'no-repeat' | 'repeat' | 'repeat-x' |
 export type SectionVerticalAlign = 'start' | 'center' | 'end';
 
 export const SECTION_VERTICAL_ALIGNS: SectionVerticalAlign[] = ['start', 'center', 'end'];
+
+/** Vertical position of a block's content inside its cell. */
+export type ItemVerticalAlign = 'start' | 'center' | 'end';
+
+export const ITEM_VERTICAL_ALIGNS: ItemVerticalAlign[] = ['start', 'center', 'end'];
 
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 
@@ -59,7 +70,7 @@ export const DEFAULT_BREAKPOINT_PREVIEW_WIDTHS: Required<BreakpointWidths> = {
 export const DEFAULT_TABLET_COLUMNS_RATIO = 2 / 3;
 export const DEFAULT_MOBILE_COLUMNS = 4;
 
-export type ItemOverride = Partial<Pick<GridItem, 'x' | 'y' | 'w' | 'h'>> & {
+export type ItemOverride = Partial<Pick<GridItem, 'x' | 'y' | 'w' | 'h' | 'verticalAlign'>> & {
   hidden?: boolean;
   data?: unknown;
 };

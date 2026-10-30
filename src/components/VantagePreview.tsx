@@ -8,17 +8,20 @@ import {
   type ResolvedItemLayout,
   type ResolvedSectionLayout,
 } from '../lib/breakpoint';
+import { itemVerticalAlignByBreakpoint, resolveItemVerticalAlign } from '../lib/contentAlign';
 import { resolveEffectiveItemData } from '../lib/entities';
 import { sortByReadingOrder } from '../lib/readingOrder';
 import { resolveRenderer, resolveRegistry } from '../lib/registry';
 import { useContainerWidth } from '../hooks/useContainerWidth';
 import { useResolveItemData } from '../hooks/useItemData';
 import {
+  ITEM_VERTICAL_ALIGNS,
   NON_DESKTOP_BREAKPOINTS,
   type Breakpoint,
   type BreakpointWidths,
   type ComponentRegistry,
   type GridItem,
+  type ItemVerticalAlign,
   type Layout,
   type ResolvedComponentRegistry,
   type Section,
@@ -118,6 +121,13 @@ function placementStyle(
   };
 }
 
+/** Block content alignment; `safe` keeps content that overflows its cell from being cut at the top. */
+const JUSTIFY_CONTENT: Record<ItemVerticalAlign, string> = {
+  start: 'justify-content:flex-start',
+  center: 'justify-content:center;justify-content:safe center',
+  end: 'justify-content:flex-end;justify-content:safe flex-end',
+};
+
 /*
  * Responsive mode: every enabled breakpoint's placement is emitted as CSS variables and a
  * scoped `@container` stylesheet picks the active one. Layout is correct before hydration /
@@ -129,7 +139,10 @@ function breakpointRules(scope: string, bp: Breakpoint): string {
   return (
     `${grid}{${vars}}` +
     `${grid}>.${preview['preview-block']}{grid-column:var(--vp-${bp}-col);grid-row:var(--vp-${bp}-row)}` +
-    `${grid}>[data-vp-hidden~="${bp}"]{display:none}`
+    `${grid}>[data-vp-hidden~="${bp}"]{display:none}` +
+    ITEM_VERTICAL_ALIGNS.map(
+      (align) => `${grid}>[data-vp-valign~="${bp}-${align}"]{${JUSTIFY_CONTENT[align]}}`,
+    ).join('')
   );
 }
 
@@ -157,6 +170,10 @@ type PreviewItemProps = {
   enabledBreakpoints: Breakpoint[];
   style: React.CSSProperties;
   hiddenOn?: string;
+  /** Responsive mode: `<breakpoint>-<align>` tokens. */
+  alignOn?: string;
+  /** Single-breakpoint mode: the alignment in use. */
+  align?: ItemVerticalAlign;
   components: ResolvedComponentRegistry;
 };
 
@@ -167,6 +184,8 @@ function PreviewItem({
   enabledBreakpoints,
   style,
   hiddenOn,
+  alignOn,
+  align,
   components,
 }: PreviewItemProps) {
   const resolveEntity = useResolveItemData();
@@ -187,6 +206,8 @@ function PreviewItem({
       className={[preview['preview-block'], kindClass].filter(Boolean).join(' ')}
       style={style}
       data-vp-hidden={hiddenOn}
+      data-vp-valign={alignOn}
+      data-valign={align}
     >
       {createElement(Renderer, { item: resolvedItem })}
     </div>
@@ -268,6 +289,8 @@ function PreviewSection({
         {readingOrder.map(({ item, stackIndex }) => {
           let style: Record<string, string | number>;
           let hiddenOn: string | undefined;
+          let alignOn: string | undefined;
+          let align: ItemVerticalAlign | undefined;
           if (responsive) {
             style = {};
             const hidden: Breakpoint[] = [];
@@ -280,10 +303,22 @@ function PreviewSection({
             }
             if (hidden.length === responsive.length) return null;
             hiddenOn = hidden.length > 0 ? hidden.join(' ') : undefined;
+            const aligns = itemVerticalAlignByBreakpoint(
+              item,
+              section,
+              responsive,
+              enabledBreakpoints,
+            );
+            alignOn = aligns
+              ? Object.entries(aligns)
+                  .map(([bp, value]) => `${bp}-${value}`)
+                  .join(' ')
+              : undefined;
           } else {
             const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
             if (placement.hidden) return null;
             style = placementStyle(placement, shifts[breakpoint], item.fullBleed);
+            align = resolveItemVerticalAlign(item, section, breakpoint, enabledBreakpoints);
           }
           style.order = stackIndex;
           return (
@@ -295,6 +330,8 @@ function PreviewSection({
               enabledBreakpoints={enabledBreakpoints}
               style={style as React.CSSProperties}
               hiddenOn={hiddenOn}
+              alignOn={alignOn}
+              align={align}
               components={components}
             />
           );

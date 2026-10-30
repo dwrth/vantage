@@ -1,6 +1,7 @@
 import type { DragEndEvent } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveItem, resolveSection, sectionContentRows, sectionRows } from '../lib/breakpoint';
+import { resolveItemVerticalAlign } from '../lib/contentAlign';
 import { resolveEffectiveItemData } from '../lib/entities';
 import {
   CELL_MAX_PX,
@@ -121,6 +122,12 @@ export function SectionView({ section }: SectionViewProps) {
           },
           fullBleed: item.fullBleed,
           placement: resolveItem(item, section, activeBreakpoint, enabledBreakpoints),
+          verticalAlign: resolveItemVerticalAlign(
+            item,
+            section,
+            activeBreakpoint,
+            enabledBreakpoints,
+          ),
         })),
       ).filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
@@ -440,7 +447,7 @@ export function SectionView({ section }: SectionViewProps) {
                 )}
               </div>
             ) : null}
-            {resolvedItems.map(({ item, placement, stackIndex }) => (
+            {resolvedItems.map(({ item, placement, stackIndex, verticalAlign }) => (
               <GridBlock
                 key={item.id}
                 zIndex={stackIndex + 1}
@@ -454,6 +461,7 @@ export function SectionView({ section }: SectionViewProps) {
                 breakpoint={activeBreakpoint}
                 rowSteps={rowSteps}
                 rows={displayedRows}
+                verticalAlign={verticalAlign}
               />
             ))}
             {ghost ? (

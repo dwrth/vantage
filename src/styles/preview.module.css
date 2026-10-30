@@ -96,6 +96,21 @@
   contain: size;
 }
 
+/* Content alignment inside the block (single-breakpoint mode; responsive mode emits its own rules). */
+.preview-block[data-valign='start'] {
+  justify-content: flex-start;
+}
+
+.preview-block[data-valign='center'] {
+  justify-content: center;
+  justify-content: safe center;
+}
+
+.preview-block[data-valign='end'] {
+  justify-content: flex-end;
+  justify-content: safe flex-end;
+}
+
 .preview-empty {
   margin-inline: 1.5rem;
   padding: 3rem 1rem;

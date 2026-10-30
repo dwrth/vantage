@@ -24,6 +24,7 @@ import {
   setBreakpointWidth,
   setItemFullBleed,
   setItemHidden,
+  setItemVerticalAlign,
   setLayoutBreakpoints,
   setSectionOverride,
   updateItemData,
@@ -177,7 +178,9 @@ describe('moveItemToSection', () => {
     const layout = layoutOf(
       section('s', [a], {
         rows: 4,
-        overrides: { mobile: { items: { a: { x: 1, hidden: true, data: { t: 2 } } } } },
+        overrides: {
+          mobile: { items: { a: { x: 1, hidden: true, verticalAlign: 'end', data: { t: 2 } } } },
+        },
       }),
       section('t', [item('b', 0, 0, 2, 1)], { rows: 6 }),
     );
@@ -186,7 +189,11 @@ describe('moveItemToSection', () => {
     expect(find(next).overrides).toBeUndefined();
     expect(ids(next, 't')).toEqual(['b', 'a']);
     expect(findItem(next, 'a', 't')).toMatchObject({ x: 6, y: 2, ref: 'r', data: { t: 1 } });
-    expect(find(next, 't').overrides?.mobile?.items?.a).toEqual({ hidden: true, data: { t: 2 } });
+    expect(find(next, 't').overrides?.mobile?.items?.a).toEqual({
+      hidden: true,
+      verticalAlign: 'end',
+      data: { t: 2 },
+    });
   });
 
   it('gives the item a new id when the target already uses it', () => {
@@ -462,5 +469,56 @@ describe('setItemFullBleed', () => {
     expect(findItem(on, 'b').fullBleed).toBeUndefined();
     const off = setItemFullBleed(on, 's', 'a', false);
     expect('fullBleed' in findItem(off, 'a')).toBe(false);
+  });
+});
+
+describe('setItemVerticalAlign', () => {
+  it('sets and clears the item value on desktop', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2), item('b', 2, 0, 2, 2)]));
+    const on = setItemVerticalAlign(layout, 's', 'a', 'center');
+    expect(findItem(on, 'a').verticalAlign).toBe('center');
+    expect(findItem(on, 'b').verticalAlign).toBeUndefined();
+    expect(find(on).overrides).toBeUndefined();
+    const off = setItemVerticalAlign(on, 's', 'a', undefined);
+    expect('verticalAlign' in findItem(off, 'a')).toBe(false);
+  });
+
+  it('keeps an explicit start, which differs from unset', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2)]));
+    expect(findItem(setItemVerticalAlign(layout, 's', 'a', 'start'), 'a').verticalAlign).toBe(
+      'start',
+    );
+  });
+
+  it('writes an override on tablet / mobile without moving the item', () => {
+    const layout = layoutOf(
+      section('s', [{ ...item('a', 0, 0, 2, 2), verticalAlign: 'center' }], {
+        overrides: { mobile: { items: { a: { x: 1 } } } },
+      }),
+    );
+    const next = setItemVerticalAlign(layout, 's', 'a', 'end', 'mobile');
+    expect(findItem(next, 'a').verticalAlign).toBe('center');
+    expect(find(next).overrides?.mobile?.items?.a).toEqual({ x: 1, verticalAlign: 'end' });
+  });
+
+  it('clears an override back to inheriting desktop and prunes empty overrides', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 2, 2)], {
+        overrides: {
+          tablet: { items: { a: { verticalAlign: 'end' } } },
+          mobile: { items: { a: { x: 1, verticalAlign: 'end' } } },
+        },
+      }),
+    );
+    const tablet = setItemVerticalAlign(layout, 's', 'a', undefined, 'tablet');
+    expect(find(tablet).overrides?.tablet).toBeUndefined();
+    const mobile = setItemVerticalAlign(tablet, 's', 'a', undefined, 'mobile');
+    expect(find(mobile).overrides?.mobile?.items?.a).toEqual({ x: 1 });
+    expect(setItemVerticalAlign(mobile, 's', 'a', undefined, 'mobile')).toEqual(mobile);
+  });
+
+  it('is a no-op for unknown items', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 2)]));
+    expect(setItemVerticalAlign(layout, 's', 'x', 'end', 'mobile')).toEqual(layout);
   });
 });

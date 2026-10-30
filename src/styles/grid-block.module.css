@@ -20,6 +20,21 @@
   contain: size;
 }
 
+/* Content alignment inside the block (`GridItem.verticalAlign`); unset leaves the kind's own. */
+.grid-block__body[data-valign='start'] {
+  justify-content: flex-start;
+}
+
+.grid-block__body[data-valign='center'] {
+  justify-content: center;
+  justify-content: safe center;
+}
+
+.grid-block__body[data-valign='end'] {
+  justify-content: flex-end;
+  justify-content: safe flex-end;
+}
+
 .grid-block__body:hover:where(:not([data-vantage-dragging] *)),
 .grid-block__body:focus-within {
   border-color: #2563eb;

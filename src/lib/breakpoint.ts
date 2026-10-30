@@ -229,6 +229,7 @@ export function hasItemOverride(section: Section, breakpoint: Breakpoint, itemId
     ovr.w !== undefined ||
     ovr.h !== undefined ||
     ovr.data !== undefined ||
+    ovr.verticalAlign !== undefined ||
     ovr.hidden === true
   );
 }

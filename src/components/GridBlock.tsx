@@ -15,7 +15,7 @@ import { trackPointerDrag } from '../lib/pointerDrag';
 import { closestRowForOffset, getRowStart } from '../lib/rowMetrics';
 import { resolveRenderer } from '../lib/registry';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
-import type { Breakpoint, GridItem } from '../types';
+import type { Breakpoint, GridItem, ItemVerticalAlign } from '../types';
 import chrome from '../styles/grid-block.module.css';
 
 const RESIZE_EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -48,6 +48,8 @@ type GridBlockProps = {
   rows: number;
   /** Stacking position (1 = bottom). DOM order is reading order, so stacking needs z-index. */
   zIndex: number;
+  /** Content alignment at the active breakpoint (unset: the kind's own). */
+  verticalAlign?: ItemVerticalAlign;
 };
 
 type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
@@ -64,6 +66,7 @@ export function GridBlock({
   rowSteps,
   rows,
   zIndex,
+  verticalAlign,
 }: GridBlockProps) {
   const {
     components,
@@ -317,6 +320,7 @@ export function GridBlock({
         aria-label={blockName}
         aria-describedby={blockInstructionsId}
         data-vantage-block={blockKey}
+        data-valign={verticalAlign}
         onFocus={onFocus}
         onKeyDown={onBodyKeyDown}
         onPointerDownCapture={onPointerDownCapture}

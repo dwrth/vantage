@@ -30,6 +30,7 @@ export type {
   SectionBackgroundImageSize,
   SectionOverride,
   SectionVerticalAlign,
+  ItemVerticalAlign,
   ItemOverride,
   Breakpoint,
   BreakpointWidths,
@@ -60,6 +61,7 @@ export {
   DEFAULT_BREAKPOINT_PREVIEW_WIDTHS,
   DEFAULT_TABLET_COLUMNS_RATIO,
   DEFAULT_MOBILE_COLUMNS,
+  ITEM_VERTICAL_ALIGNS,
 } from './types';
 
 export {
@@ -102,6 +104,7 @@ export {
   clearItemOverride,
   setItemHidden,
   setItemFullBleed,
+  setItemVerticalAlign,
   bringItemForward,
   sendItemBackward,
   bringItemToFront,
@@ -169,6 +172,19 @@ export {
 } from './lib/breakpoint';
 
 export type { ResolvedSectionLayout, ResolvedItemLayout } from './lib/breakpoint';
+
+export { resolveItemVerticalAlign, itemVerticalAlignByBreakpoint } from './lib/contentAlign';
+
+export type {
+  AlignmentGuide,
+  AlignmentResult,
+  AlignmentSection,
+  GuideBox,
+  GuideEdge,
+  GuideGeometry,
+  GuideRect,
+  SizeMatch,
+} from './lib/guides';
 
 export { resolveSelectedItem } from './lib/inspector';
 export type { ResolvedSelection } from './lib/inspector';
