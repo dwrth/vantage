@@ -98,6 +98,11 @@ export type VantageBuilderProps = {
   blockLabels?: Partial<BlockLabels>;
   /** Screen-reader messages for keyboard edits, e.g. for translation. */
   announcements?: Partial<BlockAnnouncements>;
+  /**
+   * Shows a "save section" button in the section toolbar, e.g. to store the section as a
+   * reusable template. Hidden when omitted.
+   */
+  onSaveSection?: (sectionId: string) => void;
   renderEditButton?: (ctx: ItemEditButtonRenderProps) => ReactNode;
   /** Draws a dashed instead of solid outline around blocks for which this returns true (e.g. blocks with an access rule). */
   isItemRestricted?: (item: GridItem) => boolean;
@@ -139,6 +144,7 @@ export function VantageBuilder({
   history,
   blockLabels: blockLabelsProp,
   announcements: announcementsProp,
+  onSaveSection,
   renderEditButton,
   isItemRestricted,
   renderDragHandle,
@@ -256,6 +262,7 @@ export function VantageBuilder({
         blockLabels,
         blockInstructionsId,
         onDuplicateSection,
+        onSaveSection,
         renderEditButton,
         isItemRestricted,
         renderDragHandle,

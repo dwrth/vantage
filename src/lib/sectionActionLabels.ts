@@ -6,6 +6,7 @@ export type SectionActionLabels = {
   moveUp: (section: Section) => string;
   moveDown: (section: Section) => string;
   duplicate: (section: Section) => string;
+  save: (section: Section) => string;
   insertBefore: (section: Section) => string;
 };
 
@@ -16,5 +17,6 @@ export const DEFAULT_SECTION_ACTION_LABELS: SectionActionLabels = {
   moveUp: (section) => `Move ${name(section)} up`,
   moveDown: (section) => `Move ${name(section)} down`,
   duplicate: (section) => `Duplicate ${name(section)}`,
+  save: (section) => `Save ${name(section)} as template`,
   insertBefore: (section) => `Add section above ${name(section)}`,
 };

@@ -69,6 +69,7 @@ export type BuilderContextValue = {
   /** Id of the hidden keyboard help that every block references with `aria-describedby`. */
   blockInstructionsId: string;
   onDuplicateSection?: (sectionId: string) => void;
+  onSaveSection?: (sectionId: string) => void;
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
   renderEditButton?: (ctx: { sectionId: string; item: GridItem; isSelected: boolean }) => ReactNode;

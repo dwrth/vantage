@@ -227,6 +227,21 @@ describe('builder keyboard', () => {
     for (const k of ['c', 'v', 'd']) expect(press(k, { metaKey: true })).toBe(true);
   });
 
+  it('keeps block keys off the section save button, which stays a tab stop', () => {
+    const onSaveSection = vi.fn();
+    render(<Host onSaveSection={onSaveSection} />);
+    focusBlock('A');
+    const save = screen.getByRole('button', { name: 'Save section as template' });
+    expect(save.tabIndex).toBe(0);
+    act(() => save.focus());
+    for (const key of ['ArrowRight', 'Delete', 'Backspace', 'Escape']) press(key);
+    press('ArrowDown', { shiftKey: true });
+    expect(pos('a')).toMatchObject({ x: 0, y: 0, w: 2, h: 2 });
+    expect(host.layout.sections[0]!.items).toHaveLength(3);
+    fireEvent.click(save);
+    expect(onSaveSection).toHaveBeenCalledWith('s');
+  });
+
   it('leaves undo to the browser without a history prop', () => {
     render(<Host history={undefined} />);
     focusBlock('A');
