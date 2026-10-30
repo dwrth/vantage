@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import type { SelectionRef } from '../context/BuilderContext';
 import { useResolveItemData } from '../hooks/useItemData';
-import { diffLayouts, type LayoutChangeset } from '../lib/diff';
+import { diffLayouts, type LayoutChangeOptions, type LayoutChangeset } from '../lib/diff';
 import { resolveSelectedItem, type ResolvedSelection } from '../lib/inspector';
 import { updateItemData } from '../mutations/layout';
 import { vantageRootProps } from '../theme/applyRoot';
@@ -20,7 +20,11 @@ export type VantageInspectorProps = {
   components: ComponentRegistry;
   selection: SelectionRef | null;
   activeBreakpoint: Breakpoint;
-  onChange: (next: Layout, changeset: LayoutChangeset) => void;
+  /**
+   * `options.mergeKey` groups consecutive edits of the same fields (e.g. typing) into one
+   * undo step in `useVantageHistory`.
+   */
+  onChange: (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => void;
   onItemDataChange?: (event: ItemDataChangeEvent) => void;
   className?: string;
   emptyState?: ReactNode;
@@ -91,7 +95,12 @@ export function VantageInspector({
               const breakpoint = scope === 'base' ? 'desktop' : activeBreakpoint;
               const dirty = opts?.dirty ?? true;
               const next = updateItemData(layout, section.id, item.id, patch, breakpoint);
-              onChange(next, diffLayouts(layout, next));
+              const fields = Object.keys(patch ?? {})
+                .sort()
+                .join(',');
+              onChange(next, diffLayouts(layout, next), {
+                mergeKey: `vantage-inspector:${section.id}:${item.id}:${breakpoint}:${fields}`,
+              });
               onItemDataChange?.({
                 sectionId: section.id,
                 itemId: item.id,

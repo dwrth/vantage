@@ -175,6 +175,7 @@ export {
   type ItemRemovedEvent,
   type ItemUpdatedEvent,
   type ItemMovedEvent,
+  type LayoutChangeOptions,
   type ItemsReorderedEvent,
   type SectionAddedEvent,
   type SectionRemovedEvent,
