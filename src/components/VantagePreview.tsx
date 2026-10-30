@@ -9,6 +9,7 @@ import {
   type ResolvedSectionLayout,
 } from '../lib/breakpoint';
 import { resolveEffectiveItemData } from '../lib/entities';
+import { sortByReadingOrder } from '../lib/readingOrder';
 import { resolveRenderer, resolveRegistry } from '../lib/registry';
 import { useContainerWidth } from '../hooks/useContainerWidth';
 import { useResolveItemData } from '../hooks/useItemData';
@@ -211,6 +212,15 @@ function PreviewSection({
   isItemVisible,
 }: PreviewSectionProps) {
   const visibleItems = isItemVisible ? section.items.filter(isItemVisible) : section.items;
+  // DOM (and tab / screen-reader) order follows the reading order of the breakpoint in use
+  // (desktop before measurement). CSS `order` keeps the stacking order for painting.
+  const readingOrder = sortByReadingOrder(
+    visibleItems.map((item) => ({
+      item,
+      fullBleed: item.fullBleed,
+      placement: resolveItem(item, section, breakpoint, enabledBreakpoints),
+    })),
+  );
   const filteredItems = isItemVisible
     ? section.items.filter((item) => !visibleItems.includes(item))
     : [];
@@ -255,8 +265,8 @@ function PreviewSection({
           background={section.background}
           className={preview['preview-section__bg']}
         />
-        {visibleItems.map((item) => {
-          let style: Record<string, string>;
+        {readingOrder.map(({ item, stackIndex }) => {
+          let style: Record<string, string | number>;
           let hiddenOn: string | undefined;
           if (responsive) {
             style = {};
@@ -275,6 +285,7 @@ function PreviewSection({
             if (placement.hidden) return null;
             style = placementStyle(placement, shifts[breakpoint], item.fullBleed);
           }
+          style.order = stackIndex;
           return (
             <PreviewItem
               key={item.id}

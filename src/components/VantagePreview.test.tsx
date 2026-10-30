@@ -64,3 +64,39 @@ describe('VantagePreview full bleed', () => {
     expect(html).toContain('--vp-mobile-col:1 / -1');
   });
 });
+
+describe('VantagePreview reading order', () => {
+  const labelled: ComponentRegistry = {
+    block: {
+      component: ({ item }) => <span>{item.id}</span>,
+      defaults: { w: 1, h: 1 },
+    },
+  };
+
+  it('renders blocks by row, then column, and keeps the stacking order in `order`', () => {
+    const layout = {
+      breakpoints: ['desktop'],
+      breakpointWidths: {},
+      breakpointPreviewWidths: {},
+      sections: [
+        {
+          id: 's',
+          columns: 12,
+          colGap: 8,
+          rowGap: 8,
+          rows: 6,
+          items: [
+            { id: 'below', kind: 'block', x: 0, y: 3, w: 2, h: 2 },
+            { id: 'right', kind: 'block', x: 6, y: 0, w: 2, h: 2 },
+            { id: 'left', kind: 'block', x: 0, y: 0, w: 2, h: 2 },
+          ],
+        },
+      ],
+    } as Layout;
+    const html = renderToStaticMarkup(<VantagePreview value={layout} components={labelled} />);
+    const ids = [...html.matchAll(/<span>(\w+)<\/span>/g)].map((m) => m[1]);
+    expect(ids).toEqual(['left', 'right', 'below']);
+    const orders = [...html.matchAll(/order:(\d+)/g)].map((m) => m[1]);
+    expect(orders).toEqual(['2', '1', '0']);
+  });
+});

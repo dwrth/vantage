@@ -1,5 +1,10 @@
-/* Content cell — stays in normal document/stack order. */
+/*
+ * Content cell. DOM order is reading order (tab order); stacking comes from `--vantage-z`
+ * (1..n, set inline) inside the isolated section grid. Overlay and active chrome sit above
+ * `--vantage-z-top` (block count + 1, set on the grid).
+ */
 .grid-block__body {
+  z-index: var(--vantage-z, auto);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -20,6 +25,11 @@
   border-color: #2563eb;
 }
 
+.grid-block__body:focus-visible {
+  outline: 2px solid var(--vantage-focus-color, #1d4ed8);
+  outline-offset: 2px;
+}
+
 .grid-block__body--restricted {
   border-style: dashed;
 }
@@ -29,7 +39,7 @@
 }
 
 .grid-block__body--dragging {
-  z-index: 10;
+  z-index: calc(var(--vantage-z-top, 0) + 2);
   border-color: #2563eb;
   box-shadow: 0 10px 24px rgba(15, 17, 23, 0.12);
   cursor: grabbing;
@@ -56,6 +66,7 @@
 
 /* Chrome cell — same grid area, raised only when active. */
 .grid-block__chrome {
+  z-index: var(--vantage-z, auto);
   position: relative;
   pointer-events: none;
   min-width: 0;
@@ -67,13 +78,13 @@
 .grid-block__body:hover:where(:not([data-vantage-dragging] *)) + .grid-block__chrome,
 .grid-block__chrome:hover:where(:not([data-vantage-dragging] *)),
 .grid-block__chrome--active {
-  z-index: 6;
+  z-index: calc(var(--vantage-z-top, 0) + 1);
 }
 
 /* The block being resized (`--resizing`) keeps its outline and handles without `:hover`, which is off while dragging. */
 .grid-block__body--dragging + .grid-block__chrome,
 .grid-block__chrome--resizing {
-  z-index: 10;
+  z-index: calc(var(--vantage-z-top, 0) + 2);
 }
 
 .grid-block__chrome--active::after,

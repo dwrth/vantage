@@ -34,17 +34,6 @@ const RESIZE_EDGE_CLASS: Record<ResizeEdge, string> = {
   sw: 'grid-block__resize--sw',
 };
 
-const RESIZE_EDGE_LABEL: Record<ResizeEdge, string> = {
-  n: 'Resize north',
-  s: 'Resize south',
-  e: 'Resize east',
-  w: 'Resize west',
-  ne: 'Resize northeast',
-  nw: 'Resize northwest',
-  se: 'Resize southeast',
-  sw: 'Resize southwest',
-};
-
 type GridBlockProps = {
   sectionId: string;
   item: GridItem;
@@ -57,6 +46,8 @@ type GridBlockProps = {
   rowSteps: number[] | null;
   /** Section height in rows; drags and resizes stay inside it. */
   rows: number;
+  /** Stacking position (1 = bottom). DOM order is reading order, so stacking needs z-index. */
+  zIndex: number;
 };
 
 type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
@@ -72,6 +63,7 @@ export function GridBlock({
   breakpoint,
   rowSteps,
   rows,
+  zIndex,
 }: GridBlockProps) {
   const {
     components,
@@ -83,6 +75,8 @@ export function GridBlock({
     isItemRestricted,
     renderDragHandle,
     renderDeleteButton,
+    blockLabels,
+    blockInstructionsId,
   } = useBuilderContext();
   const { resizeItem, removeItem } = useBuilderActions();
   const resizeStart = useRef<ResizeStart | null>(null);
@@ -145,13 +139,17 @@ export function GridBlock({
 
   const dragTransform = transform ? `translate3d(${snappedX}px, ${snappedY}px, 0)` : undefined;
 
+  const stackStyle = { '--vantage-z': zIndex } as React.CSSProperties;
+
   const bodyStyle: React.CSSProperties = {
     ...gridPlacement,
+    ...stackStyle,
     transform: dragTransform,
   };
 
   const chromeStyle: React.CSSProperties = {
     ...gridPlacement,
+    ...stackStyle,
     transform: dragTransform,
   };
 
@@ -279,6 +277,27 @@ export function GridBlock({
     setSelection({ sectionId, itemId: item.id });
   }, [setSelection, sectionId, item.id]);
 
+  // Selection follows focus, so Tab / Shift+Tab walk the blocks in reading order.
+  const onFocus = useCallback(() => {
+    if (!isSelected) setSelection({ sectionId, itemId: item.id });
+  }, [isSelected, setSelection, sectionId, item.id]);
+
+  // Enter / Space reselect a focused block after Escape.
+  const onBodyKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.target !== e.currentTarget || isSelected) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      setSelection({ sectionId, itemId: item.id });
+    },
+    [isSelected, setSelection, sectionId, item.id],
+  );
+
+  const blockKey = `${sectionId}:${item.id}`;
+  const blockName = blockLabels.block(item);
+  // The block itself is the keyboard drag surface; the handle stays a pointer-only control.
+  const handleAttributes = { ...attributes, tabIndex: -1 };
+
   return (
     <Fragment>
       <div
@@ -292,9 +311,16 @@ export function GridBlock({
           .filter(Boolean)
           .join(' ')}
         style={bodyStyle}
+        role="group"
+        tabIndex={0}
+        aria-roledescription={blockLabels.roleDescription}
+        aria-label={blockName}
+        aria-describedby={blockInstructionsId}
+        data-vantage-block={blockKey}
+        onFocus={onFocus}
+        onKeyDown={onBodyKeyDown}
         onPointerDownCapture={onPointerDownCapture}
         onContextMenu={onItemContextMenu ? onContextMenu : undefined}
-        {...attributes}
       >
         {body}
       </div>
@@ -308,7 +334,8 @@ export function GridBlock({
           .filter(Boolean)
           .join(' ')}
         style={chromeStyle}
-        aria-hidden={!isSelected && !isDragging && !isResizing}
+        data-vantage-block={blockKey}
+        onFocus={onFocus}
       >
         {renderDragHandle ? (
           <div
@@ -325,18 +352,18 @@ export function GridBlock({
               isSelected,
               isDragging,
               listeners,
-              attributes,
+              attributes: handleAttributes,
             })}
           </div>
         ) : (
           <button
             type="button"
             className={chrome['grid-block__handle']}
-            aria-label={`Drag ${item.label ?? 'block'}`}
+            aria-label={blockLabels.dragHandle(item)}
             title={item.label ?? 'Drag'}
             data-vantage-drag-handle=""
             {...listeners}
-            {...attributes}
+            {...handleAttributes}
           >
             <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
               <circle cx="5" cy="3" r="1.2" fill="currentColor" />
@@ -374,7 +401,7 @@ export function GridBlock({
               e.stopPropagation();
               removeItem(sectionId, item.id);
             }}
-            aria-label="Delete block"
+            aria-label={blockLabels.deleteButton(item)}
           >
             ×
           </button>
@@ -387,7 +414,8 @@ export function GridBlock({
               .join(' ')}
             data-edge={edge}
             onPointerDown={(e) => onResizePointerDown(edge, e)}
-            aria-label={RESIZE_EDGE_LABEL[edge]}
+            // Pointer-only: Shift+arrow keys resize the focused block.
+            aria-hidden="true"
           />
         ))}
       </div>

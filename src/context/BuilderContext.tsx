@@ -1,5 +1,7 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
+import type { LayoutChangeOptions } from '../lib/diff';
+import type { BlockLabels } from '../lib/keyboardLabels';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
 import type {
   Breakpoint,
@@ -49,7 +51,7 @@ export type BuilderContextValue = {
   enabledBreakpoints: Breakpoint[];
   breakpointWidths: BreakpointWidths;
   breakpointPreviewWidths: BreakpointWidths;
-  onChange: (layout: Layout) => void;
+  onChange: (layout: Layout, options?: LayoutChangeOptions) => void;
   components: ResolvedComponentRegistry;
   isInteracting: boolean;
   setInteracting: (v: boolean) => void;
@@ -62,6 +64,10 @@ export type BuilderContextValue = {
   sectionResizeLabel?: (section: Section) => string;
   showSectionActions: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
+  /** Defaults merged in. */
+  blockLabels: BlockLabels;
+  /** Id of the hidden keyboard help that every block references with `aria-describedby`. */
+  blockInstructionsId: string;
   onDuplicateSection?: (sectionId: string) => void;
   externalDrag?: ExternalDragItem | null;
   onExternalDrop?: (event: ExternalDropEvent) => void;
