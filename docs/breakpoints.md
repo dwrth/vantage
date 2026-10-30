@@ -51,7 +51,7 @@ It overwrites `columns` and item `x` / `y` / `w` / `h` for that breakpoint and k
 
 ## Per-breakpoint overrides
 
-When the user drags, resizes, or edits a block's `data` while a non-desktop breakpoint is active, Vantage stores an `ItemOverride` instead of mutating the desktop placement. `ItemOverride` can carry `x` / `y` / `w` / `h`, `hidden`, and a partial `data` patch that is shallow-merged on top of the base item data at render time. You can also write overrides explicitly:
+When the user drags, resizes, or edits a block's `data` while a non-desktop breakpoint is active, Vantage stores an `ItemOverride` instead of mutating the desktop placement. `ItemOverride` can carry `x` / `y` / `w` / `h`, `hidden`, `verticalAlign` (see [Alignment](alignment.md)), and a partial `data` patch that is shallow-merged on top of the base item data at render time. You can also write overrides explicitly:
 
 ```ts
 setSectionOverride(layout, sectionId, 'mobile', {
@@ -71,6 +71,7 @@ Section `rows` follow the same rule: resizing a section on tablet or mobile writ
 ```ts
 resolveSection(section, 'mobile'); // { columns, colGap, rowGap, paddingTop, paddingBottom, rows? }
 resolveItem(item, section, 'mobile'); // { x, y, w, h, hidden }
+resolveItemVerticalAlign(item, section, 'mobile'); // 'start' | 'center' | 'end' | undefined
 mergeBreakpointItemData<HeroData>(item, section, 'mobile'); // base data ∪ BP override (not entity resolve)
 resolveEffectiveItemData(item, section, 'mobile', enabled, entityData); // entity ∪ layout/BP
 hasItemOverride(item, section, 'mobile'); // boolean
