@@ -17,6 +17,11 @@ export type GridItem<TData = unknown> = {
    * The host decides which kinds may use it.
    */
   fullBleed?: boolean;
+  /**
+   * Hide the item on desktop. Like `x` / `y` / `w` / `h`, the item itself holds the desktop
+   * value; tablet and mobile use `ItemOverride.hidden` and do not inherit this flag.
+   */
+  hidden?: boolean;
   meta?: Record<string, unknown>;
 };
 

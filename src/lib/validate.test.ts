@@ -257,3 +257,21 @@ describe('fill-screen and full-bleed fields', () => {
     ]);
   });
 });
+
+describe('desktop hidden', () => {
+  it('accepts a boolean item hidden flag', () => {
+    const layout = broken((l) => {
+      item0(l).hidden = true;
+    });
+    expect(validateLayout(layout).errors).toEqual([]);
+  });
+
+  it('rejects a non-boolean item hidden flag', () => {
+    const layout = broken((l) => {
+      item0(l).hidden = 'yes';
+    });
+    expect(validateLayout(layout).errors).toEqual([
+      'sections[0].items[0].hidden: must be a boolean',
+    ]);
+  });
+});
