@@ -5,7 +5,8 @@ import type { GridMinSize } from '../lib/grid';
 import { applyBlockAction, keyToAction } from '../lib/keyboard';
 import type { BlockAnnouncements, BlockLabels } from '../lib/keyboardLabels';
 import { blocksInReadingOrder } from '../lib/readingOrder';
-import type { Breakpoint, Layout } from '../types';
+import { moveItems, removeItems } from '../mutations/group';
+import type { Breakpoint, GridItem, Layout } from '../types';
 
 /** The part of `useVantageHistory`'s result the builder needs for Cmd/Ctrl+Z and redo. */
 export type BuilderHistory = {
@@ -31,12 +32,15 @@ type KeyboardState = {
   layout: Layout;
   selection: SelectionRef | null;
   setSelection: (next: SelectionRef | null) => void;
+  /** Every selected block; with more than one, arrows move and Delete removes the whole group. */
+  selectedItems: SelectionRef[];
+  setSelectedItems: (next: SelectionRef[]) => void;
   activeBreakpoint: Breakpoint;
   isInteracting: boolean;
   emitChange: (next: Layout, options?: LayoutChangeOptions) => void;
   history?: BuilderHistory;
-  blockLabels: BlockLabels;
-  announcements: BlockAnnouncements;
+  blockLabels: Required<BlockLabels>;
+  announcements: Required<BlockAnnouncements>;
   announce: (message: string) => void;
   /** Content minimum per block key, as the mounted blocks report it. */
   minSizes: MutableRefObject<Map<string, GridMinSize>>;
@@ -50,6 +54,8 @@ type KeyboardState = {
  * - Undo/redo (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Cmd/Ctrl+Y) act anywhere except text fields and
  *   dialogs outside the builder, and only when `history` is passed.
  * - Text fields keep every key. Copy, paste and duplicate are left to the host.
+ * - With several blocks selected, arrows move the group as a unit, Delete removes it and Escape
+ *   clears it, each from any selected block; resize and layer keys do nothing then.
  *
  * One held key (auto-repeat) is one gesture: its changes share a merge key, so
  * `useVantageHistory` records one undo step.
@@ -108,12 +114,22 @@ export function useBuilderKeyboard(rootRef: RefObject<HTMLElement | null>, state
 
       const selection = s.selection;
       if (!selection) return;
+      const focusedKey = target?.closest(`[${BLOCK_ATTR}]`)?.getAttribute(BLOCK_ATTR);
+      const group = s.selectedItems.length > 1 ? s.selectedItems : null;
       const focusOnSelected =
         target === null ||
         target === document.body ||
         target === document.documentElement ||
-        target.closest(`[${BLOCK_ATTR}]`)?.getAttribute(BLOCK_ATTR) === blockKey(selection);
+        (group
+          ? group.some((ref) => blockKey(ref) === focusedKey)
+          : focusedKey === blockKey(selection));
       if (!focusOnSelected) return;
+
+      if (group) {
+        const focused = group.find((ref) => blockKey(ref) === focusedKey) ?? selection;
+        handleGroupKey(e, s, group, action, focused);
+        return;
+      }
 
       if (action.type === 'deselect') {
         const section = s.layout.sections.find((x) => x.id === selection.sectionId);
@@ -176,6 +192,58 @@ export function useBuilderKeyboard(rootRef: RefObject<HTMLElement | null>, state
               ? s.announcements.broughtForward(ctx)
               : s.announcements.sentBackward(ctx);
       s.announce(message);
+    };
+
+    const handleGroupKey = (
+      e: KeyboardEvent,
+      s: KeyboardState,
+      group: SelectionRef[],
+      action: NonNullable<ReturnType<typeof keyToAction>>,
+      focused: SelectionRef,
+    ) => {
+      const sectionId = group[0]!.sectionId;
+      const section = s.layout.sections.find((x) => x.id === sectionId);
+      const ids = group.map((ref) => ref.itemId);
+      const items = ids
+        .map((id) => section?.items.find((item) => item.id === id))
+        .filter((item): item is GridItem => item !== undefined);
+      const ctx = { count: items.length, items };
+
+      if (action.type === 'deselect') {
+        e.preventDefault();
+        s.setSelection(null);
+        s.announce(s.announcements.selectionChanged({ count: 0, items: [] }));
+        return;
+      }
+      if (action.type === 'delete') {
+        e.preventDefault();
+        const keys = new Set(group.map(blockKey));
+        const order = blocksInReadingOrder(s.layout, s.activeBreakpoint);
+        const index = order.findIndex((ref) => blockKey(ref) === blockKey(s.selection!));
+        const next =
+          order.slice(index + 1).find((ref) => !keys.has(blockKey(ref))) ??
+          order
+            .slice(0, Math.max(0, index))
+            .reverse()
+            .find((ref) => !keys.has(blockKey(ref))) ??
+          null;
+        s.emitChange(removeItems(s.layout, sectionId, ids));
+        s.setSelection(next);
+        if (next) pendingFocusRef.current = { target: next, from: s.layout };
+        s.announce(s.announcements.groupDeleted(ctx));
+        return;
+      }
+      // Group resize and layering are out of scope; keep the keys from scrolling the page.
+      e.preventDefault();
+      if (action.type !== 'move') return;
+      const next = moveItems(s.layout, sectionId, ids, action.dx, action.dy, s.activeBreakpoint);
+      if (next !== s.layout) {
+        pendingFocusRef.current = { target: focused, from: s.layout };
+        s.emitChange(next, {
+          mergeKey: `vantage-key:group-move:${sectionId}:${burstRef.current}`,
+        });
+      }
+      s.announce(s.announcements.groupMoved(ctx));
     };
 
     window.addEventListener('keydown', onKeyDown);

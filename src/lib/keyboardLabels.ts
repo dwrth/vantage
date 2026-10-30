@@ -1,3 +1,4 @@
+import type { GroupAlignment } from '../mutations/group';
 import type { GridItem } from '../types';
 
 /** Accessible names and descriptions of builder blocks and their chrome, e.g. for translation. */
@@ -18,6 +19,15 @@ export type BlockLabels = {
   moveBelow: string;
   /** Built-in overlap warning: button that keeps the overlap as intended layering. */
   keepOverlap: string;
+  /**
+   * Group toolbar of a multi-selection: its accessible name and visible count. The group
+   * labels are optional so that existing full `BlockLabels` objects stay valid; defaults apply.
+   */
+  groupToolbar?: (count: number) => string;
+  /** Group toolbar: align button. */
+  align?: (alignment: GroupAlignment) => string;
+  /** Group toolbar: delete button. */
+  deleteSelection?: (count: number) => string;
 };
 
 /** What a keyboard action did to a block. Positions and sizes are 1-based grid cells. */
@@ -31,6 +41,13 @@ export type BlockAnnouncementContext = {
   height: number;
 };
 
+/** What a selection change or group action did. */
+export type GroupAnnouncementContext = {
+  /** Number of selected (for `groupDeleted`: deleted) blocks. */
+  count: number;
+  items: GridItem[];
+};
+
 /** Screen-reader messages for keyboard edits, read through a polite live region. */
 export type BlockAnnouncements = {
   moved: (ctx: BlockAnnouncementContext) => string;
@@ -41,23 +58,43 @@ export type BlockAnnouncements = {
   deselected: (ctx: BlockAnnouncementContext) => string;
   undone: () => string;
   redone: () => string;
+  /**
+   * Shift/Cmd/Ctrl-click, marquee, or Escape on a multi-selection. The group messages are
+   * optional so that existing full `BlockAnnouncements` objects stay valid; defaults apply.
+   */
+  selectionChanged?: (ctx: GroupAnnouncementContext) => string;
+  groupMoved?: (ctx: GroupAnnouncementContext) => string;
+  groupAligned?: (ctx: GroupAnnouncementContext & { alignment: GroupAlignment }) => string;
+  groupDeleted?: (ctx: GroupAnnouncementContext) => string;
 };
 
 const nameOf = (item: GridItem) => item.label ?? item.kind;
 
-export const DEFAULT_BLOCK_LABELS: BlockLabels = {
+const ALIGN_LABELS: Record<GroupAlignment, string> = {
+  left: 'Align left',
+  center: 'Align centre',
+  right: 'Align right',
+  top: 'Align top',
+  middle: 'Align middle',
+  bottom: 'Align bottom',
+};
+
+export const DEFAULT_BLOCK_LABELS: Required<BlockLabels> = {
   block: nameOf,
   roleDescription: 'block',
   instructions:
-    'Arrow keys move the block, Shift and arrow keys resize it. Delete removes it, Escape deselects it. Ctrl or Cmd with Shift and up or down arrow changes the layer.',
+    'Arrow keys move the block, Shift and arrow keys resize it. Delete removes it, Escape deselects it. Ctrl or Cmd with Shift and up or down arrow changes the layer. Shift-click adds blocks to the selection.',
   dragHandle: (item) => `Drag ${nameOf(item)}`,
   deleteButton: (item) => `Delete ${nameOf(item)}`,
   overlapWarning: (item) => `${nameOf(item)} overlaps another block`,
   moveBelow: 'Move below',
   keepOverlap: 'Keep overlap',
+  groupToolbar: (count) => `${count} blocks selected`,
+  align: (alignment) => ALIGN_LABELS[alignment],
+  deleteSelection: (count) => `Delete ${count} blocks`,
 };
 
-export const DEFAULT_BLOCK_ANNOUNCEMENTS: BlockAnnouncements = {
+export const DEFAULT_BLOCK_ANNOUNCEMENTS: Required<BlockAnnouncements> = {
   moved: ({ name, column, row }) => `${name} moved to column ${column}, row ${row}`,
   resized: ({ name, width, height }) => `${name} resized to ${width} columns by ${height} rows`,
   deleted: ({ name }) => `${name} deleted`,
@@ -66,4 +103,25 @@ export const DEFAULT_BLOCK_ANNOUNCEMENTS: BlockAnnouncements = {
   deselected: ({ name }) => `${name} deselected`,
   undone: () => 'Undone',
   redone: () => 'Redone',
+  selectionChanged: ({ count }) =>
+    count === 0
+      ? 'Selection cleared'
+      : count === 1
+        ? '1 block selected'
+        : `${count} blocks selected`,
+  groupMoved: ({ count }) => `${count} blocks moved`,
+  groupAligned: ({ count, alignment }) => `${count} blocks aligned ${alignment}`,
+  groupDeleted: ({ count }) => `${count} blocks deleted`,
 };
+
+/** Merges host labels over the defaults; `undefined` entries keep the default. */
+export function withDefaults<T extends object>(
+  defaults: Required<T>,
+  partial?: Partial<T>,
+): Required<T> {
+  const merged = { ...defaults };
+  for (const [key, value] of Object.entries(partial ?? {})) {
+    if (value !== undefined) (merged as Record<string, unknown>)[key] = value;
+  }
+  return merged;
+}

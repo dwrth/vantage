@@ -1,15 +1,27 @@
 import { useBuilderContext } from '../context/BuilderContext';
 import { resolveEffectiveItemData } from '../lib/entities';
+import { sameRef, toggleSelection } from '../lib/selection';
+import type { SelectionRef } from '../context/BuilderContext';
 import { useResolveItemData } from './useItemData';
 
 export function useSelection() {
-  const { selection, setSelection } = useBuilderContext();
+  const { selection, setSelection, selectedItems, setSelectedItems } = useBuilderContext();
   return {
+    /** Primary selected block (the last one added). */
     selection,
     setSelection,
     clearSelection: () => setSelection(null),
+    /** Whether the block is the primary selected block. */
     isSelected: (sectionId: string, itemId: string) =>
       selection?.sectionId === sectionId && selection?.itemId === itemId,
+    /** Every selected block, all of one section; the primary one is last. */
+    selectedItems,
+    setSelectedItems,
+    /** Adds the block to the selection or removes it (Shift-click). */
+    toggleSelected: (ref: SelectionRef) => setSelectedItems(toggleSelection(selectedItems, ref)),
+    /** Whether the block is part of the selection. */
+    isInSelection: (sectionId: string, itemId: string) =>
+      selectedItems.some((ref) => sameRef(ref, { sectionId, itemId })),
   };
 }
 

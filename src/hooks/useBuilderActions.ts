@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { resolveDescriptorForKind } from '../lib/registry';
 import { useBuilderContext } from '../context/BuilderContext';
 import * as mutations from '../mutations/layout';
+import * as group from '../mutations/group';
 import type { Breakpoint, Layout, Section, SectionOverride } from '../types';
 
 export function useBuilderActions() {
@@ -155,6 +156,45 @@ export function useBuilderActions() {
         apply(mutations.resizeSection(layout, sectionId, rows, breakpoint ?? activeBreakpoint)),
       removeItem: (sectionId: string, itemId: string) =>
         apply(mutations.removeItem(layout, sectionId, itemId)),
+      /** Group move as a unit (see `moveItems`); one change. */
+      moveItems: (
+        sectionId: string,
+        itemIds: string[],
+        dx: number,
+        dy: number,
+        breakpoint?: Breakpoint,
+      ) => {
+        const next = group.moveItems(
+          layout,
+          sectionId,
+          itemIds,
+          dx,
+          dy,
+          breakpoint ?? activeBreakpoint,
+        );
+        if (next !== layout) apply(next);
+      },
+      /** Group align over the bounding box (see `alignItems`); one change. */
+      alignItems: (
+        sectionId: string,
+        itemIds: string[],
+        alignment: group.GroupAlignment,
+        breakpoint?: Breakpoint,
+      ) => {
+        const next = group.alignItems(
+          layout,
+          sectionId,
+          itemIds,
+          alignment,
+          breakpoint ?? activeBreakpoint,
+        );
+        if (next !== layout) apply(next);
+      },
+      /** Group delete; one change. */
+      removeItems: (sectionId: string, itemIds: string[]) => {
+        const next = group.removeItems(layout, sectionId, itemIds);
+        if (next !== layout) apply(next);
+      },
       moveItemBelowOverlaps: (sectionId: string, itemId: string, breakpoint?: Breakpoint) =>
         apply(
           mutations.moveItemBelowOverlaps(

@@ -8,7 +8,7 @@ import {
 } from 'react';
 import type { GridMinSize } from '../lib/grid';
 import type { LayoutChangeOptions } from '../lib/diff';
-import type { BlockLabels } from '../lib/keyboardLabels';
+import type { BlockAnnouncements, BlockLabels } from '../lib/keyboardLabels';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
 import type {
   Breakpoint,
@@ -82,8 +82,14 @@ export type BuilderContextValue = {
   components: ResolvedComponentRegistry;
   isInteracting: boolean;
   setInteracting: (v: boolean) => void;
+  /** Primary selected block: the only one, or the last one added to a multi-selection. */
   selection: SelectionRef | null;
+  /** Replaces the selection with `next` (one block) or clears it. */
   setSelection: (next: SelectionRef | null) => void;
+  /** Every selected block, all of one section; the primary block is last. Empty when none. */
+  selectedItems: SelectionRef[];
+  /** Replaces the whole selection. The last entry becomes the primary block. */
+  setSelectedItems: (next: SelectionRef[]) => void;
   activeBreakpoint: Breakpoint;
   setActiveBreakpoint: (next: Breakpoint) => void;
   renderSectionHeader?: (ctx: SectionChromeContext) => ReactNode;
@@ -94,7 +100,13 @@ export type BuilderContextValue = {
   showSectionToolbar: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
   /** Defaults merged in. */
-  blockLabels: BlockLabels;
+  blockLabels: Required<BlockLabels>;
+  /** Defaults merged in. */
+  announcements: Required<BlockAnnouncements>;
+  /** Says `message` through the builder's polite live region. */
+  announce: (message: string) => void;
+  /** Built-in toolbar (align, delete) above a multi-selection. */
+  showGroupToolbar: boolean;
   /** Id of the hidden keyboard help that every block references with `aria-describedby`. */
   blockInstructionsId: string;
   onDuplicateSection?: (sectionId: string) => void;

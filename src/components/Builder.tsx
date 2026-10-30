@@ -12,10 +12,12 @@ import { useBuilderKeyboard, type BuilderHistory } from '../hooks/useBuilderKeyb
 import {
   DEFAULT_BLOCK_ANNOUNCEMENTS,
   DEFAULT_BLOCK_LABELS,
+  withDefaults,
   type BlockAnnouncements,
   type BlockLabels,
 } from '../lib/keyboardLabels';
 import { resolveRegistry } from '../lib/registry';
+import { sameRef, sameSelection } from '../lib/selection';
 import type {
   ExternalDragItem,
   ExternalDropEvent,
@@ -47,6 +49,7 @@ export type {
   BlockAnnouncementContext,
   BlockAnnouncements,
   BlockLabels,
+  GroupAnnouncementContext,
 } from '../lib/keyboardLabels';
 
 export type ItemChromeRenderProps = {
@@ -79,9 +82,25 @@ export type VantageBuilderProps = {
   components: ComponentRegistry;
   className?: string;
   children?: ReactNode;
+  /**
+   * The primary selected block (controlled). With a multi-selection it is the block added last.
+   * When it is not part of `selectedItems`, the selection is just this block.
+   */
   selectedItem?: SelectionRef | null;
   defaultSelectedItem?: SelectionRef | null;
+  /** The primary selected block changed or was set again (e.g. on every click on a block). */
   onSelectionChange?: (next: SelectionRef | null) => void;
+  /**
+   * Every selected block (controlled), all of one section; the last entry is the primary block.
+   * Optional: without it the builder keeps the multi-selection itself and `selectedItem` /
+   * `onSelectionChange` keep working as for a single selection.
+   */
+  selectedItems?: SelectionRef[];
+  defaultSelectedItems?: SelectionRef[];
+  /** Called with the whole selection whenever it is set (click, Shift-click, marquee, Escape). */
+  onSelectedItemsChange?: (next: SelectionRef[]) => void;
+  /** Toolbar with align and delete buttons above a multi-selection. Default: shown. */
+  showGroupToolbar?: boolean;
   activeBreakpoint?: Breakpoint;
   defaultActiveBreakpoint?: Breakpoint;
   onActiveBreakpointChange?: (next: Breakpoint) => void;
@@ -170,6 +189,10 @@ export function VantageBuilder({
   selectedItem: selectedItemProp,
   defaultSelectedItem = null,
   onSelectionChange,
+  selectedItems: selectedItemsProp,
+  defaultSelectedItems,
+  onSelectedItemsChange,
+  showGroupToolbar = true,
   activeBreakpoint: activeBreakpointProp,
   defaultActiveBreakpoint = 'desktop',
   onActiveBreakpointChange,
@@ -200,8 +223,8 @@ export function VantageBuilder({
   const breakpointWidths = useMemo(() => getBreakpointWidths(value), [value]);
   const breakpointPreviewWidths = useMemo(() => getBreakpointPreviewWidths(value), [value]);
   const [isInteracting, setInteracting] = useState(false);
-  const [uncontrolledSelection, setUncontrolledSelection] = useState<SelectionRef | null>(
-    defaultSelectedItem,
+  const [uncontrolledItems, setUncontrolledItems] = useState<SelectionRef[]>(
+    () => defaultSelectedItems ?? (defaultSelectedItem ? [defaultSelectedItem] : []),
   );
   const [uncontrolledBreakpoint, setUncontrolledBreakpoint] = useState<Breakpoint>(
     enabledBreakpoints.includes(defaultActiveBreakpoint) ? defaultActiveBreakpoint : 'desktop',
@@ -209,13 +232,34 @@ export function VantageBuilder({
   const components = useMemo(() => resolveRegistry(componentsProp), [componentsProp]);
 
   const isControlled = selectedItemProp !== undefined;
-  const selectionCandidate = isControlled ? selectedItemProp : uncontrolledSelection;
-  const selection = useMemo<SelectionRef | null>(() => {
-    if (!selectionCandidate) return null;
-    const section = value.sections.find((s) => s.id === selectionCandidate.sectionId);
-    const exists = section?.items.some((i) => i.id === selectionCandidate.itemId);
-    return exists ? selectionCandidate : null;
-  }, [selectionCandidate, value.sections]);
+  const itemsControlled = selectedItemsProp !== undefined;
+  const itemsCandidate = itemsControlled ? selectedItemsProp : uncontrolledItems;
+  const primaryCandidate = isControlled ? selectedItemProp : (itemsCandidate.at(-1) ?? null);
+  const { selection, selectedItems } = useMemo(() => {
+    const exists = (ref: SelectionRef) =>
+      value.sections.find((s) => s.id === ref.sectionId)?.items.some((i) => i.id === ref.itemId) ===
+      true;
+    const primary = primaryCandidate && exists(primaryCandidate) ? primaryCandidate : null;
+    if (!primary) return { selection: null, selectedItems: [] as SelectionRef[] };
+    // The primary block decides: a group it is not part of is replaced by the block alone.
+    if (!itemsCandidate.some((ref) => sameRef(ref, primary))) {
+      return { selection: primary, selectedItems: [primary] };
+    }
+    const group = itemsCandidate.filter(
+      (ref, i) =>
+        ref.sectionId === primary.sectionId &&
+        !sameRef(ref, primary) &&
+        exists(ref) &&
+        itemsCandidate.findIndex((r) => sameRef(r, ref)) === i,
+    );
+    return { selection: primary, selectedItems: [...group, primary] };
+  }, [primaryCandidate, itemsCandidate, value.sections]);
+
+  // Drop stale entries (deleted blocks, a group the host replaced through `selectedItem`), so
+  // they cannot come back later. Adjusting state while rendering, as React recommends.
+  if (!itemsControlled && !sameSelection(uncontrolledItems, selectedItems)) {
+    setUncontrolledItems(selectedItems);
+  }
 
   const isBreakpointControlled = activeBreakpointProp !== undefined;
   const requestedBreakpoint = isBreakpointControlled
@@ -225,12 +269,18 @@ export function VantageBuilder({
     ? requestedBreakpoint
     : 'desktop';
 
-  const setSelection = useCallback(
-    (next: SelectionRef | null) => {
-      if (!isControlled) setUncontrolledSelection(next);
-      onSelectionChange?.(next);
+  const setSelectedItems = useCallback(
+    (next: SelectionRef[]) => {
+      if (!itemsControlled) setUncontrolledItems(next);
+      onSelectedItemsChange?.(next);
+      onSelectionChange?.(next.at(-1) ?? null);
     },
-    [isControlled, onSelectionChange],
+    [itemsControlled, onSelectedItemsChange, onSelectionChange],
+  );
+
+  const setSelection = useCallback(
+    (next: SelectionRef | null) => setSelectedItems(next ? [next] : []),
+    [setSelectedItems],
   );
 
   const setActiveBreakpoint = useCallback(
@@ -249,11 +299,11 @@ export function VantageBuilder({
   );
 
   const blockLabels = useMemo(
-    () => ({ ...DEFAULT_BLOCK_LABELS, ...blockLabelsProp }),
+    () => withDefaults(DEFAULT_BLOCK_LABELS, blockLabelsProp),
     [blockLabelsProp],
   );
   const announcements = useMemo(
-    () => ({ ...DEFAULT_BLOCK_ANNOUNCEMENTS, ...announcementsProp }),
+    () => withDefaults(DEFAULT_BLOCK_ANNOUNCEMENTS, announcementsProp),
     [announcementsProp],
   );
   const blockInstructionsId = useId();
@@ -271,6 +321,8 @@ export function VantageBuilder({
     layout: value,
     selection,
     setSelection,
+    selectedItems,
+    setSelectedItems,
     activeBreakpoint,
     isInteracting,
     emitChange,
@@ -297,6 +349,8 @@ export function VantageBuilder({
         setInteracting,
         selection,
         setSelection,
+        selectedItems,
+        setSelectedItems,
         activeBreakpoint,
         setActiveBreakpoint,
         renderSectionHeader,
@@ -307,6 +361,9 @@ export function VantageBuilder({
         showSectionToolbar,
         sectionActionLabels,
         blockLabels,
+        announcements,
+        announce,
+        showGroupToolbar,
         blockInstructionsId,
         onDuplicateSection,
         onSaveSection,

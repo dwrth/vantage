@@ -72,9 +72,15 @@ export function Canvas() {
     activeBreakpoint,
     setInteracting,
     setSelection,
+    selectedItems,
     externalDrag,
     onExternalDrop,
   } = useBuilderContext();
+  // A group drag stays in its section (cross-section moves are single-block only).
+  const groupRef = useRef(selectedItems);
+  useEffect(() => {
+    groupRef.current = selectedItems;
+  });
   const { addSection } = useBuilderActions();
   const { sections } = layout;
   const handles = useRef(new Map<string, SectionDropHandle>());
@@ -120,6 +126,13 @@ export function Canvas() {
     // The block as drawn under the pointer: its start rect plus the pointer's travel (no scroll).
     const rect = active?.rect.current.translated;
     if (data?.type !== 'block' || !pointer.current || !rect) return null;
+    const group = groupRef.current;
+    if (
+      group.length > 1 &&
+      group.some((ref) => ref.sectionId === data.sectionId && ref.itemId === data.item.id)
+    ) {
+      return null;
+    }
     const sectionId = sectionAtPointer(pointer.current.y);
     if (!sectionId || sectionId === data.sectionId) return null;
     const handle = handles.current.get(sectionId);
