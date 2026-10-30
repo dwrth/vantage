@@ -88,6 +88,7 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Layout model & mutations](docs/layout.md) | Data shape, sections, items, layering, import/export |
 | [Breakpoints](docs/breakpoints.md)         | Responsive overrides, resolution helpers             |
 | [Alignment](docs/alignment.md)             | Guides, content alignment                            |
+| [Overlap safety](docs/overlap.md)          | Content minimum size, overlap warning, move below    |
 | [Selection](docs/selection.md)             | Controlled / uncontrolled selection                  |
 | [Section backgrounds](docs/backgrounds.md) | Color, image, blur, focal crop, parallax             |
 | [Persistence](docs/persistence.md)         | `ref`, strip/hydrate, kind persist hooks, file I/O   |
