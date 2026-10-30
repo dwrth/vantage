@@ -11,6 +11,7 @@ import {
   clearItemOverride,
   clearSectionOverride,
   createEmptyLayout,
+  duplicateItem,
   exportLayout,
   importLayout,
   moveItem,
@@ -258,12 +259,67 @@ describe('layering', () => {
 });
 
 describe('overrides', () => {
-  it('hides items on non-desktop breakpoints only', () => {
+  it('hides items per breakpoint', () => {
     const layout = layoutOf(section('s', [item('a', 0, 0, 1, 1)]));
-    expect(setItemHidden(layout, 's', 'a', 'desktop', true)).toBe(layout);
     const hidden = setItemHidden(layout, 's', 'a', 'mobile', true);
     expect(resolveItem(findItem(hidden, 'a'), find(hidden), 'mobile').hidden).toBe(true);
     expect(resolveItem(findItem(hidden, 'a'), find(hidden), 'tablet').hidden).toBe(false);
+    expect(resolveItem(findItem(hidden, 'a'), find(hidden), 'desktop').hidden).toBe(false);
+  });
+
+  it('hides items on desktop through the item flag and clears it again', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 1, 1)]));
+    const hidden = setItemHidden(layout, 's', 'a', 'desktop', true);
+    expect(findItem(hidden, 'a').hidden).toBe(true);
+    expect(find(hidden).overrides).toBeUndefined();
+    expect(resolveItem(findItem(hidden, 'a'), find(hidden), 'desktop').hidden).toBe(true);
+    expect(resolveItem(findItem(hidden, 'a'), find(hidden), 'mobile').hidden).toBe(false);
+    expect(isValidLayout(hidden)).toBe(true);
+    const shown = setItemHidden(hidden, 's', 'a', 'desktop', false);
+    expect(findItem(shown, 'a')).toEqual(item('a', 0, 0, 1, 1));
+  });
+
+  it('places new, pasted and moved items below the desktop-visible content only', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 2, 2), { ...item('b', 0, 2, 2, 5), hidden: true }]),
+      section('t', [item('c', 0, 0, 2, 1)]),
+    );
+    const added = addItem(layout, 's', 'block', { id: 'n', w: 2, h: 1 });
+    expect(findItem(added, 'n')).toMatchObject({ x: 0, y: 2 });
+    const duplicated = duplicateItem(layout, 's', 'a');
+    expect(findItem(duplicated.layout, duplicated.itemId!)).toMatchObject({ y: 2 });
+    const moved = moveItemToSection(
+      setItemHidden(layout, 't', 'c', 'desktop', true),
+      's',
+      'a',
+      't',
+    );
+    expect(find(moved, 't').items.find((i) => i.id === 'a')).toMatchObject({ x: 0, y: 0 });
+  });
+
+  it('keeps the desktop flag when an item moves to another section', () => {
+    const layout = layoutOf(
+      section('s', [{ ...item('a', 0, 0, 2, 2), hidden: true }]),
+      section('t', []),
+    );
+    const moved = moveItemToSection(layout, 's', 'a', 't');
+    expect(find(moved, 't').items[0].hidden).toBe(true);
+  });
+
+  it('does not pin desktop-hidden items into the section height when dragging', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 2, 2), { ...item('b', 0, 4, 2, 4), hidden: true }]),
+    );
+    const moved = moveItem(layout, 's', 'a', 1, 0);
+    expect(find(moved).rows).toBe(2);
+  });
+
+  it('arranges desktop-hidden items on tablet and mobile, where they are shown', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 0, 0, 12, 2), { ...item('b', 0, 2, 12, 2), hidden: true }]),
+    );
+    const arranged = autoArrangeBreakpoint(layout, 'mobile');
+    expect(find(arranged).overrides?.mobile?.items?.b).toMatchObject({ y: 2 });
   });
 
   it('merges item data on desktop and into the override elsewhere', () => {

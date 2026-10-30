@@ -96,7 +96,7 @@ reorderItemAtIndex(layout, sectionId, fromIndex, toIndex); // for layers-panel D
 
 `addItem` accepts optional desktop `x` / `y` in its defaults (otherwise the next free slot).
 
-`moveItemToSection` keeps the item's id, size, `ref`, `data` and `meta`, puts it on top of the target stack and carries per-breakpoint `hidden` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsRemoved` + `itemsAdded`.
+`moveItemToSection` keeps the item's id, size, `ref`, `data`, `meta` and desktop `hidden`, puts it on top of the target stack and carries per-breakpoint `hidden` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsRemoved` + `itemsAdded`.
 
 `moveItem` / `resizeItem` / `updateItemData` write to the section's items when `breakpoint === 'desktop'` (the default) and to that breakpoint's overrides otherwise. For `updateItemData`, the patch is shallow-merged on top of the resolved data (base + any existing override) so unaffected fields keep falling through from desktop.
 

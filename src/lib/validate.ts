@@ -69,6 +69,7 @@ function checkItem(raw: unknown, path: string, report: Report): void {
   checkOptionalString(raw.ref, `${path}.ref`, report);
   checkOptionalObject(raw.data, `${path}.data`, report);
   checkOptionalBoolean(raw.fullBleed, `${path}.fullBleed`, report);
+  checkOptionalBoolean(raw.hidden, `${path}.hidden`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
 }
 

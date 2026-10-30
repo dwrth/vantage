@@ -163,30 +163,28 @@ function SortableRow({
             ⤓
           </button>
         </div>
+        <div
+          className="tooltip tooltip-left"
+          data-tip={isHidden ? 'Show on breakpoint' : 'Hide on breakpoint'}
+        >
+          <button
+            type="button"
+            className={`btn btn-ghost btn-xs join-item ${isHidden ? 'btn-active' : ''}`}
+            onClick={onToggleHidden}
+          >
+            {isHidden ? '◉' : '○'}
+          </button>
+        </div>
         {canEditBreakpoint ? (
-          <>
-            <div
-              className="tooltip tooltip-left"
-              data-tip={isHidden ? 'Show on breakpoint' : 'Hide on breakpoint'}
+          <div className="tooltip tooltip-left" data-tip="Reset placement">
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs join-item"
+              onClick={onResetPlacement}
             >
-              <button
-                type="button"
-                className={`btn btn-ghost btn-xs join-item ${isHidden ? 'btn-active' : ''}`}
-                onClick={onToggleHidden}
-              >
-                {isHidden ? '◉' : '○'}
-              </button>
-            </div>
-            <div className="tooltip tooltip-left" data-tip="Reset placement">
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs join-item"
-                onClick={onResetPlacement}
-              >
-                ↺
-              </button>
-            </div>
-          </>
+              ↺
+            </button>
+          </div>
         ) : null}
         <div className="tooltip tooltip-left" data-tip="Delete">
           <button

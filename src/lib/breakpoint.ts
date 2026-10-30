@@ -149,7 +149,9 @@ export function resolveItem(
     w: item.w,
     h: item.h,
   };
-  let hidden = false;
+  // Desktop reads the item's own flag; tablet / mobile read only their override.
+  let hidden =
+    breakpoint === 'desktop' || !enabled.includes(breakpoint) ? item.hidden === true : false;
   if (breakpoint !== 'desktop' && enabled.includes(breakpoint)) {
     const ovr = getSectionOverride(section, breakpoint)?.items?.[item.id];
     if (ovr) {

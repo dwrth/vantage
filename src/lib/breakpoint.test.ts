@@ -44,11 +44,21 @@ describe('resolveItem', () => {
     expect(resolveItem(a, s, 'mobile')).toEqual({ x: 0, y: 2, w: 4, h: 3, hidden: false });
   });
 
-  it('reads hidden only from non-desktop overrides', () => {
+  it('reads hidden from each breakpoint on its own', () => {
     const s = section([a], { overrides: { mobile: { items: { a: { hidden: true } } } } });
     expect(resolveItem(a, s, 'mobile').hidden).toBe(true);
     expect(resolveItem(a, s, 'tablet').hidden).toBe(false);
     expect(resolveItem(a, s, 'desktop').hidden).toBe(false);
+  });
+
+  it('reads desktop hidden from the item, without passing it on to tablet and mobile', () => {
+    const hiddenItem: GridItem = { ...a, hidden: true };
+    const s = section([hiddenItem]);
+    expect(resolveItem(hiddenItem, s, 'desktop')).toEqual({ x: 6, y: 2, w: 6, h: 3, hidden: true });
+    expect(resolveItem(hiddenItem, s, 'tablet').hidden).toBe(false);
+    expect(resolveItem(hiddenItem, s, 'mobile').hidden).toBe(false);
+    // A breakpoint that is not enabled falls back to desktop, flag included.
+    expect(resolveItem(hiddenItem, s, 'mobile', ['desktop']).hidden).toBe(true);
   });
 
   it('falls back to desktop for a breakpoint that is not enabled', () => {
@@ -99,6 +109,13 @@ describe('section height', () => {
     });
     expect(sectionContentRows(s, 'desktop')).toBe(7);
     expect(sectionContentRows(s, 'mobile')).toBe(2);
+  });
+
+  it('leaves desktop-hidden items out of the desktop height only', () => {
+    const s = section([item('a', 0, 0, 2, 2), { ...item('b', 0, 4, 2, 3), hidden: true }]);
+    expect(sectionContentRows(s, 'desktop')).toBe(2);
+    expect(sectionRows(s, 'desktop')).toBe(2);
+    expect(sectionContentRows(s, 'mobile')).toBe(7);
   });
 
   it('follows content without rows, with a default for empty sections', () => {

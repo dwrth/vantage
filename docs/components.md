@@ -50,7 +50,7 @@ All sections share one drag context. Dragging a block within its section snaps i
 | `className`     | no       | Extra class on the root.                                                   |
 | `isItemVisible` | no       | `(item) => boolean` render-time filter, e.g. per-viewer access rules.      |
 
-Items filtered out by `isItemVisible` render on no breakpoint, and grid rows that only they occupied collapse so content below moves up. Rows still holding a visible item (or left empty on purpose) keep their height. Per-breakpoint `hidden` overrides keep their slot as before.
+Items filtered out by `isItemVisible` render on no breakpoint, and grid rows that only they occupied collapse so content below moves up. Rows still holding a visible item (or left empty on purpose) keep their height. Items hidden on a breakpoint (`item.hidden` on desktop, `overrides[bp].items[id].hidden` elsewhere) keep their slot as before; see [breakpoints](./breakpoints.md#hiding-items).
 
 Preview has no drag system, no chrome, no selection. Safe at any size — iframe, separate route (demo uses `/preview`), or inline next to the builder.
 
