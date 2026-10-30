@@ -175,6 +175,7 @@ export type { ResolvedSectionLayout, ResolvedItemLayout } from './lib/breakpoint
 
 export { resolveItemVerticalAlign, itemVerticalAlignByBreakpoint } from './lib/contentAlign';
 
+export { computeAlignment, guideBox } from './lib/guides';
 export type {
   AlignmentGuide,
   AlignmentResult,
