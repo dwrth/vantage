@@ -109,6 +109,7 @@ export function SectionView({ section }: SectionViewProps) {
     sectionHeaderPlacement,
     renderSectionFooter,
     sectionResizeLabel,
+    defaultLabels,
     showSectionActions,
     getItemMinSize,
     showOverlapWarnings,
@@ -719,7 +720,7 @@ export function SectionView({ section }: SectionViewProps) {
               label={
                 sectionResizeLabel
                   ? sectionResizeLabel(section)
-                  : `Resize ${section.label ?? 'section'} height`
+                  : defaultLabels.resizeSectionHeight(section.label ?? defaultLabels.unnamedSection)
               }
               rows={rows}
               minRows={minRows}

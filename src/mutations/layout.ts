@@ -40,6 +40,8 @@ export type AddItemDefaults = {
   w?: number;
   h?: number;
   label?: string;
+  /** Final label from the base label and the 1-based count of that kind in the section. Default: `${baseLabel} ${position}`. */
+  formatLabel?: (baseLabel: string, position: number) => string;
   data?: unknown;
   meta?: Record<string, unknown>;
 };
@@ -414,20 +416,29 @@ export function updateItemMeta(
   };
 }
 
-export function addSection(layout: Layout): { layout: Layout; sectionId: string } {
-  return insertSection(layout, layout.sections.length);
+export function addSection(
+  layout: Layout,
+  options?: InsertSectionOptions,
+): { layout: Layout; sectionId: string } {
+  return insertSection(layout, layout.sections.length, options);
 }
+
+export type InsertSectionOptions = {
+  /** Label of the new section from its 1-based position (the new section count). Default: `Section ${position}`. */
+  label?: (position: number) => string;
+};
 
 /** Insert an empty section at `index` (clamped), e.g. between two sections. */
 export function insertSection(
   layout: Layout,
   index: number,
+  options: InsertSectionOptions = {},
 ): { layout: Layout; sectionId: string } {
   const id = createId();
   const count = layout.sections.length + 1;
   const section: Section = {
     id,
-    label: `Section ${count}`,
+    label: options.label ? options.label(count) : `Section ${count}`,
     ...DEFAULT_SECTION,
     items: [],
   };
@@ -993,7 +1004,9 @@ export function addItem(
         id: nextId ?? createId(),
         ...placement,
         kind,
-        label: `${baseLabel} ${sameKindCount + 1}`,
+        label: defaults.formatLabel
+          ? defaults.formatLabel(baseLabel, sameKindCount + 1)
+          : `${baseLabel} ${sameKindCount + 1}`,
         ref: defaults.ref,
         data: defaults.data,
         meta: defaults.meta,

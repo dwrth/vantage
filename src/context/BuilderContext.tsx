@@ -9,6 +9,7 @@ import {
 import type { GridMinSize } from '../lib/grid';
 import type { LayoutChangeOptions } from '../lib/diff';
 import type { BlockAnnouncements, BlockLabels } from '../lib/keyboardLabels';
+import type { DefaultLabels } from '../lib/defaultLabels';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
 import type {
   Breakpoint,
@@ -99,6 +100,8 @@ export type BuilderContextValue = {
   showSectionActions: boolean;
   showSectionToolbar: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
+  /** Defaults merged in. */
+  defaultLabels: DefaultLabels;
   /** Defaults merged in. */
   blockLabels: Required<BlockLabels>;
   /** Defaults merged in. */
