@@ -41,8 +41,10 @@ import { useVantageTokens } from '../theme/useVantageTokens';
 import '../styles/tokens.css';
 import builderStyles from '../styles/builder.module.css';
 import { Canvas } from './Canvas';
+import { DEFAULT_LABELS, type DefaultLabels } from '../lib/defaultLabels';
 import type { SectionActionLabels } from '../lib/sectionActionLabels';
 
+export type { DefaultLabels } from '../lib/defaultLabels';
 export type { SectionActionLabels } from '../lib/sectionActionLabels';
 export type { BuilderHistory } from '../hooks/useBuilderKeyboard';
 export type {
@@ -115,9 +117,14 @@ export type VantageBuilderProps = {
   renderSectionFooter?: (ctx: SectionFooterRenderProps) => ReactNode;
   /**
    * Accessible name of a section's bottom resize edge, e.g. for translation.
-   * Default: `Resize ${section.label ?? 'section'} height`.
+   * Default: `defaultLabels.resizeSectionHeight`.
    */
   sectionResizeLabel?: (section: Section) => string;
+  /**
+   * Text the builder generates itself, e.g. to translate it: labels of new sections and blocks
+   * (`section`, `block`), the empty canvas, and a few fallbacks. Defaults: `DEFAULT_LABELS`.
+   */
+  defaultLabels?: Partial<DefaultLabels>;
   /** Section toolbar (move up / down, duplicate) and the insert-section button. Default: shown. */
   showSectionActions?: boolean;
   /**
@@ -203,6 +210,7 @@ export function VantageBuilder({
   showSectionActions = true,
   showSectionToolbar = true,
   sectionActionLabels,
+  defaultLabels: defaultLabelsProp,
   onDuplicateSection,
   history,
   blockLabels: blockLabelsProp,
@@ -298,6 +306,10 @@ export function VantageBuilder({
     [onChange, value],
   );
 
+  const defaultLabels = useMemo(
+    () => withDefaults(DEFAULT_LABELS, defaultLabelsProp),
+    [defaultLabelsProp],
+  );
   const blockLabels = useMemo(
     () => withDefaults(DEFAULT_BLOCK_LABELS, blockLabelsProp),
     [blockLabelsProp],
@@ -360,6 +372,7 @@ export function VantageBuilder({
         showSectionActions,
         showSectionToolbar,
         sectionActionLabels,
+        defaultLabels,
         blockLabels,
         announcements,
         announce,

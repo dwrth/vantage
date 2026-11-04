@@ -6,7 +6,7 @@ import * as group from '../mutations/group';
 import type { Breakpoint, Layout, Section, SectionOverride } from '../types';
 
 export function useBuilderActions() {
-  const { layout, onChange, components, activeBreakpoint } = useBuilderContext();
+  const { layout, onChange, components, activeBreakpoint, defaultLabels } = useBuilderContext();
 
   const apply = useCallback(
     (next: Layout) => {
@@ -18,12 +18,14 @@ export function useBuilderActions() {
   return useMemo(
     () => ({
       addSection: () => {
-        const result = mutations.addSection(layout);
+        const result = mutations.addSection(layout, { label: defaultLabels.section });
         apply(result.layout);
         return result.sectionId;
       },
       insertSection: (index: number) => {
-        const result = mutations.insertSection(layout, index);
+        const result = mutations.insertSection(layout, index, {
+          label: defaultLabels.section,
+        });
         apply(result.layout);
         return result.sectionId;
       },
@@ -119,6 +121,7 @@ export function useBuilderActions() {
             w: defaults?.w,
             h: defaults?.h,
             label: defaults?.label,
+            formatLabel: defaultLabels.block,
             data: defaults?.data,
           }),
         );
@@ -217,6 +220,6 @@ export function useBuilderActions() {
       importLayout: (data: Layout) => apply(mutations.importLayout(data, components)),
       clear: () => apply(mutations.clearLayout()),
     }),
-    [layout, apply, components, activeBreakpoint],
+    [layout, apply, components, activeBreakpoint, defaultLabels],
   );
 }

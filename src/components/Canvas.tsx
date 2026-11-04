@@ -75,6 +75,7 @@ export function Canvas() {
     selectedItems,
     externalDrag,
     onExternalDrop,
+    defaultLabels,
   } = useBuilderContext();
   // A group drag stays in its section (cross-section moves are single-block only).
   const groupRef = useRef(selectedItems);
@@ -361,9 +362,9 @@ export function Canvas() {
   if (sections.length === 0) {
     return (
       <div className={builder['canvas-empty']}>
-        <p>No sections yet.</p>
+        <p>{defaultLabels.noSections}</p>
         <button type="button" onClick={() => addSection()}>
-          Add section
+          {defaultLabels.addSection}
         </button>
       </div>
     );

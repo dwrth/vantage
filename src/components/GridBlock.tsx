@@ -109,6 +109,7 @@ export function GridBlock({
     renderDragHandle,
     renderDeleteButton,
     blockLabels,
+    defaultLabels,
     blockInstructionsId,
     minSizesRef,
     renderOverlapWarning,
@@ -573,7 +574,7 @@ export function GridBlock({
             type="button"
             className={chrome['grid-block__handle']}
             aria-label={blockLabels.dragHandle(item)}
-            title={item.label ?? 'Drag'}
+            title={item.label ?? defaultLabels.dragHandle}
             data-vantage-drag-handle=""
             {...listeners}
             {...handleAttributes}

@@ -10,12 +10,14 @@ export type {
   SectionHeaderRenderProps,
   SectionHeaderPlacement,
   SectionActionLabels,
+  DefaultLabels,
   BuilderHistory,
   BlockLabels,
   BlockAnnouncements,
   BlockAnnouncementContext,
   GroupAnnouncementContext,
 } from './components/Builder';
+export { DEFAULT_LABELS } from './lib/defaultLabels';
 export { DEFAULT_SECTION_ACTION_LABELS } from './lib/sectionActionLabels';
 export { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from './lib/keyboardLabels';
 export { VantagePreview } from './components/VantagePreview';
@@ -163,6 +165,7 @@ export {
 
 export type {
   AddItemDefaults,
+  InsertSectionOptions,
   MoveItemToSectionOptions,
   CloneItemOptions,
   CloneItemsResult,

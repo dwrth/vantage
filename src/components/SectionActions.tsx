@@ -49,10 +49,18 @@ type SectionActionsProps = {
  * section's top edge that inserts an empty section above it. Shown on hover or focus.
  */
 export function SectionActions({ section }: SectionActionsProps) {
-  const { layout, sectionActionLabels, onDuplicateSection, onSaveSection, showSectionToolbar } =
-    useBuilderContext();
+  const {
+    layout,
+    sectionActionLabels,
+    defaultLabels,
+    onDuplicateSection,
+    onSaveSection,
+    showSectionToolbar,
+  } = useBuilderContext();
   const { moveSectionBy, duplicateSection, insertSection } = useBuilderActions();
   const labels = { ...DEFAULT_SECTION_ACTION_LABELS, ...sectionActionLabels };
+  const named =
+    section.label === undefined ? { ...section, label: defaultLabels.unnamedSection } : section;
   const index = layout.sections.findIndex((s) => s.id === section.id);
   const isFirst = index <= 0;
   const isLast = index === layout.sections.length - 1;
@@ -80,21 +88,21 @@ export function SectionActions({ section }: SectionActionsProps) {
           .filter(Boolean)
           .join(' ')}
       >
-        {button(labels.insertBefore(section), ICONS.plus, () => insertSection(index))}
+        {button(labels.insertBefore(named), ICONS.plus, () => insertSection(index))}
       </div>
       {showSectionToolbar ? (
         <div
           className={builder['section-actions']}
           role="toolbar"
-          aria-label={labels.toolbar(section)}
+          aria-label={labels.toolbar(named)}
         >
-          {button(labels.moveUp(section), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
-          {button(labels.moveDown(section), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
-          {button(labels.duplicate(section), ICONS.duplicate, () =>
+          {button(labels.moveUp(named), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
+          {button(labels.moveDown(named), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
+          {button(labels.duplicate(named), ICONS.duplicate, () =>
             onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
           )}
           {onSaveSection
-            ? button(labels.save(section), ICONS.save, () => onSaveSection(section.id))
+            ? button(labels.save(named), ICONS.save, () => onSaveSection(section.id))
             : null}
         </div>
       ) : null}
