@@ -161,6 +161,12 @@ describe('validateLayout', () => {
     ['item w', (l) => (item0(l).w = '6'), 'sections[0].items[0].w: must be a finite number'],
     ['item data', (l) => (item0(l).data = 'x'), 'sections[0].items[0].data: must be an object'],
     ['item ref', (l) => (item0(l).ref = 5), 'sections[0].items[0].ref: must be a string'],
+    ['item id', (l) => (item0(l).id = 7), 'sections[0].items[0].id: must be a string'],
+    [
+      'background image repeat',
+      (l) => ((s0(l).background as Record<string, unknown>).imageRepeat = 'tile'),
+      'sections[0].background.imageRepeat: must be one of no-repeat, repeat, repeat-x, repeat-y',
+    ],
     [
       'unknown override breakpoint',
       (l) => ((s0(l).overrides as Record<string, unknown>).desktop = {}),
@@ -190,6 +196,43 @@ describe('validateLayout', () => {
       'duplicate section id',
       (l) => l.sections.push({ ...structuredClone(l.sections[0]!), items: [] }),
       'sections[1].id: duplicate section id "s1"',
+    ],
+    [
+      'non-string breakpoints',
+      (l) => (l.breakpoints = ['desktop', 1 as never]),
+      'breakpoints: must contain only strings',
+    ],
+    [
+      'width map type',
+      (l) => (l.breakpointWidths = null as never),
+      'breakpointWidths: must be an object',
+    ],
+    ['item type', (l) => (s0(l).items = [3]), 'sections[0].items[0]: must be an object'],
+    ['overrides type', (l) => (s0(l).overrides = []), 'sections[0].overrides: must be an object'],
+    [
+      'section override type',
+      (l) => ((s0(l).overrides as Record<string, unknown>).tablet = 1),
+      'sections[0].overrides.tablet: must be an object',
+    ],
+    [
+      'override items type',
+      (l) => (l.sections[0]!.overrides.mobile.items = [] as never),
+      'sections[0].overrides.mobile.items: must be an object',
+    ],
+    [
+      'item override type',
+      (l) => (l.sections[0]!.overrides.mobile.items.a = 'x' as never),
+      'sections[0].overrides.mobile.items.a: must be an object',
+    ],
+    [
+      'background type',
+      (l) => (s0(l).background = 'red'),
+      'sections[0].background: must be an object',
+    ],
+    [
+      'arrangement type',
+      (l) => (s0(l).arrangement = 'single'),
+      'sections[0].arrangement: must be an object',
     ],
   ];
 
