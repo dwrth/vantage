@@ -43,6 +43,8 @@ export type ExternalDropEvent = {
   x: number;
   y: number;
   breakpoint: Breakpoint;
+  /** Arrangement section: index among its blocks to insert at; `x` / `y` are 0 there. */
+  index?: number;
   dataTransfer: DataTransfer;
 };
 

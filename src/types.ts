@@ -161,7 +161,42 @@ export type Section<TData = unknown> = {
   items: GridItem<TData>[];
   background?: SectionBackground;
   overrides?: Partial<Record<Exclude<Breakpoint, 'desktop'>, SectionOverride>>;
+  /**
+   * Arrangement mode. Set: the section is a flow, not a grid. Blocks keep their order in `items`
+   * and are laid out by the preset on every breakpoint, with natural height. `x` / `y` / `w` / `h`
+   * and fixed rows are ignored; per-breakpoint overrides only carry `hidden`, `data` and gaps.
+   * Unset: free grid.
+   */
+  arrangement?: SectionArrangement;
   meta?: Record<string, unknown>;
+};
+
+export type ArrangementPresetId =
+  | 'single'
+  | 'narrow'
+  | 'two'
+  | 'three'
+  | 'four'
+  | 'thirdTwoThirds'
+  | 'twoThirdsThird'
+  | 'mediaText'
+  | 'cardGrid'
+  | 'inlineRow';
+
+export type ArrangementAlign = 'start' | 'center' | 'end';
+
+export type SectionArrangement = {
+  preset: ArrangementPresetId;
+  /** Horizontal position of a row that is not full. Defaults to 'start'. */
+  align?: ArrangementAlign;
+  /** Vertical position of blocks of different height inside a row. Defaults to 'start'. */
+  verticalAlign?: ArrangementAlign;
+  /** Every block of a row is as tall as the tallest. */
+  equalHeight?: boolean;
+  /** Breakpoint from which the section is one column. Defaults to 'mobile'. */
+  stackOn?: 'tablet' | 'mobile';
+  /** Order on the stacked breakpoint. Defaults to 'asis'. */
+  mobileOrder?: 'asis' | 'reversed';
 };
 
 export type Layout<TData = unknown> = {
@@ -235,6 +270,12 @@ export type KindDescriptor<TData = unknown> = {
   fromPersistedData?(raw: unknown): TData;
   /** Return `void` or empty array when valid; non-empty `string[]` fails import. */
   validate?(data: TData): void | string[];
+  /**
+   * Width / height of the block's content. In an arrangement section the block keeps this aspect
+   * ratio at its column width instead of a fixed height (images, video). Unset or `undefined`:
+   * the block is as tall as its content.
+   */
+  arrangementAspectRatio?(item: GridItem<TData>): number | undefined;
 };
 
 // Per-kind data types differ inside a registry; `any` preserves each entry's component/data pairing.

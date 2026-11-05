@@ -29,6 +29,9 @@ export { VantageInteractive } from './components/VantageInteractive';
 export type {
   Layout,
   Section,
+  SectionArrangement,
+  ArrangementPresetId,
+  ArrangementAlign,
   SectionBackground,
   SectionBackgroundImageRepeat,
   SectionBackgroundImageSize,
@@ -101,6 +104,7 @@ export {
   addItem,
   moveItem,
   moveItemToSection,
+  moveItemToIndex,
   resizeItem,
   resizeSection,
   removeItem,
@@ -172,6 +176,21 @@ export type {
   ItemClipboard,
 } from './mutations/layout';
 
+export { setSectionArrangement } from './mutations/arrangement';
+export {
+  ARRANGEMENT_ALIGNS,
+  ARRANGEMENT_COLUMNS,
+  ARRANGEMENT_PRESET_IDS,
+  ARRANGEMENT_PRESETS,
+  arrangeSlots,
+  arrangementSlots,
+  arrangementTrack,
+  insertionIndexAt,
+  insertionLine,
+  isArrangementPreset,
+  isArrangementSection,
+} from './lib/arrangement';
+export type { ArrangementSlot, ArrangementTrack } from './lib/arrangement';
 export { isValidLayout, validateLayout } from './lib/validate';
 export type { LayoutValidationResult } from './lib/validate';
 

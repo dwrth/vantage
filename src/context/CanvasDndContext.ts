@@ -8,6 +8,8 @@ export type DropTarget = {
   y: number;
   w: number;
   h: number;
+  /** Arrangement section: index among its blocks the drop lands at (`x` / `y` are unused). */
+  index?: number;
 };
 
 /** Live grid geometry a section exposes to the canvas-level drag-and-drop. */
@@ -22,7 +24,10 @@ export type SectionDropHandle = {
     clientTop: number,
     w: number,
     h: number,
-  ) => { x: number; y: number; w: number; h: number };
+    excludeItemId?: string,
+  ) => { x: number; y: number; w: number; h: number; index?: number };
+  /** Arrangement section: `cellAt` wants the pointer position, not a block corner. */
+  byPointer?: boolean;
   /** Pixel size of a `w` x `h` block on this grid (for centering a dragged palette item). */
   blockSize: (w: number, h: number) => { width: number; height: number };
   /** In-section move from a drag delta (the original single-section behaviour). */
@@ -48,5 +53,12 @@ export function useCanvasDnd(): CanvasDndContextValue {
 export function sameDropTarget(a: DropTarget | null, b: DropTarget | null): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.sectionId === b.sectionId && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+  return (
+    a.sectionId === b.sectionId &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.w === b.w &&
+    a.h === b.h &&
+    a.index === b.index
+  );
 }

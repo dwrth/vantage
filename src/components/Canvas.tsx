@@ -29,6 +29,7 @@ import { VantagePointerSensor } from '../lib/pointerSensor';
 import { moveItemToSection } from '../mutations/layout';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
 import type { GridItem } from '../types';
+import { ArrangementSectionView } from './ArrangementSectionView';
 import { SectionView } from './SectionView';
 
 export type BlockDragData = {
@@ -135,10 +136,18 @@ export function Canvas() {
       return null;
     }
     const sectionId = sectionAtPointer(pointer.current.y);
-    if (!sectionId || sectionId === data.sectionId) return null;
+    if (!sectionId) return null;
     const handle = handles.current.get(sectionId);
     if (!handle) return null;
-    const cell = handle.cellAt(rect.left, rect.top, data.placement.w, data.placement.h);
+    // Inside its own section a free-grid block is moved by `dropWithin`; an arrangement reorders.
+    if (sectionId === data.sectionId && !handle.byPointer) return null;
+    const cell = handle.cellAt(
+      handle.byPointer ? pointer.current.x : rect.left,
+      handle.byPointer ? pointer.current.y : rect.top,
+      data.placement.w,
+      data.placement.h,
+      data.item.id,
+    );
     return { sectionId, ...cell };
   }, [sectionAtPointer]);
 
@@ -204,11 +213,16 @@ export function Canvas() {
       const next = moveItemToSection(layout, data.sectionId, data.item.id, target.sectionId, {
         x: target.x,
         y: target.y,
+        index: target.index,
         breakpoint: activeBreakpoint,
       });
       if (next === layout) return;
       onChange(next);
-      const moved = next.sections.find((s) => s.id === target.sectionId)?.items.at(-1);
+      const targetItems = next.sections.find((s) => s.id === target.sectionId)?.items;
+      const moved =
+        target.index !== undefined
+          ? targetItems?.find((i) => i.id === data.item.id)
+          : targetItems?.at(-1);
       if (moved) setSelection({ sectionId: target.sectionId, itemId: moved.id });
     },
     [crossSectionTarget, endDrag, layout, activeBreakpoint, onChange, setSelection],
@@ -285,6 +299,7 @@ export function Canvas() {
         sectionId: target.sectionId,
         x: target.x,
         y: target.y,
+        index: target.index,
         breakpoint: activeBreakpoint,
         dataTransfer: e.dataTransfer,
       });
@@ -387,9 +402,13 @@ export function Canvas() {
           onDragLeave={acceptsExternal ? onExternalDragLeave : undefined}
           onDrop={acceptsExternal ? onExternalDropEvent : undefined}
         >
-          {sections.map((section) => (
-            <SectionView key={section.id} section={section} />
-          ))}
+          {sections.map((section) =>
+            section.arrangement ? (
+              <ArrangementSectionView key={section.id} section={section} />
+            ) : (
+              <SectionView key={section.id} section={section} />
+            ),
+          )}
         </div>
       </DndContext>
     </CanvasDndContext.Provider>

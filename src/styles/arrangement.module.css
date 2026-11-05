@@ -1,0 +1,54 @@
+/*
+ * Builder surface of an arrangement section. The grid is the same one the preview draws:
+ * content as wide as 12 columns, rows as tall as their tallest block.
+ */
+.flow.flow {
+  --max-section-w: calc(12 * var(--cell-max-px));
+  grid-auto-rows: auto;
+  min-height: 3rem;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cell--dragging {
+  z-index: 3;
+}
+
+/* Blocks are as tall as their content, with room for an empty one. */
+.cell > .body {
+  flex: 1 1 auto;
+  min-height: 3rem;
+  overflow: visible;
+  contain: none;
+  will-change: auto;
+}
+
+.cell > .chrome {
+  position: absolute;
+  inset: 0;
+}
+
+.insertion-line {
+  position: absolute;
+  z-index: 4;
+  border-radius: 2px;
+  background: #2563eb;
+  pointer-events: none;
+}
+
+.empty {
+  grid-column: 2 / -2;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  border: 1px dashed #b9bfcb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-align: center;
+}

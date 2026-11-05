@@ -2,6 +2,7 @@ import type { SelectionRef } from '../context/BuilderContext';
 import {
   bringItemForward,
   moveItem,
+  moveItemToIndex,
   removeItem,
   resizeItem,
   sendItemBackward,
@@ -104,6 +105,23 @@ export function applyBlockAction(
   });
   const current = placed(placement);
   const { sectionId, itemId } = selection;
+
+  if (section.arrangement) {
+    if (action.type === 'delete')
+      return { layout: removeItem(layout, sectionId, itemId), item: current };
+    if (action.type !== 'move') return { layout, item: current };
+    // Arrows reorder: left / up go one visible block earlier, right / down one later.
+    const step = action.dx + action.dy > 0 ? 1 : -1;
+    let target = index + step;
+    while (
+      section.items[target] &&
+      resolveItem(section.items[target]!, section, breakpoint, enabled).hidden
+    ) {
+      target += step;
+    }
+    if (!section.items[target]) return { layout, item: current };
+    return { layout: moveItemToIndex(layout, sectionId, itemId, target), item: current };
+  }
 
   switch (action.type) {
     case 'move': {

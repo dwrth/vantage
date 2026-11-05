@@ -1,3 +1,4 @@
+import { ARRANGEMENT_ALIGNS, ARRANGEMENT_PRESET_IDS, isArrangementPreset } from './arrangement';
 import {
   BREAKPOINTS,
   ITEM_VERTICAL_ALIGNS,
@@ -164,6 +165,28 @@ function checkBackground(raw: unknown, path: string, report: Report): void {
   checkOptionalBoolean(raw.parallax, `${path}.parallax`, report);
 }
 
+function checkOneOf(raw: unknown, allowed: readonly string[], path: string, report: Report): void {
+  if (raw !== undefined && !allowed.includes(raw as string)) {
+    report(path, `must be one of ${allowed.join(', ')}`);
+  }
+}
+
+function checkArrangement(raw: unknown, path: string, report: Report): void {
+  if (raw === undefined) return;
+  if (!isPlainObject(raw)) {
+    report(path, 'must be an object');
+    return;
+  }
+  if (!isArrangementPreset(raw.preset)) {
+    report(`${path}.preset`, `must be one of ${ARRANGEMENT_PRESET_IDS.join(', ')}`);
+  }
+  checkOneOf(raw.align, ARRANGEMENT_ALIGNS, `${path}.align`, report);
+  checkOneOf(raw.verticalAlign, ARRANGEMENT_ALIGNS, `${path}.verticalAlign`, report);
+  checkOptionalBoolean(raw.equalHeight, `${path}.equalHeight`, report);
+  checkOneOf(raw.stackOn, ['tablet', 'mobile'], `${path}.stackOn`, report);
+  checkOneOf(raw.mobileOrder, ['asis', 'reversed'], `${path}.mobileOrder`, report);
+}
+
 function checkSection(raw: unknown, path: string, report: Report): void {
   if (!isPlainObject(raw)) {
     report(path, 'must be an object');
@@ -185,6 +208,7 @@ function checkSection(raw: unknown, path: string, report: Report): void {
   }
   checkOptionalString(raw.label, `${path}.label`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
+  checkArrangement(raw.arrangement, `${path}.arrangement`, report);
   checkBackground(raw.background, `${path}.background`, report);
   if (Array.isArray(raw.items)) {
     // `entries()` visits holes in sparse arrays, so they are reported too.

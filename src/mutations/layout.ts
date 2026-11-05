@@ -6,6 +6,7 @@ import {
   sectionContentRows,
   sectionRows,
 } from '../lib/breakpoint';
+import { ARRANGEMENT_COLUMNS } from '../lib/arrangement';
 import { clampItem, nextSlot } from '../lib/grid';
 import { createId } from '../lib/id';
 import { rowBelowOverlaps } from '../lib/overlap';
@@ -25,6 +26,7 @@ import {
   type KindDescriptor,
   type Layout,
   type Section,
+  type SectionArrangement,
   type SectionOverride,
 } from '../types';
 
@@ -37,6 +39,8 @@ export type AddItemDefaults = {
   x?: number;
   /** Desktop row to place the item at. Omitted: next free slot. */
   y?: number;
+  /** Arrangement section: index in `items` to insert at. Omitted: appended. `x` / `y` are ignored there. */
+  index?: number;
   w?: number;
   h?: number;
   label?: string;
@@ -426,6 +430,8 @@ export function addSection(
 export type InsertSectionOptions = {
   /** Label of the new section from its 1-based position (the new section count). Default: `Section ${position}`. */
   label?: (position: number) => string;
+  /** Create an arrangement section instead of a free grid. */
+  arrangement?: SectionArrangement;
 };
 
 /** Insert an empty section at `index` (clamped), e.g. between two sections. */
@@ -440,8 +446,12 @@ export function insertSection(
     id,
     label: options.label ? options.label(count) : `Section ${count}`,
     ...DEFAULT_SECTION,
+    ...(options.arrangement
+      ? { columns: ARRANGEMENT_COLUMNS, arrangement: options.arrangement }
+      : {}),
     items: [],
   };
+  if (options.arrangement) delete section.rows;
   const at = Math.max(0, Math.min(Math.round(index), layout.sections.length));
   const sections = [...layout.sections];
   sections.splice(at, 0, section);
@@ -978,17 +988,20 @@ export function addItem(
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (current) => {
+      const flow = current.arrangement !== undefined;
       // An explicit row (a drop) lands inside the section; the next free slot may extend it.
       const { section, rows } =
-        defaults.y !== undefined
+        defaults.y !== undefined && !flow
           ? pinSectionRows(current, 'desktop')
           : { section: current, rows: undefined };
       const slot = nextSlot(desktopVisibleItems(section.items));
-      const placement = clampItem(
-        { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
-        section.columns,
-        rows,
-      );
+      const placement = flow
+        ? { x: 0, y: 0, w, h }
+        : clampItem(
+            { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
+            section.columns,
+            rows,
+          );
       const sameKindCount = section.items.filter((i) => i.kind === kind).length;
       const existingIds = new Set(section.items.map((item) => item.id));
       let nextId = defaults.id;
@@ -1011,9 +1024,19 @@ export function addItem(
         data: defaults.data,
         meta: defaults.meta,
       };
-      return { ...section, items: [...section.items, newItem] };
+      return {
+        ...section,
+        items: insertAt(section.items, newItem, flow ? defaults.index : undefined),
+      };
     }),
   };
+}
+
+/** `items` with `item` inserted at `index` (clamped); appended when `index` is omitted. */
+function insertAt<T>(items: T[], item: T, index?: number): T[] {
+  const at =
+    index === undefined ? items.length : Math.max(0, Math.min(Math.round(index), items.length));
+  return [...items.slice(0, at), item, ...items.slice(at)];
 }
 
 export function moveItem(
@@ -1050,7 +1073,17 @@ export type MoveItemToSectionOptions = {
   y?: number;
   /** Grid that `x` / `y` refer to. Defaults to `'desktop'`. */
   breakpoint?: Breakpoint;
+  /**
+   * Arrangement target: index among the target's other blocks to insert at (omitted: appended).
+   * `x` / `y` are ignored there.
+   */
+  index?: number;
 };
+
+/** Without pinning, rows of an arrangement are content-sized. */
+function pinUnlessArrangement(section: Section, breakpoint: Breakpoint) {
+  return section.arrangement ? { section, rows: undefined } : pinSectionRows(section, breakpoint);
+}
 
 /**
  * Move an item into another section. The item keeps its id, size, ref, data and meta and lands
@@ -1074,6 +1107,11 @@ export function moveItemToSection(
   if (!source || !item || !target) return layout;
 
   if (fromSectionId === toSectionId) {
+    if (source.arrangement) {
+      return options.index === undefined
+        ? layout
+        : moveItemToIndex(layout, fromSectionId, itemId, options.index);
+    }
     if (options.x === undefined && options.y === undefined) return layout;
     const current = resolveItem(item, source, breakpoint);
     return moveItem(
@@ -1088,23 +1126,28 @@ export function moveItemToSection(
 
   const isDesktop = breakpoint === 'desktop';
   // Neither section changes height on the breakpoint being edited.
-  const pinnedSource = pinSectionRows(source, breakpoint).section;
-  const { section: pinnedTarget, rows: targetRows } = pinSectionRows(target, breakpoint);
+  const pinnedSource = pinUnlessArrangement(source, breakpoint).section;
+  const { section: pinnedTarget, rows: targetRows } = pinUnlessArrangement(target, breakpoint);
   const slot = nextSlot(desktopVisibleItems(target.items));
-  const placement = clampItem(
-    {
-      x: isDesktop ? (options.x ?? slot.x) : slot.x,
-      y: isDesktop ? (options.y ?? slot.y) : slot.y,
-      w: item.w,
-      h: item.h,
-    },
-    target.columns,
-    isDesktop ? targetRows : undefined,
-  );
+  const placement = target.arrangement
+    ? { x: 0, y: 0, w: item.w, h: item.h }
+    : clampItem(
+        {
+          x: isDesktop ? (options.x ?? slot.x) : slot.x,
+          y: isDesktop ? (options.y ?? slot.y) : slot.y,
+          w: item.w,
+          h: item.h,
+        },
+        target.columns,
+        isDesktop ? targetRows : undefined,
+      );
   const idTaken = target.items.some((i) => i.id === item.id);
   const moved: GridItem = { ...item, ...placement, id: idTaken ? createId() : item.id };
 
-  let nextTarget: Section = { ...pinnedTarget, items: [...pinnedTarget.items, moved] };
+  let nextTarget: Section = {
+    ...pinnedTarget,
+    items: insertAt(pinnedTarget.items, moved, target.arrangement ? options.index : undefined),
+  };
   for (const bp of NON_DESKTOP_BREAKPOINTS) {
     const carried = source.overrides?.[bp]?.items?.[item.id];
     const patch: ItemOverride = {};
@@ -1115,7 +1158,7 @@ export function moveItemToSection(
       nextTarget = withBreakpointOverride(nextTarget, bp, { items: { [moved.id]: patch } });
     }
   }
-  if (!isDesktop && (options.x !== undefined || options.y !== undefined)) {
+  if (!target.arrangement && !isDesktop && (options.x !== undefined || options.y !== undefined)) {
     const current = resolveItem(moved, nextTarget, breakpoint);
     nextTarget = writeItemOverride(
       nextTarget,
@@ -1297,6 +1340,25 @@ export function reorderItemAtIndex(
   };
 }
 
+/**
+ * Move a block to `index` among the other blocks of its section: the position in `items` the
+ * block has afterwards (clamped). In an arrangement section this is the order of the slots.
+ */
+export function moveItemToIndex(
+  layout: Layout,
+  sectionId: string,
+  itemId: string,
+  index: number,
+): Layout {
+  const section = layout.sections.find((s) => s.id === sectionId);
+  const from = section?.items.findIndex((item) => item.id === itemId) ?? -1;
+  if (!section || from < 0) return layout;
+  const rest = section.items.filter((item) => item.id !== itemId);
+  const items = insertAt(rest, section.items[from]!, index);
+  if (items.every((item, i) => item === section.items[i])) return layout;
+  return { ...layout, sections: mapSection(layout.sections, sectionId, (s) => ({ ...s, items })) };
+}
+
 export function importLayout(data: Layout, registry: ComponentRegistry): Layout {
   const { breakpoints, breakpointWidths, breakpointPreviewWidths } = withNormalizedBreakpointConfig(
     {
@@ -1329,7 +1391,7 @@ export function importLayout(data: Layout, registry: ComponentRegistry): Layout 
           continue;
         }
         const ovr = next.overrides?.[bp];
-        if (!ovr?.items) continue;
+        if (!ovr?.items || next.arrangement) continue;
         const columns = resolveSection(next, bp, breakpoints).columns;
         const items: Record<string, ItemOverride> = {};
         for (const [id, itemOvr] of Object.entries(ovr.items)) {

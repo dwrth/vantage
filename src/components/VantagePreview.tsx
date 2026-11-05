@@ -8,6 +8,7 @@ import {
   type ResolvedItemLayout,
   type ResolvedSectionLayout,
 } from '../lib/breakpoint';
+import { arrangementSlots, arrangementTrack, type ArrangementSlot } from '../lib/arrangement';
 import { itemVerticalAlignByBreakpoint, resolveItemVerticalAlign } from '../lib/contentAlign';
 import { resolveEffectiveItemData } from '../lib/entities';
 import { sortByReadingOrder } from '../lib/readingOrder';
@@ -107,6 +108,25 @@ function rowShiftFor(
   return (y) => y - removed.filter((row) => row < y).length;
 }
 
+const FLOW_ALIGN_ITEMS = { start: 'start', center: 'center', end: 'end' } as const;
+
+/** Section settings of an arrangement on `bp`: the track's columns, content-sized rows. */
+function arrangementSectionLayout(
+  section: Section,
+  bp: Breakpoint,
+  enabled: Breakpoint[],
+): ResolvedSectionLayout {
+  return {
+    ...resolveSection(section, bp, enabled),
+    columns: arrangementTrack(section.arrangement!, bp).columns,
+    rows: undefined,
+  };
+}
+
+function slotStyle(slot: ArrangementSlot) {
+  return { gridColumn: `${slot.col + 2} / span ${slot.span}`, gridRow: `${slot.row + 1}` };
+}
+
 /** Every grid column plus both outer tracks: the full width of the section. */
 const FULL_BLEED_COLUMN = '1 / -1';
 
@@ -190,6 +210,8 @@ type PreviewItemProps = {
   /** Single-breakpoint mode: the alignment in use. */
   align?: ItemVerticalAlign;
   components: ResolvedComponentRegistry;
+  /** Arrangement section: the block is as tall as its content (or its aspect ratio). */
+  flow?: boolean;
 };
 
 function PreviewItem({
@@ -202,6 +224,7 @@ function PreviewItem({
   alignOn,
   align,
   components,
+  flow,
 }: PreviewItemProps) {
   const resolveEntity = useResolveItemData();
   const data = resolveEffectiveItemData(
@@ -215,11 +238,14 @@ function PreviewItem({
   const Renderer = resolveRenderer(components, resolvedItem, 'preview');
   const descriptor = components[item.kind];
   const kindClass = descriptor?.previewWrapperClass ?? '';
+  const aspectRatio = flow ? descriptor?.arrangementAspectRatio?.(resolvedItem) : undefined;
 
   return (
     <div
-      className={[preview['preview-block'], kindClass].filter(Boolean).join(' ')}
-      style={style}
+      className={[preview['preview-block'], flow ? preview['preview-block--flow'] : '', kindClass]
+        .filter(Boolean)
+        .join(' ')}
+      style={aspectRatio ? { ...style, aspectRatio } : style}
       data-vp-hidden={hiddenOn}
       data-vp-valign={alignOn}
       data-valign={align}
@@ -250,13 +276,31 @@ function PreviewSection({
   const visibleItems = isItemVisible ? section.items.filter(isItemVisible) : section.items;
   // DOM (and tab / screen-reader) order follows the reading order of the breakpoint in use
   // (desktop before measurement). CSS `order` keeps the stacking order for painting.
-  const readingOrder = sortByReadingOrder(
-    visibleItems.map((item) => ({
-      item,
-      fullBleed: item.fullBleed,
-      placement: resolveItem(item, section, breakpoint, enabledBreakpoints),
-    })),
-  );
+  const arrangement = section.arrangement;
+  const readingOrder = arrangement
+    ? visibleItems.map((item, stackIndex) => ({ item, stackIndex }))
+    : sortByReadingOrder(
+        visibleItems.map((item) => ({
+          item,
+          fullBleed: item.fullBleed,
+          placement: resolveItem(item, section, breakpoint, enabledBreakpoints),
+        })),
+      );
+  // Arrangement: slot of each block shown on a breakpoint; a block without one is hidden there.
+  const slots = arrangement
+    ? Object.fromEntries(
+        (responsive ?? [breakpoint]).map((bp) => [
+          bp,
+          arrangementSlots(
+            visibleItems.filter(
+              (item) => !resolveItem(item, section, bp, enabledBreakpoints).hidden,
+            ),
+            arrangement,
+            bp,
+          ),
+        ]),
+      )
+    : null;
   const filteredItems = isItemVisible
     ? section.items.filter((item) => !visibleItems.includes(item))
     : [];
@@ -271,14 +315,16 @@ function PreviewSection({
   const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
   const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
 
+  const layoutAt = (bp: Breakpoint) =>
+    arrangement
+      ? arrangementSectionLayout(section, bp, enabledBreakpoints)
+      : resolveSection(section, bp, enabledBreakpoints);
   const gridVars = responsive
     ? Object.assign(
         {},
-        ...responsive.map((bp) =>
-          sectionVars(resolveSection(section, bp, enabledBreakpoints), `vp-${bp}-`, shifts[bp]),
-        ),
+        ...responsive.map((bp) => sectionVars(layoutAt(bp), `vp-${bp}-`, shifts[bp])),
       )
-    : sectionVars(resolveSection(section, breakpoint, enabledBreakpoints), '', shifts[breakpoint]);
+    : sectionVars(layoutAt(breakpoint), '', shifts[breakpoint]);
 
   return (
     <div className={preview['preview-section']}>
@@ -286,6 +332,7 @@ function PreviewSection({
         className={[
           preview['preview-grid'],
           section.fillScreen ? preview['preview-grid--fill'] : '',
+          arrangement ? preview['preview-grid--flow'] : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -293,6 +340,11 @@ function PreviewSection({
           {
             ...gridVars,
             alignContent: section.fillScreen ? (section.verticalAlign ?? 'start') : undefined,
+            alignItems: arrangement
+              ? arrangement.equalHeight
+                ? 'stretch'
+                : FLOW_ALIGN_ITEMS[arrangement.verticalAlign ?? 'start']
+              : undefined,
             '--row-ratio': cellMaxPx > 0 ? rowMaxPx / cellMaxPx : 1,
           } as React.CSSProperties
         }
@@ -311,10 +363,15 @@ function PreviewSection({
             const hidden: Breakpoint[] = [];
             for (const bp of responsive) {
               const placement = resolveItem(item, section, bp, enabledBreakpoints);
-              const { gridColumn, gridRow } = placementStyle(placement, shifts[bp], item.fullBleed);
+              const slot = slots?.[bp]?.get(item.id);
+              const { gridColumn, gridRow } = slots
+                ? slot
+                  ? slotStyle(slot)
+                  : { gridColumn: 'auto', gridRow: 'auto' }
+                : placementStyle(placement, shifts[bp], item.fullBleed);
               style[`--vp-${bp}-col`] = gridColumn;
               style[`--vp-${bp}-row`] = gridRow;
-              if (placement.hidden) hidden.push(bp);
+              if (slots ? !slot : placement.hidden) hidden.push(bp);
             }
             if (hidden.length === responsive.length) return null;
             hiddenOn = hidden.length > 0 ? hidden.join(' ') : undefined;
@@ -324,11 +381,16 @@ function PreviewSection({
               responsive,
               enabledBreakpoints,
             );
-            alignOn = aligns
-              ? Object.entries(aligns)
-                  .map(([bp, value]) => `${bp}-${value}`)
-                  .join(' ')
-              : undefined;
+            alignOn =
+              aligns && !slots
+                ? Object.entries(aligns)
+                    .map(([bp, value]) => `${bp}-${value}`)
+                    .join(' ')
+                : undefined;
+          } else if (slots) {
+            const slot = slots[breakpoint]?.get(item.id);
+            if (!slot) return null;
+            style = slotStyle(slot);
           } else {
             const placement = resolveItem(item, section, breakpoint, enabledBreakpoints);
             if (placement.hidden) return null;
@@ -348,6 +410,7 @@ function PreviewSection({
               alignOn={alignOn}
               align={align}
               components={components}
+              flow={arrangement !== undefined}
             />
           );
         })}
