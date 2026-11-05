@@ -1,0 +1,47 @@
+{
+  "numTotalTests": 5,
+  "numPassedTests": 2,
+  "numFailedTests": 2,
+  "startTime": 1000,
+  "testResults": [
+    {
+      "name": "/repo/src/lib/grid.test.ts",
+      "status": "failed",
+      "startTime": 1100,
+      "endTime": 2400,
+      "assertionResults": [
+        {
+          "fullName": "grid places | items",
+          "title": "places | items",
+          "status": "failed",
+          "failureMessages": ["AssertionError: expected 1 to be 2\n    at stack line"]
+        },
+        {
+          "fullName": "grid resizes",
+          "title": "resizes",
+          "status": "failed",
+          "failureMessages": ["\n"]
+        },
+        { "fullName": "grid moves", "title": "moves", "status": "passed", "failureMessages": [] },
+        { "fullName": "grid wip", "title": "wip", "status": "pending", "failureMessages": [] }
+      ]
+    },
+    {
+      "name": "/repo/src/lib/broken.test.ts",
+      "status": "failed",
+      "startTime": 1100,
+      "endTime": 1200,
+      "message": "Error: Cannot find module './missing'\n    at x",
+      "assertionResults": []
+    },
+    {
+      "name": "/repo/src/lib/ok.test.ts",
+      "status": "passed",
+      "startTime": 1100,
+      "endTime": 1500,
+      "assertionResults": [
+        { "fullName": "ok works", "title": "works", "status": "passed", "failureMessages": [] }
+      ]
+    }
+  ]
+}

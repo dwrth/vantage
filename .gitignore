@@ -23,3 +23,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+vitest-results.json
+ci-report.md
+changed-files.txt
+baseline
