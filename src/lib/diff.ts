@@ -103,6 +103,7 @@ function sectionChromeChanged(prev: Section, next: Section): boolean {
     prev.rows !== next.rows ||
     prev.background !== next.background ||
     prev.overrides !== next.overrides ||
+    prev.arrangement !== next.arrangement ||
     prev.meta !== next.meta
   );
 }
