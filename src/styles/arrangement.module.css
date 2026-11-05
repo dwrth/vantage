@@ -19,8 +19,14 @@
   z-index: 3;
 }
 
-/* Blocks are as tall as their content, with room for an empty one. */
+/*
+ * Blocks are as tall as their content, with room for an empty one. The cell is a column flex
+ * box, so a kind's `align-self: start` (meant for a grid item's vertical position) would shrink
+ * the block to its content width, which is zero for blocks with size containment.
+ */
 .cell > .body {
+  align-self: stretch;
+  width: 100%;
   flex: 1 1 auto;
   min-height: 3rem;
   overflow: visible;
