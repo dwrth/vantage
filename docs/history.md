@@ -95,6 +95,23 @@ Use `applyBaseline` for Clear, Sample, Import, and any hydrate from disk/network
 
 History holds **working** layouts (payloads included). Call `stripData` only when writing to disk/CMS — not when pushing undo entries.
 
+## Persisting the stacks — `initialStacks`, `onStacksChange`, `load`
+
+The host owns storage. Seed the stacks on mount, write them on every change, and swap them when the
+document changes (for example another page):
+
+```ts
+const history = useVantageHistory(layout, onChange, {
+  initialStacks: readStacks(docId), // { past, future }; past is capped at capacity
+  onStacksChange: (stacks) => writeStacks(docIdRef.current, stacks), // after edit, undo, redo, reset
+});
+
+useEffect(() => history.load(readStacks(docId)), [docId]); // calls neither onChange nor onStacksChange
+```
+
+`load` ends a running gesture. Persisted entries may reference entities that no longer exist; resolve or
+drop them in the host `onChange` that receives the restored layout.
+
 ## `onItemDataChange`
 
 Parallel signal on `VantageInspector` for dirty flags / entity sync — **not** a history input. Undo restores a full layout via `onChange`. Hosts that mirror entity state from `onItemDataChange` must also react to layout `onChange` from undo/redo (or re-derive from layout).

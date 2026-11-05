@@ -2,9 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { diffLayouts, type LayoutChangeOptions, type LayoutChangeset } from '../lib/diff';
 import type { Layout } from '../types';
 
+/** Undo / redo stacks: `past` ends with the next undo, `future` ends with the next redo. */
+export type VantageHistoryStacks = {
+  past: Layout[];
+  future: Layout[];
+};
+
 export type VantageHistoryOptions = {
   /** Max past entries. Default 50. */
   capacity?: number;
+  /** Stacks to start from, e.g. persisted by the host. Read on mount only; use `load` later. */
+  initialStacks?: VantageHistoryStacks;
+  /** Called after every stack change made by an edit, undo, redo or `reset` (not `load`), e.g. to persist them. */
+  onStacksChange?: (stacks: VantageHistoryStacks) => void;
   /**
    * @deprecated Ignored. Edits merge by gesture (`LayoutChangeOptions.mergeKey`), not by time.
    */
@@ -24,14 +34,13 @@ export type VantageHistory = {
   canRedo: boolean;
   /** Clear stacks; host must set layout separately. Does not call `onChange`. */
   reset: (layout: Layout) => void;
+  /** Replace the stacks, e.g. with another page's persisted ones. Calls neither `onChange` nor `onStacksChange`. */
+  load: (stacks: VantageHistoryStacks) => void;
 };
 
 const DEFAULT_CAPACITY = 50;
 
-type HistoryStacks = {
-  past: Layout[];
-  future: Layout[];
-};
+type HistoryStacks = VantageHistoryStacks;
 
 function trimPast(past: Layout[], capacity: number): Layout[] {
   return past.length > capacity ? past.slice(past.length - capacity) : past;
@@ -44,7 +53,10 @@ export function useVantageHistory(
 ): VantageHistory {
   const capacity = opts?.capacity ?? DEFAULT_CAPACITY;
 
-  const [stacks, setStacks] = useState<HistoryStacks>({ past: [], future: [] });
+  const [stacks, setStacks] = useState<HistoryStacks>(() => ({
+    past: trimPast(opts?.initialStacks?.past ?? [], capacity),
+    future: opts?.initialStacks?.future ?? [],
+  }));
   // Merge key of the gesture the newest past entry started; null once anything else happens.
   const gestureRef = useRef<string | null>(null);
 
@@ -52,6 +64,7 @@ export function useVantageHistory(
   const onChangeRef = useRef(onChange);
   const capacityRef = useRef(capacity);
   const stacksRef = useRef(stacks);
+  const onStacksChangeRef = useRef(opts?.onStacksChange);
 
   useEffect(() => {
     layoutRef.current = layout;
@@ -65,10 +78,22 @@ export function useVantageHistory(
     capacityRef.current = capacity;
   }, [capacity]);
 
-  const commitStacks = useCallback((next: HistoryStacks) => {
+  useEffect(() => {
+    onStacksChangeRef.current = opts?.onStacksChange;
+  }, [opts?.onStacksChange]);
+
+  const replaceStacks = useCallback((next: HistoryStacks) => {
     stacksRef.current = next;
     setStacks(next);
   }, []);
+
+  const commitStacks = useCallback(
+    (next: HistoryStacks) => {
+      replaceStacks(next);
+      onStacksChangeRef.current?.(next);
+    },
+    [replaceStacks],
+  );
 
   const wrappedOnChange = useCallback(
     (next: Layout, changeset: LayoutChangeset, options?: LayoutChangeOptions) => {
@@ -124,6 +149,14 @@ export function useVantageHistory(
     [commitStacks],
   );
 
+  const load = useCallback(
+    (next: HistoryStacks) => {
+      replaceStacks({ past: trimPast(next.past, capacityRef.current), future: next.future });
+      gestureRef.current = null;
+    },
+    [replaceStacks],
+  );
+
   return {
     layout,
     onChange: wrappedOnChange,
@@ -132,5 +165,6 @@ export function useVantageHistory(
     canUndo: stacks.past.length > 0,
     canRedo: stacks.future.length > 0,
     reset,
+    load,
   };
 }
