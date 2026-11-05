@@ -254,3 +254,48 @@ describe('copies of fill-screen sections and full-bleed items', () => {
     expect(isValidLayout(layout)).toBe(true);
   });
 });
+
+describe('clone edge cases', () => {
+  it('moves by a delta only for a known section', () => {
+    const base = layoutOf(section('a', []), section('b', []));
+    expect(moveSectionBy(base, 'missing', 1)).toBe(base);
+  });
+
+  it('drops override entries of unknown items when duplicating a section', () => {
+    const base = layoutOf(
+      section('s', [item('a', 0, 0, 2, 1)], {
+        overrides: {
+          tablet: { items: { a: undefined as never, ghost: { hidden: true } } },
+        },
+      }),
+    );
+    const { layout, ids, sectionId } = duplicateSection(base, 's');
+    const copy = find(layout, sectionId!);
+    expect(Object.keys(copy.overrides!.tablet!.items!)).toEqual([ids.a]);
+    expect(copy.overrides!.tablet!.items![ids.a!]).toBeUndefined();
+  });
+
+  it('pastes nothing into an unknown section or from an empty clipboard', () => {
+    const base = layoutOf(section('s', [item('a', 0, 0, 2, 1)]));
+    const clipboard = copyItems(base, 's', ['a'])!;
+    expect(pasteItems(base, 'missing', clipboard)).toEqual({ layout: base, ids: {} });
+    expect(pasteItems(base, 's', { ...clipboard, items: [] })).toEqual({ layout: base, ids: {} });
+  });
+
+  it('fills partial override placements from the copy and skips unknown source ids', () => {
+    const base = layoutOf(section('s', [item('a', 0, 0, 4, 2)]), section('t', []));
+    const { layout, ids } = pasteItems(base, 't', {
+      type: 'vantage/items',
+      version: 1,
+      columns: 12,
+      items: [item('p', 2, 0, 4, 2), item('q', 0, 2, 2, 1)],
+      overrides: {
+        tablet: { p: { x: 1 }, q: { w: 3, h: 2 }, ghost: { x: 0, y: 0 } },
+      },
+    });
+    const target = find(layout, 't');
+    expect(Object.keys(target.overrides!.tablet!.items!).sort()).toEqual([ids.p, ids.q].sort());
+    expect(target.overrides!.tablet!.items![ids.p!]).toEqual({ x: 1, y: 0, w: 4, h: 2 });
+    expect(target.overrides!.tablet!.items![ids.q!]).toEqual({ x: 0, y: 2, w: 3, h: 2 });
+  });
+});

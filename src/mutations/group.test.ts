@@ -171,3 +171,12 @@ describe('removeItems', () => {
     expect(removeItems(base, 's', ['x'])).toBe(base);
   });
 });
+
+describe('unknown sections', () => {
+  it('align, move and remove nothing', () => {
+    const base = layoutWith([item('a', 0, 0), item('b', 4, 2)]);
+    expect(alignItems(base, 'missing', ['a', 'b'], 'left')).toBe(base);
+    expect(moveItems(base, 'missing', ['a', 'b'], 1, 1)).toBe(base);
+    expect(removeItems(base, 'missing', ['a'])).toBe(base);
+  });
+});
