@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 // Separate from vite.config.ts so tests skip the library build plugins (dts).
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     environment: 'node',
     coverage: {
       provider: 'v8',
