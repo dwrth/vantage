@@ -173,4 +173,72 @@ describe('useVantageHistory', () => {
     expect(stepOf(view.result.current.layout)).toBe(1);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  describe('persisted stacks', () => {
+    it('starts from initialStacks and can undo into them', () => {
+      const past = [updateLayoutMeta(createEmptyLayout(), { step: 0 })];
+      const future = [updateLayoutMeta(createEmptyLayout(), { step: 9 })];
+      const { view } = setup(
+        { initialStacks: { past, future } },
+        updateLayoutMeta(createEmptyLayout(), { step: 1 }),
+      );
+      expect(view.result.current.canUndo).toBe(true);
+      expect(view.result.current.canRedo).toBe(true);
+
+      act(() => view.result.current.undo());
+      expect(stepOf(view.result.current.layout)).toBe(0);
+    });
+
+    it('caps initialStacks.past at capacity, keeping the newest entries', () => {
+      const past = [1, 2, 3].map((step) => updateLayoutMeta(createEmptyLayout(), { step }));
+      const { view } = setup({ capacity: 2, initialStacks: { past, future: [] } });
+      act(() => view.result.current.undo());
+      act(() => view.result.current.undo());
+      expect(stepOf(view.result.current.layout)).toBe(2);
+      expect(view.result.current.canUndo).toBe(false);
+    });
+
+    it('reports every stack change through onStacksChange', () => {
+      const onStacksChange = vi.fn();
+      const { view, edit } = setup({ onStacksChange });
+      edit((l) => updateLayoutMeta(l, { step: 1 }));
+      expect(onStacksChange).toHaveBeenLastCalledWith({ past: [expect.anything()], future: [] });
+
+      act(() => view.result.current.undo());
+      expect(onStacksChange).toHaveBeenLastCalledWith({ past: [], future: [expect.anything()] });
+      expect(stepOf(onStacksChange.mock.lastCall![0].future[0])).toBe(1);
+    });
+
+    it('load replaces the stacks without forwarding a change or reporting it', () => {
+      const onStacksChange = vi.fn();
+      const { view, onChange, edit } = setup({ onStacksChange });
+      edit((l) => updateLayoutMeta(l, { step: 1 }));
+      onStacksChange.mockClear();
+      onChange.mockClear();
+
+      const loaded = [updateLayoutMeta(createEmptyLayout(), { step: 5 })];
+      act(() => view.result.current.load({ past: loaded, future: [] }));
+      expect(onChange).not.toHaveBeenCalled();
+      expect(onStacksChange).not.toHaveBeenCalled();
+      expect(view.result.current.canRedo).toBe(false);
+
+      act(() => view.result.current.undo());
+      expect(stepOf(view.result.current.layout)).toBe(5);
+    });
+
+    it('load breaks a running gesture, so the next merge-key edit is its own step', () => {
+      const { view, edit } = setup();
+      edit((l) => updateLayoutMeta(l, { step: 1 }), 'slider');
+      act(() =>
+        view.result.current.load({
+          past: [updateLayoutMeta(createEmptyLayout(), { step: 5 })],
+          future: [],
+        }),
+      );
+      edit((l) => updateLayoutMeta(l, { step: 2 }), 'slider');
+
+      act(() => view.result.current.undo());
+      expect(stepOf(view.result.current.layout)).toBe(1);
+    });
+  });
 });

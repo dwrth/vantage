@@ -159,6 +159,7 @@ export {
   useVantageHistory,
   type VantageHistory,
   type VantageHistoryOptions,
+  type VantageHistoryStacks,
 } from './hooks/useVantageHistory';
 export {
   ItemDataProvider,
