@@ -28,6 +28,7 @@
     "typecheck": "tsc -p tsconfig.lib.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "npm run preview --prefix demo"
@@ -49,6 +50,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
