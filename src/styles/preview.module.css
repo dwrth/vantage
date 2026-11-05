@@ -96,6 +96,21 @@
   contain: size;
 }
 
+/*
+ * Arrangement section: rows are as tall as their tallest block, the content is as wide as a
+ * 12-column grid on every breakpoint (the track's own column count only divides it).
+ */
+.preview-grid--flow {
+  --max-section-w: calc(12 * var(--cell-max-px));
+  grid-auto-rows: auto;
+}
+
+.preview-block--flow {
+  min-height: auto;
+  overflow: visible;
+  contain: none;
+}
+
 /* Content alignment inside the block (single-breakpoint mode; responsive mode emits its own rules). */
 .preview-block[data-valign='start'] {
   justify-content: flex-start;
