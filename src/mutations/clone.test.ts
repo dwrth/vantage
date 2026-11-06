@@ -207,6 +207,23 @@ describe('copy and paste items', () => {
     expect(find(layout, 't').overrides).toBeUndefined();
   });
 
+  it('keeps non-placement overrides but no placement when pasting into an arrangement section', () => {
+    const source = layoutOf(
+      section('s', [item('a', 0, 0, 4, 2)], {
+        overrides: {
+          tablet: { items: { a: { x: 1, y: 1, w: 2, h: 2, hidden: true } } },
+          mobile: { items: { a: { x: 0, y: 0, w: 4, h: 2 } } },
+        },
+      }),
+      section('t', [], { arrangement: { preset: 'single' } }),
+    );
+    const clipboard = copyItems(source, 's', ['a'])!;
+    const { layout, ids } = pasteItems(source, 't', clipboard);
+    expect(find(layout, 't').overrides).toEqual({
+      tablet: { items: { [ids.a]: { hidden: true } } },
+    });
+  });
+
   it('duplicates items within their section', () => {
     const { layout, ids } = duplicateItems(base, 's', ['a']);
     expect(find(layout, 's').items.at(-1)).toMatchObject({ id: ids.a, ref: 'ea', y: 5 });

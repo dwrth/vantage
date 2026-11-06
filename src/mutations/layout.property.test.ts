@@ -641,7 +641,7 @@ describe('layout mutations: known issues (shrunk counterexamples)', () => {
     expect(arrangementViolations(autoArrangeBreakpoint(layout, 'mobile'))).toEqual([]);
   });
 
-  it.fails('pasteItems into an arrangement section drops grid placement overrides', () => {
+  it('pasteItems into an arrangement section drops grid placement overrides', () => {
     const layout: Layout = {
       sections: [
         arrangementOnly,
