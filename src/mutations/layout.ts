@@ -1125,9 +1125,13 @@ export function moveItemToSection(
   }
 
   const isDesktop = breakpoint === 'desktop';
-  // Neither section changes height on the breakpoint being edited.
+  // Neither section changes height on the breakpoint being edited, except that the next free
+  // slot may extend the target on desktop.
+  const appendsOnDesktop = isDesktop && options.y === undefined;
   const pinnedSource = pinUnlessArrangement(source, breakpoint).section;
-  const { section: pinnedTarget, rows: targetRows } = pinUnlessArrangement(target, breakpoint);
+  const { section: pinnedTarget, rows: targetRows } = appendsOnDesktop
+    ? { section: target, rows: undefined }
+    : pinUnlessArrangement(target, breakpoint);
   const slot = nextSlot(desktopVisibleItems(target.items));
   const placement = target.arrangement
     ? { x: 0, y: 0, w: item.w, h: item.h }
