@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { MARKER, buildReport, relativePath, summarizeResults } from './ci-report.mjs';
 
@@ -108,5 +110,54 @@ describe('buildReport', () => {
     const report = build({ results: undefined, coverage: undefined });
     expect(report).toContain('_No test results found._');
     expect(report).toContain('_No coverage data found._');
+  });
+});
+
+describe('browser test line', () => {
+  const passing = {
+    numTotalTests: 18,
+    numPassedTests: 18,
+    numFailedTests: 0,
+    startTime: 1000,
+    testResults: [
+      {
+        name: '/repo/src/components/Builder.browser.test.tsx',
+        status: 'passed',
+        endTime: 4200,
+        assertionResults: [],
+      },
+    ],
+  };
+
+  it('is left out when no browser results were requested', () => {
+    expect(build()).not.toContain('Browser tests');
+  });
+
+  it('summarizes a passing run in one line under the tests', () => {
+    const report = build({ browserResults: passing });
+    expect(report).toContain('✅ Browser tests (Chromium): 18 passed, 0 failed in 3.2 s');
+    expect(report.indexOf('Browser tests')).toBeLessThan(report.indexOf('### Coverage'));
+  });
+
+  it('marks failures and lists failing browser tests', () => {
+    const report = build({ browserResults: results });
+    expect(report).toContain('❌ Browser tests (Chromium): 2 passed, 2 failed, 1 skipped in 1.4 s');
+    expect(report).toContain('**Failing browser tests**');
+  });
+
+  it('flags a requested run that left no results', () => {
+    expect(build({ browserResults: null })).toContain(
+      '❌ Browser tests (Chromium): _no results found._',
+    );
+  });
+
+  it('reads the --browser file on the command line', () => {
+    const script = fileURLToPath(new URL('./ci-report.mjs', import.meta.url));
+    const missing = execFileSync('node', [script, '--browser=does-not-exist.json'], {
+      encoding: 'utf8',
+    });
+    expect(missing).toContain('_no results found._');
+    const omitted = execFileSync('node', [script], { encoding: 'utf8' });
+    expect(omitted).not.toContain('Browser tests');
   });
 });
