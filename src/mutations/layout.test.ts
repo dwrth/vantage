@@ -9,6 +9,7 @@ import {
   bringItemForward,
   bringItemToFront,
   clearItemOverride,
+  clearLayout,
   clearSectionOverride,
   createEmptyLayout,
   duplicateItem,
@@ -16,6 +17,7 @@ import {
   importLayout,
   moveItem,
   moveItemBelowOverlaps,
+  moveItemToIndex,
   moveItemToSection,
   removeItem,
   removeSection,
@@ -658,5 +660,107 @@ describe('moveItemBelowOverlaps', () => {
     const next = moveItemBelowOverlaps(layout, 's', 'b');
     expect(findItem(next, 'b').y).toBe(2);
     expect(find(next).rows).toBeUndefined();
+  });
+});
+
+describe('edge cases', () => {
+  it('clears to an empty layout', () => {
+    expect(clearLayout()).toEqual(createEmptyLayout());
+  });
+
+  it('imports a layout without breakpoint config using the defaults', () => {
+    const raw = {
+      sections: [section('s', [item('a', 0, 0, 2, 1)])],
+      breakpoints: ['desktop', 'tablet', 'mobile'],
+    } as unknown as Layout;
+    const imported = importLayout(raw, {});
+    expect(imported.breakpointWidths).toEqual({ mobile: 640, tablet: 1023 });
+    expect(imported.breakpointPreviewWidths).toEqual({ mobile: 390, tablet: 768 });
+    const bare = importLayout({ sections: [] } as unknown as Layout, {});
+    expect(bare.breakpoints).toEqual(['desktop']);
+  });
+
+  it('runs kind import mapping and validation on override data', () => {
+    const registry: ComponentRegistry = {
+      block: {
+        component: () => null,
+        defaults: { w: 2, h: 1 },
+        fromPersistedData: (raw) => ({ ...(raw as object), imported: true }),
+        validate: (data) => ((data as { bad?: boolean }).bad ? ['bad data'] : []),
+      },
+    };
+    const withOverride = (data: unknown): Layout =>
+      layoutOf(
+        section('s', [item('a', 0, 0, 2, 1)], {
+          overrides: { tablet: { items: { a: { data } } }, mobile: undefined },
+        }),
+      );
+    const imported = importLayout(withOverride({ title: 'x' }), registry);
+    expect(find(imported).overrides?.tablet?.items?.a?.data).toEqual({
+      title: 'x',
+      imported: true,
+    });
+    expect(() => importLayout(withOverride({ bad: true }), registry)).toThrow(
+      /kind "block" override invalid: bad data/,
+    );
+    const exported = exportLayout(withOverride({ title: 'x' }), registry);
+    expect(find(exported).overrides).toEqual({
+      tablet: { items: { a: { data: { title: 'x' } } } },
+    });
+  });
+
+  it('warns about a colliding id only when console.warn exists', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 1)]));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const original = console.warn;
+    console.warn = undefined as never;
+    try {
+      const next = addItem(layout, 's', 'block', { id: 'a' });
+      expect(ids(next)).toHaveLength(2);
+      expect(new Set(ids(next)).size).toBe(2);
+    } finally {
+      console.warn = original;
+    }
+    expect(original).not.toHaveBeenCalled();
+  });
+
+  it('labels new items with formatLabel', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 1)]));
+    const next = addItem(layout, 's', 'block', {
+      formatLabel: (base, position) => `${position}. ${base}`,
+    });
+    expect(find(next).items[1]!.label).toBe('2. Block');
+  });
+
+  it('fills the missing coordinate from the current placement on moves', () => {
+    const layout = layoutOf(
+      section('s', [item('a', 2, 1, 2, 1), item('b', 0, 3, 2, 1)], { rows: 6 }),
+      section('t', [item('c', 0, 0, 2, 1)], { rows: 6 }),
+    );
+    const sameSection = moveItemToSection(layout, 's', 'a', 's', { y: 4 });
+    expect(findItem(sameSection, 'a')).toMatchObject({ x: 2, y: 4 });
+
+    const onlyY = moveItemToSection(layout, 's', 'a', 't', { breakpoint: 'tablet', y: 3 });
+    const yTarget = find(onlyY, 't');
+    expect(resolveItem(findItem(onlyY, 'a', 't'), yTarget, 'tablet')).toMatchObject({ x: 0, y: 3 });
+
+    const onlyX = moveItemToSection(layout, 's', 'a', 't', { breakpoint: 'tablet', x: 4 });
+    const xTarget = find(onlyX, 't');
+    expect(resolveItem(findItem(onlyX, 'a', 't'), xTarget, 'tablet')).toMatchObject({ x: 4, y: 1 });
+  });
+
+  it('leaves unknown items and sections alone', () => {
+    const layout = layoutOf(section('s', [item('a', 0, 0, 2, 1), item('b', 2, 0, 2, 1)]));
+    const moved = moveItem(layout, 's', 'missing', 1, 1, 'tablet');
+    expect(find(moved).items).toBe(find(layout).items);
+    expect(find(moved).overrides?.tablet?.items).toBeUndefined();
+    expect(find(bringItemForward(layout, 's', 'missing')).items).toBe(find(layout).items);
+    expect(moveItemToIndex(layout, 'missing', 'a', 1)).toBe(layout);
+  });
+
+  it('keeps tablet above a new mobile width when the tablet width is unset', () => {
+    const layout: Layout = { ...layoutOf(), breakpointWidths: { mobile: 640 } };
+    const next = setBreakpointWidth(layout, 'mobile', 800);
+    expect(next.breakpointWidths).toEqual({ mobile: 800, tablet: 1023 });
   });
 });
