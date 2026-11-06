@@ -9,6 +9,7 @@ import {
   insertionIndexAt,
   insertionLine,
   isArrangementPreset,
+  isArrangementSection,
 } from './arrangement';
 
 const ids = (count: number) => Array.from({ length: count }, (_, i) => ({ id: `i${i}` }));
@@ -152,6 +153,10 @@ describe('insertionLine', () => {
     expect(insertionLine(column, 0, 10)).toMatchObject({ height: 3 });
   });
 
+  it('is vertical before the first block of a row', () => {
+    expect(insertionLine(row, 0, 10)).toEqual({ left: -6.5, top: 0, width: 3, height: 50 });
+  });
+
   it('closes the row or column at the end', () => {
     expect(insertionLine(row, 2, 10)?.left).toBeGreaterThan(210);
     expect(insertionLine(column, 2, 10)?.top).toBeGreaterThan(110);
@@ -159,5 +164,12 @@ describe('insertionLine', () => {
 
   it('has no line without blocks', () => {
     expect(insertionLine([], 0, 10)).toBeNull();
+  });
+});
+
+describe('isArrangementSection', () => {
+  it('is true only with an arrangement', () => {
+    expect(isArrangementSection({ arrangement: { preset: 'three' } })).toBe(true);
+    expect(isArrangementSection({})).toBe(false);
   });
 });

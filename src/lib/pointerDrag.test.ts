@@ -66,4 +66,14 @@ describe('trackPointerDrag', () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
     expect(onEnd).toHaveBeenCalledWith(false);
   });
+
+  it('works with a target that cannot capture the pointer', () => {
+    const onEnd = vi.fn();
+    trackPointerDrag({ target: {}, pointerId: 1 } as unknown as ReactPointerEvent, {
+      onMove: vi.fn(),
+      onEnd,
+    });
+    win.dispatchEvent(new Event('pointerup'));
+    expect(onEnd).toHaveBeenCalledWith(false);
+  });
 });
