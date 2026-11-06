@@ -655,6 +655,11 @@ export function pasteItems(
       const id = ids[sourceId];
       if (!id) continue;
       const patch: ItemOverride = cloneJson(ovr);
+      if (target.arrangement) {
+        for (const key of PLACEMENT_KEYS) delete patch[key];
+        if (Object.keys(patch).length > 0) items[id] = patch;
+        continue;
+      }
       if (PLACEMENT_KEYS.some((key) => ovr[key] !== undefined)) {
         const copy = copies.find((item) => item.id === id)!;
         const placement = clampItem(
@@ -670,7 +675,7 @@ export function pasteItems(
       }
       items[id] = patch;
     }
-    next = withBreakpointOverride(next, bp, { items });
+    if (Object.keys(items).length > 0) next = withBreakpointOverride(next, bp, { items });
   }
 
   return {
