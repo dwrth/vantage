@@ -242,9 +242,10 @@ describe('layout mutations: random sequences', () => {
     'duplicateItem',
     'duplicateItems',
     'pasteItems',
+    'moveItemToSection',
   ];
 
-  it('place new, duplicated and pasted blocks below the desktop content without overlap', () => {
+  it('place new, duplicated, pasted and moved-in blocks below the desktop content without overlap', () => {
     const desktopOps = fc
       .array(arbLayoutOp([...OVERLAP_SAFE_EVERYWHERE, ...DESKTOP_PLACING]), {
         minLength: 1,
@@ -259,6 +260,25 @@ describe('layout mutations: random sequences', () => {
       }),
       RUNS,
     );
+  });
+});
+
+describe('moveItemToSection: shrunk counterexamples', () => {
+  it('lands in a free slot of the target, growing it, without a position', () => {
+    const block = (id: string) => ({ id, kind: 'text', x: 0, y: 0, w: 1, h: 1 });
+    const layout: Layout = {
+      sections: [
+        { id: 's0', columns: 1, colGap: 8, rowGap: 8, items: [block('a')] },
+        { id: 's1', columns: 1, colGap: 8, rowGap: 8, items: [block('b')] },
+      ],
+      breakpoints: ['desktop'],
+      breakpointWidths: {},
+      breakpointPreviewWidths: {},
+    };
+    const moved = moveItemToSection(layout, 's1', 'b', 's0');
+    expect(overlapViolations(moved)).toEqual([]);
+    expect(placementAt(moved, 's0', 'b', 'desktop')).toMatchObject({ x: 0, y: 1 });
+    expect(sectionRows(sectionOf(moved, 's0'), 'desktop')).toBe(2);
   });
 });
 
@@ -658,20 +678,6 @@ describe('layout mutations: known issues (shrunk counterexamples)', () => {
     };
     const clipboard = copyItems(layout, 's1', ['s1-i0'])!;
     expect(arrangementViolations(pasteItems(layout, 's0', clipboard).layout)).toEqual([]);
-  });
-
-  it.fails('moveItemToSection without a position lands in a free slot of the target', () => {
-    const block = (id: string) => ({ id, kind: 'text', x: 0, y: 0, w: 1, h: 1 });
-    const layout: Layout = {
-      sections: [
-        { id: 's0', columns: 1, colGap: 8, rowGap: 8, items: [block('a')] },
-        { id: 's1', columns: 1, colGap: 8, rowGap: 8, items: [block('b')] },
-      ],
-      breakpoints: ['desktop'],
-      breakpointWidths: {},
-      breakpointPreviewWidths: {},
-    };
-    expect(overlapViolations(moveItemToSection(layout, 's1', 'b', 's0'))).toEqual([]);
   });
 
   it.fails('export then import keeps a valid tablet width when mobile is disabled', () => {
