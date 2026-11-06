@@ -1560,6 +1560,7 @@ function stackPlacements(items: GridItem[], toColumns: number) {
  * Tablet scales items onto fewer columns; mobile stacks items (overlap groups stay together)
  * at full width. Overwrites `columns` and item `x/y/w/h` overrides for that breakpoint; keeps
  * gaps, paddings, `hidden` flags and `data` patches. Pass `sectionId` to arrange one section.
+ * Arrangement sections are content-sized flows and are never rewritten.
  */
 export function autoArrangeBreakpoint(
   layout: Layout,
@@ -1570,7 +1571,8 @@ export function autoArrangeBreakpoint(
   return {
     ...layout,
     sections: layout.sections.map((section) => {
-      if (sectionId !== undefined && section.id !== sectionId) return section;
+      if (section.arrangement || (sectionId !== undefined && section.id !== sectionId))
+        return section;
       const current = section.overrides?.[breakpoint];
       const columns = defaultColumnsForBreakpoint(section.columns, breakpoint);
       const visible = section.items.filter((item) => current?.items?.[item.id]?.hidden !== true);

@@ -182,9 +182,7 @@ describe('layout mutations: random sequences', () => {
     );
   });
 
-  const ARRANGEMENT_SAFE = LAYOUT_OP_NAMES.filter(
-    (name) => name !== 'autoArrangeBreakpoint' && name !== 'pasteItems',
-  );
+  const ARRANGEMENT_SAFE = LAYOUT_OP_NAMES.filter((name) => name !== 'pasteItems');
 
   it('never give arrangement sections rows, columns or placement overrides', () => {
     fc.assert(
@@ -631,7 +629,7 @@ describe('layout mutations: known issues (shrunk counterexamples)', () => {
     arrangement: { preset: 'single' },
   };
 
-  it.fails('autoArrangeBreakpoint over the whole layout leaves arrangement sections alone', () => {
+  it('autoArrangeBreakpoint over the whole layout leaves arrangement sections alone', () => {
     const layout: Layout = {
       sections: [arrangementOnly],
       breakpoints: ['desktop', 'mobile'],
