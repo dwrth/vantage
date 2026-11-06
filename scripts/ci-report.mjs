@@ -90,18 +90,35 @@ function testsSection(results, root) {
     '',
     `Duration: ${formatDuration(s.duration)}`,
   ];
-  if (s.failures.length > 0) {
-    lines.push('', '**Failing tests**', '');
-    for (const failure of s.failures.slice(0, MAX_FAILURES)) {
-      const message = truncate(failure.error, MAX_ERROR_LENGTH).replaceAll('`', "'");
-      const error = message ? ` — \`${message}\`` : '';
-      lines.push(`- ${escapeCell(failure.name)} (${relativePath(failure.file, root)})${error}`);
-    }
-    if (s.failures.length > MAX_FAILURES) {
-      lines.push(`- … and ${s.failures.length - MAX_FAILURES} more`);
-    }
+  return [...lines, ...failureList(s.failures, 'Failing tests', root)];
+}
+
+function failureList(failures, title, root) {
+  if (failures.length === 0) return [];
+  const lines = ['', `**${title}**`, ''];
+  for (const failure of failures.slice(0, MAX_FAILURES)) {
+    const message = truncate(failure.error, MAX_ERROR_LENGTH).replaceAll('`', "'");
+    const error = message ? ` — \`${message}\`` : '';
+    lines.push(`- ${escapeCell(failure.name)} (${relativePath(failure.file, root)})${error}`);
+  }
+  if (failures.length > MAX_FAILURES) {
+    lines.push(`- … and ${failures.length - MAX_FAILURES} more`);
   }
   return lines;
+}
+
+/** One line for the real-browser suite; `null` means it was expected but left no results. */
+function browserSection(results, root) {
+  if (results === undefined) return [];
+  if (!results) return ['', '❌ Browser tests (Chromium): _no results found._'];
+  const s = summarizeResults(results);
+  const failed = s.failedTests > 0 || s.failedFiles > 0;
+  const skipped = s.skippedTests > 0 ? `, ${s.skippedTests} skipped` : '';
+  return [
+    '',
+    `${failed ? '❌' : '✅'} Browser tests (Chromium): ${s.passedTests} passed, ${s.failedTests} failed${skipped} in ${formatDuration(s.duration)}`,
+    ...failureList(s.failures, 'Failing browser tests', root),
+  ];
 }
 
 function coverageSection(coverage, baseline, changedFiles, root) {
@@ -152,6 +169,7 @@ function coverageSection(coverage, baseline, changedFiles, root) {
 
 export function buildReport({
   results,
+  browserResults,
   coverage,
   baseline,
   changedFiles = [],
@@ -162,6 +180,7 @@ export function buildReport({
     '## CI report',
     '',
     ...testsSection(results, root),
+    ...browserSection(browserResults, root),
     '',
     ...coverageSection(coverage, baseline, changedFiles, root),
     '',
@@ -194,6 +213,7 @@ function main(argv) {
   );
   const report = buildReport({
     results: readJson(args.results),
+    browserResults: args.browser ? (readJson(args.browser) ?? null) : undefined,
     coverage: readJson(args.coverage),
     baseline: readJson(args.baseline),
     changedFiles: readLines(args.changed),

@@ -24,6 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 vitest-results.json
+browser-results.json
 ci-report.md
 changed-files.txt
 baseline

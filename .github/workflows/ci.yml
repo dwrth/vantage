@@ -32,7 +32,20 @@ jobs:
       - run: npm run lint
       - run: npm run lint --prefix demo
       - run: npm run format:check
-      - run: npm run test:coverage -- --reporter=default --reporter=json --outputFile.json=vitest-results.json
+      - id: unit
+        run: npm run test:coverage -- --reporter=default --reporter=json --outputFile.json=vitest-results.json
+      - id: playwright
+        if: ${{ !cancelled() && steps.unit.outcome != 'skipped' }}
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: ${{ !cancelled() && steps.unit.outcome != 'skipped' }}
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: ${{ !cancelled() && steps.unit.outcome != 'skipped' }}
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.unit.outcome != 'skipped' }}
+        run: npm run test:browser -- --reporter=default --reporter=json --outputFile.json=browser-results.json
       - name: Resolve baseline coverage from main
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true
@@ -54,6 +67,7 @@ jobs:
         run: |
           node scripts/ci-report.mjs \
             --results=vitest-results.json \
+            --browser=browser-results.json \
             --coverage=coverage/coverage-summary.json \
             --baseline=baseline/coverage-summary.json \
             --changed=changed-files.txt \
