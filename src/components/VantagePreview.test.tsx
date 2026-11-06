@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import type { ComponentRegistry, Layout, Section } from '../types';
+import { describe, expect, it, vi } from 'vitest';
+import { VantageThemeProvider } from '../theme/VantageThemeProvider';
+import type { ComponentRegistry, GridItem, Layout, Section } from '../types';
 import { VantagePreview } from './VantagePreview';
 
 const components: ComponentRegistry = {
@@ -195,5 +196,194 @@ describe('VantagePreview content alignment', () => {
     // Scoped rules pick the token of the active breakpoint.
     expect(html).toContain('[data-vp-valign~="mobile-end"]{justify-content:flex-end');
     expect(html).toContain('[data-vp-valign~="desktop-center"]{justify-content:center');
+  });
+});
+
+describe('VantagePreview empty states', () => {
+  it('says so when no components are registered', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={{ breakpoints: ['desktop'], sections: [] } as Layout}
+        components={{}}
+      />,
+    );
+    expect(html).toContain('No components registered.');
+  });
+
+  it('says so when the layout has no sections', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={{ breakpoints: ['desktop'], sections: [] } as Layout}
+        components={components}
+      />,
+    );
+    expect(html).toContain('Nothing to preview yet.');
+  });
+});
+
+describe('VantagePreview unknown kinds', () => {
+  it('renders the fallback for a kind without a registered component', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const html = render({}, { kind: 'nope-preview' });
+    expect(html).toContain('Unknown kind: <strong>nope-preview</strong>');
+    warn.mockRestore();
+  });
+});
+
+describe('VantagePreview isItemVisible', () => {
+  const labelled: ComponentRegistry = {
+    block: { component: ({ item }) => <span>{item.id}</span>, defaults: { w: 1, h: 1 } },
+  };
+  const layout = (breakpoints: string[]) =>
+    ({
+      breakpoints,
+      breakpointWidths: { mobile: 640 },
+      breakpointPreviewWidths: {},
+      sections: [
+        {
+          id: 's',
+          columns: 12,
+          colGap: 8,
+          rowGap: 8,
+          rows: 7,
+          items: [
+            { id: 'top', kind: 'block', x: 0, y: 0, w: 4, h: 2 },
+            { id: 'secret', kind: 'block', x: 0, y: 2, w: 4, h: 2 },
+            { id: 'beside', kind: 'block', x: 6, y: 3, w: 2, h: 1 },
+            { id: 'bottom', kind: 'block', x: 0, y: 5, w: 4, h: 2 },
+          ],
+        },
+      ],
+    }) as Layout;
+  const notSecret = (item: GridItem) => item.id !== 'secret';
+
+  it('drops filtered blocks and collapses rows only they occupied', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={layout(['desktop'])}
+        components={labelled}
+        isItemVisible={notSecret}
+      />,
+    );
+    expect(html).not.toContain('<span>secret</span>');
+    // Row 2 held only `secret`; row 3 is shared with `beside` and stays.
+    expect(html).toContain('grid-row:3 / span 1');
+    expect(html).toContain('grid-row:5 / span 2');
+    expect(html).toContain('--rows-tpl:repeat(6, minmax(var(--row-px), auto))');
+  });
+
+  it('collapses per breakpoint in responsive mode', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={layout(['desktop', 'mobile'])}
+        components={labelled}
+        isItemVisible={notSecret}
+      />,
+    );
+    expect(html).not.toContain('<span>secret</span>');
+    expect(html).toContain('--vp-desktop-row:5 / span 2');
+    expect(html).toContain('--vp-desktop-rows-tpl:repeat(6, minmax(var(--row-px), auto))');
+  });
+
+  it('does not collapse rows for a filtered block that is hidden anyway', () => {
+    const base = layout(['desktop']);
+    const value = {
+      ...base,
+      sections: [
+        {
+          ...base.sections[0]!,
+          items: base.sections[0]!.items.map((i) =>
+            i.id === 'secret' ? { ...i, hidden: true } : i,
+          ),
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <VantagePreview value={value} components={labelled} isItemVisible={notSecret} />,
+    );
+    expect(html).toContain('grid-row:6 / span 2');
+  });
+
+  it('keeps the rows when the filtered block shares all its rows', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview
+        value={layout(['desktop'])}
+        components={labelled}
+        isItemVisible={(item) => item.id !== 'beside'}
+      />,
+    );
+    expect(html).toContain('grid-row:6 / span 2');
+    expect(html).toContain('--rows-tpl:repeat(7, minmax(var(--row-px), auto))');
+  });
+});
+
+describe('VantagePreview arrangement sections', () => {
+  const labelled: ComponentRegistry = {
+    block: {
+      component: ({ item }) => <span>{item.id}</span>,
+      defaults: { w: 1, h: 1 },
+      arrangementAspectRatio: () => '16 / 9',
+    },
+  };
+  const layout = {
+    breakpoints: ['desktop', 'mobile'],
+    breakpointWidths: { mobile: 640 },
+    breakpointPreviewWidths: {},
+    sections: [
+      {
+        id: 's',
+        columns: 12,
+        colGap: 8,
+        rowGap: 8,
+        arrangement: { preset: 'two', equalHeight: true },
+        items: [
+          { id: 'a', kind: 'block', x: 0, y: 0, w: 6, h: 2 },
+          { id: 'm', kind: 'block', x: 6, y: 0, w: 6, h: 2 },
+          { id: 'gone', kind: 'block', x: 0, y: 2, w: 6, h: 2, hidden: true },
+        ],
+        overrides: {
+          mobile: { items: { m: { hidden: true }, gone: { hidden: true } } },
+        },
+      },
+    ],
+  } as Layout;
+
+  it('hides a block on the breakpoints without a slot and drops it when it has none', () => {
+    const html = renderToStaticMarkup(<VantagePreview value={layout} components={labelled} />);
+    expect(html).not.toContain('<span>gone</span>');
+    expect(html).toMatch(
+      /--vp-mobile-col:auto;--vp-mobile-row:auto[^"]*"[^>]*data-vp-hidden="mobile"/,
+    );
+    expect(html).toContain('align-items:stretch');
+    expect(html).toContain('aspect-ratio:16 / 9');
+  });
+
+  it('places blocks in their slots when a breakpoint is forced', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview value={layout} components={labelled} breakpoint="mobile" />,
+    );
+    expect(html).toContain('<span>a</span>');
+    expect(html).not.toContain('<span>m</span>');
+    expect(html).toContain('--cols:1;');
+    expect(html).toContain('grid-column:2 / span 1;grid-row:1');
+  });
+});
+
+describe('VantagePreview tokens', () => {
+  it('falls back to a square row ratio when the cell max token is zero', () => {
+    const html = renderToStaticMarkup(
+      <VantageThemeProvider tokens={{ '--vantage-cell-max-px': '0px' }}>
+        <VantagePreview
+          value={
+            {
+              breakpoints: ['desktop'],
+              sections: [{ id: 's', columns: 12, colGap: 8, rowGap: 8, items: [] }],
+            } as unknown as Layout
+          }
+          components={components}
+        />
+      </VantageThemeProvider>,
+    );
+    expect(html).toContain('--row-ratio:1');
   });
 });
