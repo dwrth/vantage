@@ -127,6 +127,14 @@ Default environment is `node`. Component and hook tests that need a DOM opt in w
 
 `fast-check` is not a dependency yet; property-based slices need it added first.
 
+## Browser tests
+
+Geometry that jsdom cannot compute (pointer drag and resize snapping, section resize, cross-section drops, measured rows, breakpoint columns, arrangement flow) is tested in real headless Chromium: vitest browser mode with the Playwright provider, as the `browser` project in `vitest.config.ts`. Files are named `src/**/*.browser.test.tsx`; the `unit` project excludes them.
+
+- `npm test` and `npm run test:coverage` run only the `unit` project (node and jsdom).
+- `npm run test:browser` runs the `browser` project. Run `npx playwright install chromium` once first.
+- Browser tests are not part of the coverage numbers: v8 coverage from the browser maps the sources to different statement totals, so merged numbers would not compare with the baseline, and the coverage step would need Chromium.
+
 ## Recommended slices
 
 Ordered by value for effort. Each slice should be one follow-up agent and one PR.

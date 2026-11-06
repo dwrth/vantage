@@ -1,10 +1,9 @@
-import { defineConfig } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 // Separate from vite.config.ts so tests skip the library build plugins (dts).
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
-    environment: 'node',
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
@@ -19,5 +18,32 @@ export default defineConfig({
       reporter: ['text-summary', 'lcov', 'json-summary'],
       reportsDirectory: 'coverage',
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
+          exclude: [...configDefaults.exclude, 'src/**/*.browser.test.tsx'],
+          environment: 'node',
+        },
+      },
+      {
+        extends: true,
+        test: {
+          // Real layout in headless Chromium for geometry that jsdom cannot compute.
+          name: 'browser',
+          include: ['src/**/*.browser.test.tsx'],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            viewport: { width: 1280, height: 900 },
+            instances: [{ browser: 'chromium' }],
+            screenshotFailures: false,
+          },
+        },
+      },
+    ],
   },
 });
