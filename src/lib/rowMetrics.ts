@@ -24,7 +24,7 @@ export function closestRowForOffset(
     row += 1;
   }
 
-  return row + Math.round((safeOffset - current) / fallbackStep);
+  return row + Math.max(0, Math.round((safeOffset - current) / fallbackStep));
 }
 
 /**

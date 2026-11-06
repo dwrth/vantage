@@ -6,7 +6,6 @@ const RUNS = { numRuns: 150, seed: 20261105 };
 
 const arbHeights = fc.array(fc.integer({ min: 1, max: 120 }), { maxLength: 12 });
 const arbStep = fc.integer({ min: 1, max: 120 });
-const arbCoarseStep = fc.integer({ min: 120, max: 200 });
 
 describe('getRowStart', () => {
   it('grows strictly with the row count', () => {
@@ -44,11 +43,11 @@ describe('closestRowForOffset', () => {
     );
   });
 
-  it('never moves up as the offset grows when no measured row is taller than the fallback', () => {
+  it('never moves up as the offset grows', () => {
     fc.assert(
       fc.property(
         arbHeights,
-        arbCoarseStep,
+        arbStep,
         fc.array(fc.integer({ min: -100, max: 3000 }), { minLength: 2, maxLength: 10 }),
         (heights, step, offsets) => {
           const rows = [...offsets]
@@ -69,13 +68,10 @@ describe('closestRowForOffset', () => {
     expect(closestRowForOffset(500, [10, 10], -4)).toBe(0);
   });
 
-  it.fails(
-    'never moves up past the last measured row when that row is taller than the fallback',
-    () => {
-      expect(closestRowForOffset(3, [6], 1)).toBe(0);
-      expect(closestRowForOffset(4, [6], 1)).toBeGreaterThanOrEqual(0);
-    },
-  );
+  it('never moves up past the last measured row when that row is taller than the fallback', () => {
+    expect(closestRowForOffset(3, [6], 1)).toBe(0);
+    expect(closestRowForOffset(4, [6], 1)).toBe(1);
+  });
 
   it('uses the fallback step for holes in the measured rows', () => {
     // eslint-disable-next-line no-sparse-arrays
@@ -88,7 +84,7 @@ describe('snapSectionRows', () => {
     fc.assert(
       fc.property(
         arbHeights,
-        arbCoarseStep,
+        arbStep,
         fc.integer({ min: 1, max: 12 }),
         fc.integer({ min: 1, max: 4 }),
         fc.integer({ min: -1500, max: 1500 }),
@@ -108,8 +104,9 @@ describe('snapSectionRows', () => {
     );
   });
 
-  it.fails('keeps more rows when the bottom edge is dragged up less far', () => {
+  it('keeps more rows when the bottom edge is dragged up less far', () => {
     const rows = (dy: number) => snapSectionRows(3, dy, [10, 10, 100], 5, 1);
-    expect(rows(-20)).toBeGreaterThanOrEqual(rows(-60));
+    expect(rows(-20)).toBe(3);
+    expect(rows(-60)).toBe(2);
   });
 });
