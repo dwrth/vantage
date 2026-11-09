@@ -1,4 +1,4 @@
-import { createElement, useId, useMemo } from 'react';
+import { createElement, useId, useMemo, type ReactNode } from 'react';
 import {
   getBreakpointWidths,
   getEnabledBreakpoints,
@@ -46,6 +46,11 @@ export type VantagePreviewProps = {
    * rendered on any breakpoint, and grid rows only they occupied collapse.
    */
   isItemVisible?: (item: GridItem) => boolean;
+  /**
+   * Shown when the layout has no sections. Omit for the default "Nothing to preview yet."
+   * hint; `null` or `false` renders nothing (e.g. on a published page).
+   */
+  emptyState?: ReactNode;
 };
 
 const SECTION_VARS = [
@@ -425,6 +430,7 @@ export function VantagePreview({
   className,
   breakpoint: breakpointProp,
   isItemVisible,
+  emptyState,
 }: VantagePreviewProps) {
   const components = useMemo(() => resolveRegistry(componentsProp), [componentsProp]);
   const enabledBreakpoints = useMemo(() => getEnabledBreakpoints(value), [value]);
@@ -459,9 +465,13 @@ export function VantagePreview({
           <p>No components registered.</p>
         </div>
       ) : value.sections.length === 0 ? (
-        <div className={preview['preview-empty']}>
-          <p>Nothing to preview yet.</p>
-        </div>
+        emptyState === undefined ? (
+          <div className={preview['preview-empty']}>
+            <p>Nothing to preview yet.</p>
+          </div>
+        ) : emptyState === null || emptyState === false ? null : (
+          <div className={preview['preview-empty']}>{emptyState}</div>
+        )
       ) : (
         value.sections.map((section) => (
           <PreviewSection

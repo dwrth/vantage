@@ -55,6 +55,9 @@ All sections share one drag context. Dragging a block within its section snaps i
 | `breakpoint`    | no       | Force a specific breakpoint. Omit to auto-detect from the container width. |
 | `className`     | no       | Extra class on the root.                                                   |
 | `isItemVisible` | no       | `(item) => boolean` render-time filter, e.g. per-viewer access rules.      |
+| `emptyState`    | no       | Shown when the layout has no sections. `null` / `false` renders nothing.   |
+
+`emptyState` replaces the default "Nothing to preview yet." hint for a layout without sections. Omit it to keep that hint; pass a node (e.g. a localized string) to show it in the same muted box instead; pass `null` or `false` on published pages so visitors see an empty root and no placeholder element. Sections without items are not empty layouts and never show the hint. The "No components registered." message for an empty registry is a setup error and is not affected.
 
 Items filtered out by `isItemVisible` render on no breakpoint, and grid rows that only they occupied collapse so content below moves up. Rows still holding a visible item (or left empty on purpose) keep their height. Items hidden on a breakpoint (`item.hidden` on desktop, `overrides[bp].items[id].hidden` elsewhere) keep their slot as before; see [breakpoints](./breakpoints.md#hiding-items).
 
