@@ -11,10 +11,10 @@ describe('withDefaults', () => {
   it('lets host labels win and keeps defaults for undefined entries', () => {
     const merged = withDefaults(DEFAULT_BLOCK_LABELS, {
       roleDescription: 'Baustein',
-      moveBelow: undefined,
+      instructions: undefined,
     });
     expect(merged.roleDescription).toBe('Baustein');
-    expect(merged.moveBelow).toBe('Move below');
+    expect(merged.instructions).toBe(DEFAULT_BLOCK_LABELS.instructions);
   });
 });
 

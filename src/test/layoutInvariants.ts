@@ -22,30 +22,22 @@ export function rectsShareCell(a: PlacedRect, b: PlacedRect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-export function overlappingPairs(
-  section: Section,
-  breakpoint: Breakpoint,
-  enabled: Breakpoint[],
-): [string, string][] {
-  const rects = visibleRects(section, breakpoint, enabled);
-  const pairs: [string, string][] = [];
-  rects.forEach((a, i) => {
-    for (const b of rects.slice(i + 1)) if (rectsShareCell(a, b)) pairs.push([a.id, b.id]);
+/**
+ * `section:new+old` for every block that `after` put into a free-grid section (new, or moved in)
+ * on desktop cells of a block that was already there.
+ */
+export function blocksPlacedOnContent(before: Layout, after: Layout): string[] {
+  const enabled = getEnabledBreakpoints(after);
+  return after.sections.flatMap((section) => {
+    if (section.arrangement) return [];
+    const was = new Set(before.sections.find((s) => s.id === section.id)?.items.map((i) => i.id));
+    const rects = visibleRects(section, 'desktop', enabled);
+    const added = rects.filter((rect) => !was.has(rect.id));
+    const kept = rects.filter((rect) => was.has(rect.id));
+    return added.flatMap((a) =>
+      kept.filter((k) => rectsShareCell(a, k)).map((k) => `${section.id}:${a.id}+${k.id}`),
+    );
   });
-  return pairs;
-}
-
-/** `section:breakpoint:a+b` for every overlapping pair in a free-grid section. */
-export function overlapViolations(layout: Layout, breakpoints?: Breakpoint[]): string[] {
-  const enabled = getEnabledBreakpoints(layout);
-  const checked = breakpoints ?? enabled;
-  return layout.sections.flatMap((section) =>
-    section.arrangement
-      ? []
-      : checked.flatMap((bp) =>
-          overlappingPairs(section, bp, enabled).map(([a, b]) => `${section.id}:${bp}:${a}+${b}`),
-        ),
-  );
 }
 
 /** Stored desktop placements of free-grid blocks that leave the column grid. */

@@ -5,7 +5,6 @@ export type {
   ItemEditButtonRenderProps,
   ItemDragHandleRenderProps,
   ItemDeleteButtonRenderProps,
-  ItemOverlapWarningRenderProps,
   SectionChromeRenderProps,
   SectionHeaderRenderProps,
   SectionHeaderPlacement,
@@ -114,8 +113,6 @@ export {
   setItemHidden,
   setItemFullBleed,
   setItemVerticalAlign,
-  setItemAllowOverlap,
-  moveItemBelowOverlaps,
   bringItemForward,
   sendItemBackward,
   bringItemToFront,
@@ -240,9 +237,6 @@ export type {
   GuideRect,
 } from './lib/guides';
 
-export { findOverlaps, overlappingItems, rowBelowOverlaps } from './lib/overlap';
-export type { ItemOverlap } from './lib/overlap';
-
 export { resolveSelectedItem } from './lib/inspector';
 export type { ResolvedSelection } from './lib/inspector';
 
@@ -272,7 +266,6 @@ export {
   getFlexRowHeight,
   getContentMaxWidth,
   pxToCell,
-  overlaps,
   pointerHitsItem,
   itemsAtPointer,
   resizeByHandle,

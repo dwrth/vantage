@@ -18,7 +18,6 @@ import {
   importLayout,
   insertSection,
   moveItem,
-  moveItemBelowOverlaps,
   moveItemToIndex,
   moveItemToSection,
   moveSection,
@@ -33,7 +32,6 @@ import {
   sendItemToBack,
   setBreakpointPreviewWidth,
   setBreakpointWidth,
-  setItemAllowOverlap,
   setItemFullBleed,
   setItemHidden,
   setItemVerticalAlign,
@@ -73,9 +71,7 @@ export const LAYOUT_OP_NAMES = [
   'clearItemOverride',
   'setItemHidden',
   'setItemFullBleed',
-  'setItemAllowOverlap',
   'setItemVerticalAlign',
-  'moveItemBelowOverlaps',
   'addItem',
   'moveItem',
   'moveItemToSection',
@@ -111,7 +107,6 @@ export const GRID_ONLY_OPS: ReadonlySet<LayoutOpName> = new Set([
   'resizeSection',
   'moveItems',
   'alignItems',
-  'moveItemBelowOverlaps',
 ]);
 
 /** Section ids an op may change; `all` for whole-layout ops. Other sections keep their reference. */
@@ -258,13 +253,6 @@ export function applyLayoutOp(layout: Layout, op: LayoutOp): AppliedOp {
       return section && item
         ? { layout: setItemFullBleed(layout, section.id, item.id, op.flag), touched: only(section) }
         : skip;
-    case 'setItemAllowOverlap':
-      return section && item
-        ? {
-            layout: setItemAllowOverlap(layout, section.id, item.id, op.flag),
-            touched: only(section),
-          }
-        : skip;
     case 'setItemVerticalAlign':
       return section && item
         ? {
@@ -277,10 +265,6 @@ export function applyLayoutOp(layout: Layout, op: LayoutOp): AppliedOp {
             ),
             touched: only(section),
           }
-        : skip;
-    case 'moveItemBelowOverlaps':
-      return section && item
-        ? { layout: moveItemBelowOverlaps(layout, section.id, item.id, bp), touched: only(section) }
         : skip;
     case 'addItem': {
       if (!section) return skip;

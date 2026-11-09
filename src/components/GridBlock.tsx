@@ -69,8 +69,6 @@ type GridBlockProps = {
   groupOffset?: { dx: number; dy: number };
   /** Content minimum on this grid; resizes do not shrink the block below it. */
   minSize?: GridMinSize;
-  /** Ids of blocks this one overlaps unintentionally; shows the overlap warning. */
-  overlapsWith?: string[];
 };
 
 type ResizeStart = PlacementRect & { pointerX: number; pointerY: number; edge: ResizeEdge };
@@ -90,7 +88,6 @@ export function GridBlock({
   verticalAlign,
   onDraftRect,
   minSize,
-  overlapsWith,
   moveRange,
   groupOffset,
 }: GridBlockProps) {
@@ -112,10 +109,8 @@ export function GridBlock({
     defaultLabels,
     blockInstructionsId,
     minSizesRef,
-    renderOverlapWarning,
   } = useBuilderContext();
-  const { resizeItem, removeItem, moveItemBelowOverlaps, setItemAllowOverlap } =
-    useBuilderActions();
+  const { resizeItem, removeItem } = useBuilderActions();
   const minW = minSize?.w ?? 1;
   const minH = minSize?.h ?? 1;
   // The keyboard layer resizes the selected block through the same minimum.
@@ -384,7 +379,7 @@ export function GridBlock({
     (ref) => ref.sectionId === sectionId && ref.itemId === item.id,
   );
   const grouped = isSelected && selectedItems.length > 1;
-  // Content editing (edit renderer, overlap fixes) needs a single selection.
+  // Content editing (edit renderer) needs a single selection.
   const soleSelected = isSelected && !grouped;
   const usePlaceholder = Boolean(descriptor?.editPlaceholder) && !soleSelected;
 
@@ -453,17 +448,6 @@ export function GridBlock({
   );
 
   const blockKey = `${sectionId}:${item.id}`;
-  const overlapping = overlapsWith !== undefined && overlapsWith.length > 0;
-  const overlapCtx = overlapping
-    ? {
-        sectionId,
-        item,
-        isSelected,
-        overlapsWith,
-        moveBelow: () => moveItemBelowOverlaps(sectionId, item.id, breakpoint),
-        allowOverlap: () => setItemAllowOverlap(sectionId, item.id, true),
-      }
-    : null;
   const blockName = blockLabels.block(item);
   // The block itself is the keyboard drag surface; the handle stays a pointer-only control.
   const handleAttributes = { ...attributes, tabIndex: -1 };
@@ -481,7 +465,6 @@ export function GridBlock({
           .filter(Boolean)
           .join(' ')}
         style={bodyStyle}
-        data-vantage-overlap={overlapping ? '' : undefined}
         data-vantage-selected={isSelected ? '' : undefined}
         role="group"
         tabIndex={0}
@@ -504,7 +487,6 @@ export function GridBlock({
           grouped ? chrome['grid-block__chrome--grouped'] : '',
           isResizing ? chrome['grid-block__chrome--resizing'] : '',
           restricted ? chrome['grid-block__chrome--restricted'] : '',
-          overlapping ? chrome['grid-block__chrome--overlap'] : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -512,48 +494,6 @@ export function GridBlock({
         data-vantage-block={blockKey}
         onFocus={onFocus}
       >
-        {overlapCtx ? (
-          <div className={chrome['grid-block__overlap']} onPointerDown={(e) => e.stopPropagation()}>
-            {renderOverlapWarning ? (
-              renderOverlapWarning(overlapCtx)
-            ) : (
-              <>
-                <span
-                  className={chrome['grid-block__overlap-badge']}
-                  role="img"
-                  aria-label={blockLabels.overlapWarning(item)}
-                  title={blockLabels.overlapWarning(item)}
-                >
-                  !
-                </span>
-                {soleSelected ? (
-                  <>
-                    <button
-                      type="button"
-                      className={chrome['grid-block__overlap-action']}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        overlapCtx.moveBelow();
-                      }}
-                    >
-                      {blockLabels.moveBelow}
-                    </button>
-                    <button
-                      type="button"
-                      className={chrome['grid-block__overlap-action']}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        overlapCtx.allowOverlap();
-                      }}
-                    >
-                      {blockLabels.keepOverlap}
-                    </button>
-                  </>
-                ) : null}
-              </>
-            )}
-          </div>
-        ) : null}
         {renderDragHandle ? (
           <div
             className={[

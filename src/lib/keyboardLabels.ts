@@ -13,12 +13,6 @@ export type BlockLabels = {
   dragHandle: (item: GridItem) => string;
   /** Default delete button (when no `renderDeleteButton`). */
   deleteButton: (item: GridItem) => string;
-  /** Built-in overlap warning of a block that overlaps others (when no `renderOverlapWarning`). */
-  overlapWarning: (item: GridItem) => string;
-  /** Built-in overlap warning: button that moves the block below the blocks it overlaps. */
-  moveBelow: string;
-  /** Built-in overlap warning: button that keeps the overlap as intended layering. */
-  keepOverlap: string;
   /**
    * Group toolbar of a multi-selection: its accessible name and visible count. The group
    * labels are optional so that existing full `BlockLabels` objects stay valid; defaults apply.
@@ -86,9 +80,6 @@ export const DEFAULT_BLOCK_LABELS: Required<BlockLabels> = {
     'Arrow keys move the block, Shift and arrow keys resize it. Delete removes it, Escape deselects it. Ctrl or Cmd with Shift and up or down arrow changes the layer. Shift-click adds blocks to the selection.',
   dragHandle: (item) => `Drag ${nameOf(item)}`,
   deleteButton: (item) => `Delete ${nameOf(item)}`,
-  overlapWarning: (item) => `${nameOf(item)} overlaps another block`,
-  moveBelow: 'Move below',
-  keepOverlap: 'Keep overlap',
   groupToolbar: (count) => `${count} blocks selected`,
   align: (alignment) => ALIGN_LABELS[alignment],
   deleteSelection: (count) => `Delete ${count} blocks`,

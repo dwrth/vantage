@@ -140,10 +140,6 @@ export function resizeByHandle(
   return clampItem({ x, y, w, h }, columns, rows);
 }
 
-export function overlaps(a: PlacementRect, b: PlacementRect): boolean {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
 export function getCellWidth(
   containerWidth: number,
   columns: number,

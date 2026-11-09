@@ -273,27 +273,7 @@ describe('useBuilderActions items', () => {
   });
 });
 
-describe('useBuilderActions overlap and layering', () => {
-  const overlapping: Layout = {
-    ...layout,
-    sections: [
-      { ...layout.sections[0]!, items: [item('a', 0, 0), item('b', 1, 1), item('c', 8, 0)] },
-    ],
-  };
-
-  it('moveItemBelowOverlaps moves the block under what it overlaps', () => {
-    const { actions, find } = setup({}, overlapping);
-    actions().moveItemBelowOverlaps('s', 'b');
-    expect(find('b').y).toBe(2);
-  });
-
-  it('setItemAllowOverlap sets the flag', () => {
-    const { actions, find, onChange } = setup({}, overlapping);
-    actions().setItemAllowOverlap('s', 'b', true);
-    expect(find('b').allowOverlap).toBe(true);
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
-
+describe('useBuilderActions layering', () => {
   it('reorders the stacking order, each call starting from the same layout', () => {
     const { actions, items } = setup();
     const ids = () => items().map((i) => i.id);

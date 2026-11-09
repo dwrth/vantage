@@ -197,9 +197,6 @@ describe('single selection stays unchanged', () => {
       instructions: 'Hilfe',
       dragHandle: () => 'Ziehen',
       deleteButton: () => 'Entfernen',
-      overlapWarning: () => 'Überlappung',
-      moveBelow: 'Darunter',
-      keepOverlap: 'Behalten',
     };
     const announcements: BlockAnnouncements = {
       moved: () => 'verschoben',

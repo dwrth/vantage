@@ -11,7 +11,6 @@ import {
   getGridContentWidth,
   itemsAtPointer,
   nextSlot,
-  overlaps,
   pointerHitsItem,
   pxToCell,
   resizeByHandle,
@@ -118,14 +117,7 @@ describe('resizeByHandle', () => {
   });
 });
 
-describe('overlaps / nextSlot', () => {
-  it('detects shared cells but not touching edges', () => {
-    const a = item('a', 0, 0, 2, 2);
-    expect(overlaps(a, item('b', 1, 1, 2, 2))).toBe(true);
-    expect(overlaps(a, item('c', 2, 0, 2, 2))).toBe(false);
-    expect(overlaps(a, item('d', 0, 2, 2, 2))).toBe(false);
-  });
-
+describe('nextSlot', () => {
   it('places the next item below the lowest bottom edge', () => {
     expect(nextSlot([])).toEqual({ x: 0, y: 0 });
     expect(nextSlot([item('a', 4, 0, 2, 3), item('b', 0, 1, 2, 1)])).toEqual({ x: 0, y: 3 });

@@ -20,7 +20,7 @@ const item = (id: string, x: number, y: number, w = 4, h = 2): GridItem => ({
   h,
 });
 
-// B overlaps A; C sits apart, right below where B would land first.
+// B overlaps A; C sits apart.
 const initial: Layout = {
   breakpoints: ['desktop'],
   breakpointWidths: {},
@@ -77,55 +77,23 @@ const pos = (id: string) => {
   const { x, y, w, h } = host.layout.sections[0]!.items.find((i) => i.id === id)!;
   return { x, y, w, h };
 };
-const marked = () =>
-  Array.from(document.querySelectorAll('[role="group"][data-vantage-overlap]')).map((el) =>
-    el.getAttribute('aria-label'),
-  );
-
-describe('overlap warning', () => {
-  it('marks only the overlapping blocks', () => {
+describe('overlapping blocks', () => {
+  it('render without warnings or repair actions', () => {
     render(<Host />);
-    expect(marked()).toEqual(['A', 'B']);
-    expect(screen.getAllByRole('img', { name: /overlaps another block/ })).toHaveLength(2);
+    expect(document.querySelector('[data-vantage-overlap]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /below|overlap/i })).toBeNull();
   });
 
-  it('moves the selected block below in one undo step and grows the section', () => {
+  it('move and resize onto each other freely', () => {
     render(<Host />);
-    act(() => screen.getByRole('group', { name: 'B' }).focus());
-    fireEvent.click(screen.getByRole('button', { name: 'Move below' }));
-    expect(pos('b')).toEqual({ x: 4, y: 4, w: 4, h: 2 });
-    expect(host.layout.sections[0]!.rows).toBe(6);
-    expect(marked()).toEqual([]);
-    fireEvent.keyDown(document.body, { key: 'z', metaKey: true });
+    act(() => screen.getByRole('group', { name: 'C' }).focus());
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' });
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' });
+    expect(pos('c')).toEqual({ x: 5, y: 2, w: 4, h: 1 });
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown', shiftKey: true });
+    expect(pos('c')).toEqual({ x: 5, y: 2, w: 4, h: 2 });
+    expect(pos('a')).toEqual({ x: 0, y: 0, w: 6, h: 3 });
     expect(pos('b')).toEqual({ x: 4, y: 1, w: 4, h: 2 });
-    expect(host.layout.sections[0]!.rows).toBe(4);
-  });
-
-  it('keeps an intended overlap without a warning', () => {
-    render(<Host />);
-    act(() => screen.getByRole('group', { name: 'B' }).focus());
-    fireEvent.click(screen.getByRole('button', { name: 'Keep overlap' }));
-    expect(host.layout.sections[0]!.items[1]!.allowOverlap).toBe(true);
-    expect(pos('b')).toEqual({ x: 4, y: 1, w: 4, h: 2 });
-    expect(marked()).toEqual([]);
-  });
-
-  it('can be turned off or replaced by the host', () => {
-    const { unmount } = render(<Host showOverlapWarnings={false} />);
-    expect(marked()).toEqual([]);
-    unmount();
-    render(
-      <Host
-        renderOverlapWarning={(ctx) => (
-          <button type="button" onClick={ctx.moveBelow}>
-            Unterhalb verschieben {ctx.overlapsWith.join(',')}
-          </button>
-        )}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Unterhalb verschieben b' }));
-    // A moves below B: A's bottom-free rows start at B's bottom.
-    expect(pos('a')).toMatchObject({ y: 3 });
   });
 });
 

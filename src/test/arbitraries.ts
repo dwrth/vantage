@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { ARRANGEMENT_ALIGNS, ARRANGEMENT_PRESET_IDS } from '../lib/arrangement';
-import { overlaps, type PlacementRect } from '../lib/grid';
+import type { PlacementRect } from '../lib/grid';
 import {
   ITEM_VERTICAL_ALIGNS,
   NON_DESKTOP_BREAKPOINTS,
@@ -61,21 +61,6 @@ export function arbRect(columns: number, maxSize = 4, maxY = 8): fc.Arbitrary<Ra
       y: fc.nat({ max: maxY }),
     })
     .map(({ w, h, x, y }) => ({ x: Math.min(x, columns - w), y, w, h }));
-}
-
-/** Push each rect down (in order) until it shares no cell with the rects placed before it. */
-export function packRects(rects: RawRect[]): RawRect[] {
-  const placed: RawRect[] = [];
-  for (const rect of rects) {
-    let candidate = rect;
-    for (;;) {
-      const blockers = placed.filter((other) => overlaps(other, candidate));
-      if (blockers.length === 0) break;
-      candidate = { ...candidate, y: Math.max(...blockers.map((b) => b.y + b.h)) };
-    }
-    placed.push(candidate);
-  }
-  return placed;
 }
 
 type ItemShape = {
@@ -157,9 +142,9 @@ export type FreeGridSectionOptions = {
 };
 
 /**
- * A free-grid section whose visible and hidden blocks share no cell on any breakpoint: desktop
- * placements are packed, and each enabled non-desktop breakpoint either inherits them (same
- * column count) or gives every block an explicit packed placement. Item ids are `${id}-i${n}`.
+ * A free-grid section whose blocks may overlap on any breakpoint. Each enabled non-desktop
+ * breakpoint either inherits the desktop placements (same column count) or gives every block an
+ * explicit placement. Item ids are `${id}-i${n}`.
  */
 export function arbFreeGridSection({
   id,
@@ -190,16 +175,8 @@ export function arbFreeGridSection({
         ),
       })
       .map(({ label, gaps, shapes, extraRows, perBreakpoint }) => {
-        const packed = packRects(
-          shapes.map((shape) => fullWidth(shape.rect, columns, shape.fullBleed)),
-        );
-        const items = shapes.map((shape, index) =>
-          toItem(`${id}-i${index}`, shape, {
-            ...packed[index]!,
-            ...(shape.fullBleed ? { x: shape.rect.x, w: shape.rect.w } : {}),
-          }),
-        );
-        const desktopBottom = Math.max(0, ...packed.map((r) => r.y + r.h));
+        const items = shapes.map((shape, index) => toItem(`${id}-i${index}`, shape, shape.rect));
+        const desktopBottom = Math.max(0, ...items.map((r) => r.y + r.h));
         const section: Section = { id, columns, colGap: 8, rowGap: 8, ...gaps, items };
         if (label !== undefined) section.label = label;
         if (extraRows !== undefined) section.rows = Math.max(1, desktopBottom + extraRows);
@@ -212,15 +189,13 @@ export function arbFreeGridSection({
           const override: SectionOverride = { ...config.gaps };
           if (bpColumns !== columns) override.columns = bpColumns;
           const bpRects = config.explicit
-            ? packRects(
-                items.map((item, index) => {
-                  const raw = config.rects[index]!;
-                  const w = Math.min(raw.w, bpColumns);
-                  const rect = { ...raw, w, x: Math.min(raw.x, bpColumns - w) };
-                  return fullWidth(rect, bpColumns, item.fullBleed);
-                }),
-              )
-            : packed;
+            ? items.map((item, index) => {
+                const raw = config.rects[index]!;
+                const w = Math.min(raw.w, bpColumns);
+                const rect = { ...raw, w, x: Math.min(raw.x, bpColumns - w) };
+                return fullWidth(rect, bpColumns, item.fullBleed);
+              })
+            : items;
           const itemOverrides: Record<string, ItemOverride> = {};
           items.forEach((item, index) => {
             const shape = config.items[index]!;
@@ -340,8 +315,7 @@ export function arbSectionKind(arrangementShare: number): fc.Arbitrary<'grid' | 
 
 /**
  * A layout that `validateLayout` accepts, with unique section ids `s${n}` and item ids
- * `s${n}-i${m}`. Free-grid sections are overlap-free on every breakpoint (see
- * `arbFreeGridSection`).
+ * `s${n}-i${m}`. Blocks of free-grid sections may overlap (see `arbFreeGridSection`).
  */
 export function arbLayout({
   minSections = 1,

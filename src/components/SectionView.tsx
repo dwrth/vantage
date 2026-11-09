@@ -16,7 +16,6 @@ import {
   itemsAtPointer,
   resolveMinSize,
 } from '../lib/grid';
-import { overlappingItems } from '../lib/overlap';
 import { trackPointerDrag } from '../lib/pointerDrag';
 import { marqueeHits, mergeSelection, rectFromPoints, sameSelection } from '../lib/selection';
 import { groupBounds, groupMoveRange } from '../mutations/group';
@@ -112,7 +111,6 @@ export function SectionView({ section }: SectionViewProps) {
     defaultLabels,
     showSectionActions,
     getItemMinSize,
-    showOverlapWarnings,
   } = useBuilderContext();
   const { registerSection, dropTarget, dragSourceSectionId } = useCanvasDnd();
   const { moveItem, moveItems, resizeSection } = useBuilderActions();
@@ -151,15 +149,6 @@ export function SectionView({ section }: SectionViewProps) {
         })),
       ).filter(({ placement }) => !placement.hidden),
     [items, section, activeBreakpoint, enabledBreakpoints, resolveEntity],
-  );
-
-  // Unintended overlaps at this breakpoint, by block id.
-  const overlaps = useMemo(
-    () =>
-      showOverlapWarnings
-        ? overlappingItems(section, activeBreakpoint, enabledBreakpoints)
-        : new Map<string, string[]>(),
-    [showOverlapWarnings, section, activeBreakpoint, enabledBreakpoints],
   );
 
   const rows = useMemo(
@@ -667,7 +656,6 @@ export function SectionView({ section }: SectionViewProps) {
                   cellHeight,
                   rowGap,
                 })}
-                overlapsWith={overlaps.get(item.id)}
                 moveRange={groupIds?.includes(item.id) ? (groupRange ?? undefined) : undefined}
                 groupOffset={
                   groupDrag && groupDrag.draggedId !== item.id && groupIds?.includes(item.id)
