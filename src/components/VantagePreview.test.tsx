@@ -219,6 +219,36 @@ describe('VantagePreview empty states', () => {
     );
     expect(html).toContain('Nothing to preview yet.');
   });
+
+  const empty = { breakpoints: ['desktop'], sections: [] } as unknown as Layout;
+
+  it.each([null, false])('renders no placeholder when emptyState is %s', (emptyState) => {
+    const html = renderToStaticMarkup(
+      <VantagePreview value={empty} components={components} emptyState={emptyState} />,
+    );
+    expect(html).not.toContain('Nothing to preview yet.');
+    expect(html).not.toContain('preview-empty');
+  });
+
+  it('renders a custom emptyState in place of the default text', () => {
+    const html = renderToStaticMarkup(
+      <VantagePreview value={empty} components={components} emptyState={<b>Leer</b>} />,
+    );
+    expect(html).toContain('<b>Leer</b>');
+    expect(html).not.toContain('Nothing to preview yet.');
+  });
+
+  it('ignores emptyState when the layout has sections', () => {
+    const layout = {
+      breakpoints: ['desktop'],
+      sections: [{ id: 's', columns: 12, colGap: 8, rowGap: 8, rows: 1, items: [] }],
+    } as unknown as Layout;
+    const html = renderToStaticMarkup(
+      <VantagePreview value={layout} components={components} emptyState={<b>Leer</b>} />,
+    );
+    expect(html).not.toContain('Leer');
+    expect(html).not.toContain('preview-empty');
+  });
 });
 
 describe('VantagePreview unknown kinds', () => {

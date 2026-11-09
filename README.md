@@ -80,6 +80,8 @@ function App() {
 
 Breakpoints, overrides, layers, persistence — all opt-in. Default: single-section desktop builder via `createEmptyLayout()`.
 
+On published pages pass `emptyState={null}` to `VantagePreview` so a layout without sections renders nothing instead of the "Nothing to preview yet." hint, or pass a localized node to replace the text ([details](docs/components.md#vantagepreview)).
+
 ## Docs
 
 | Topic                                      |                                                      |
