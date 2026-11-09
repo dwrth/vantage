@@ -39,12 +39,34 @@
   inset: 0;
 }
 
-.insertion-line {
-  position: absolute;
-  z-index: 4;
-  border-radius: 2px;
-  background: #2563eb;
+/*
+ * Drop slot: a placeholder cell on the columns the dropped block takes. Inactive slots (where a
+ * drop can go) are faint; the active one (under the pointer) is the drop color.
+ */
+.slot {
+  --slot-color: var(--vantage-slot-color, var(--vantage-drop-color, #2563eb));
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 3rem;
   pointer-events: none;
+  border: 1px dashed color-mix(in srgb, var(--slot-color) 40%, transparent);
+  border-radius: var(--vantage-slot-radius, 6px);
+  background: color-mix(in srgb, var(--slot-color) 4%, transparent);
+}
+
+.slot--active {
+  border: 2px solid var(--slot-color);
+  background: color-mix(in srgb, var(--slot-color) 14%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slot {
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
 }
 
 .empty {

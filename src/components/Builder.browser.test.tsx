@@ -403,4 +403,80 @@ describe('arrangement section', () => {
     expect(d.top - a.top).toBe(b.height + GAP);
     expect(rectOf(gridEl('f')).height).toBe(d.bottom - a.top);
   });
+
+  it('previews the drop in a slot while hovering and drops where the slot was', async () => {
+    const flow = section(
+      'f',
+      ['a', 'b', 'c', 'd'].map((id) => block(id, 0, 0, 1, 1, 60)),
+      { arrangement: { preset: 'three' }, colGap: 16, rowGap: 16 },
+    );
+    const { last } = mount(layoutOf(flow));
+    await expect.poll(() => cells('f')).toHaveLength(4);
+    const cellEl = (id: string) =>
+      gridEl('f').querySelector<HTMLElement>(`[data-vantage-arrangement-cell="${id}"]`)!;
+    const slotEl = () => gridEl('f').querySelector<HTMLElement>('[data-vantage-drop-slot]');
+    const [a, b, c] = ['a', 'b', 'c'].map((id) => rectOf(cellEl(id)));
+    expect(slotEl()).toBeNull();
+
+    // Drag d (second row) by its handle over the left part of a.
+    const from = center(handleOf('f', 'd', '[data-vantage-drag-handle]'));
+    await userEvent.pointer([
+      { coords: from },
+      { keys: '[MouseLeft>]' },
+      { coords: { x: from.x + 6, y: from.y + 6 } },
+      { coords: { x: a!.left + 10, y: a!.top + 20 } },
+    ]);
+    await expect.poll(() => slotEl()?.getAttribute('data-vantage-drop-slot')).toBe('active');
+    const slot = rectOf(slotEl()!);
+    expect(slot.left).toBe(a!.left);
+    expect(slot.top).toBe(a!.top);
+    expect(slot.width).toBeCloseTo(a!.width, 0);
+    // a and b move one slot right, c wraps to the second row; nothing is written yet.
+    expect(rectOf(cellEl('a')).left).toBe(b!.left);
+    expect(rectOf(cellEl('b')).left).toBe(c!.left);
+    expect(rectOf(cellEl('c')).left).toBe(a!.left);
+    expect(rectOf(cellEl('c')).top).toBeGreaterThan(a!.bottom);
+    expect(last()).toBeUndefined();
+
+    await userEvent.pointer({ keys: '[/MouseLeft]' });
+    expect(last()?.sections[0]!.items.map((item) => item.id)).toEqual(['d', 'a', 'b', 'c']);
+    await expect.poll(() => slotEl()).toBeNull();
+    expect(rectOf(cellEl('d')).left).toBe(a!.left);
+    expect(rectOf(cellEl('d')).top).toBe(a!.top);
+  });
+
+  it('removes the preview without a change when the drag leaves for another section', async () => {
+    const flow = section(
+      'f',
+      ['a', 'b'].map((id) => block(id, 0, 0, 1, 1, 60)),
+      { arrangement: { preset: 'three' } },
+    );
+    const { last } = mount(layoutOf(flow, section('g', [])));
+    await expect.poll(() => cells('f')).toHaveLength(2);
+    const before = cells('f');
+    const from = center(handleOf('f', 'b', '[data-vantage-drag-handle]'));
+    await userEvent.pointer([
+      { coords: from },
+      { keys: '[MouseLeft>]' },
+      { coords: { x: from.x + 6, y: from.y + 6 } },
+      { coords: { x: before[0]!.left + 10, y: before[0]!.top + 10 } },
+    ]);
+    await expect
+      .poll(() => gridEl('f').querySelector('[data-vantage-drop-slot="active"]'))
+      .not.toBeNull();
+    const below = rectOf(gridEl('g'));
+    await userEvent.pointer({ coords: { x: below.left + 50, y: below.top + 50 } });
+    await expect
+      .poll(() =>
+        gridEl('f')
+          .querySelector('[data-vantage-drop-slot]')
+          ?.getAttribute('data-vantage-drop-slot'),
+      )
+      .toBe('inactive');
+    expect(cells('f')[0]!.left).toBe(before[0]!.left);
+    await userEvent.keyboard('{Escape}');
+    await userEvent.pointer({ keys: '[/MouseLeft]' });
+    expect(last()).toBeUndefined();
+    await expect.poll(() => gridEl('f').querySelector('[data-vantage-drop-slot]')).toBeNull();
+  });
 });

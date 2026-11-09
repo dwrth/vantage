@@ -192,6 +192,13 @@ export {
   isArrangementSection,
 } from './lib/arrangement';
 export type { ArrangementSlot, ArrangementTrack } from './lib/arrangement';
+export {
+  DROP_PREVIEW_ID,
+  arrangementDropLayout,
+  arrangementDropPreview,
+  trailingSlot,
+} from './lib/arrangementPreview';
+export type { ArrangementDropPreview, DropSource } from './lib/arrangementPreview';
 export { isValidLayout, validateLayout } from './lib/validate';
 export type { LayoutValidationResult } from './lib/validate';
 

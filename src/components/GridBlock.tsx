@@ -2,7 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { createElement, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
-import { useCanvasDnd } from '../context/CanvasDndContext';
+import { DRAG_SHIFT, useCanvasDnd } from '../context/CanvasDndContext';
 import {
   getCellXStep,
   pxToCell,
@@ -248,6 +248,7 @@ export function GridBlock({
   };
 
   const dragTransform = transform ? `translate3d(${snappedX}px, ${snappedY}px, 0)` : undefined;
+  const dragShift = isDragging ? DRAG_SHIFT : undefined;
 
   const stackStyle = { '--vantage-z': zIndex } as React.CSSProperties;
 
@@ -255,12 +256,14 @@ export function GridBlock({
     ...gridPlacement,
     ...stackStyle,
     transform: dragTransform,
+    translate: dragShift,
   };
 
   const chromeStyle: React.CSSProperties = {
     ...gridPlacement,
     ...stackStyle,
     transform: dragTransform,
+    translate: dragShift,
   };
 
   const onResizePointerDown = useCallback(

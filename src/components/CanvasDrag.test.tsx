@@ -257,3 +257,91 @@ describe('dragging a new block from a palette (external drop)', () => {
     expect(ghost()).toEqual({ section: 'c', x: 0, y: 0 });
   });
 });
+
+describe('dropping into an arrangement section', () => {
+  const flowLayout: Layout = {
+    ...layout,
+    sections: [
+      layout.sections[0]!,
+      {
+        ...section('b', [
+          { id: 'p', kind: 'block', x: 0, y: 0, w: 1, h: 1 },
+          { id: 'q', kind: 'block', x: 0, y: 0, w: 1, h: 1 },
+        ]),
+        arrangement: { preset: 'three' },
+      },
+      section('c'),
+    ],
+  };
+  const slot = (sectionId: string) =>
+    document
+      .querySelector(`[data-vantage-section="${sectionId}"]`)
+      ?.querySelector<HTMLElement>('[data-vantage-drop-slot]') ?? null;
+
+  it('previews a dragged block in a slot and drops it at that index', () => {
+    const { onChange } = renderBuilder({ value: flowLayout });
+    startDrag();
+    // Every block of b reports an empty rect at the origin: the pointer lands behind the first.
+    moveTo(20, 320);
+    expect(slot('b')?.getAttribute('data-vantage-drop-slot')).toBe('active');
+    expect(slot('b')?.style.gridRow).toBe('1');
+    expect(slot('b')?.style.gridColumn).toBe('6 / span 4');
+    moveTo(22, 322);
+    expect(slot('b')?.style.gridColumn).toBe('6 / span 4');
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.pointerUp(document, pointer(22, 322));
+    const next = onChange.mock.calls.at(-1)?.[0] as Layout;
+    expect(next.sections[1]!.items.map((i) => i.id)).toEqual(['p', 'blk', 'q']);
+    expect(slot('b')).toBeNull();
+  });
+
+  it('shows inactive slots while a block is dragged elsewhere and none after a cancel', () => {
+    renderBuilder({ value: flowLayout });
+    startDrag();
+    moveTo(20, 100);
+    expect(slot('b')?.getAttribute('data-vantage-drop-slot')).toBe('inactive');
+    moveTo(20, 320);
+    expect(slot('b')?.getAttribute('data-vantage-drop-slot')).toBe('active');
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    expect(slot('b')).toBeNull();
+  });
+
+  it('previews a palette item and reports the index on drop', () => {
+    const onExternalDrop = vi.fn();
+    renderBuilder({ value: flowLayout, externalDrag: { w: 2, h: 1 }, onExternalDrop });
+    expect(slot('b')?.getAttribute('data-vantage-drop-slot')).toBe('inactive');
+    const grid = document.querySelector('[data-vantage-section-frame="b"]')!;
+    const over = new Event('dragover', { bubbles: true, cancelable: true });
+    Object.assign(over, { clientX: 96, clientY: 324, dataTransfer: { dropEffect: 'none' } });
+    act(() => {
+      grid.dispatchEvent(over);
+    });
+    expect(slot('b')?.getAttribute('data-vantage-drop-slot')).toBe('active');
+    expect(slot('b')?.style.minHeight).toBe('48px');
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.assign(drop, { clientX: 96, clientY: 324, dataTransfer: { getData: () => '' } });
+    act(() => {
+      grid.dispatchEvent(drop);
+    });
+    expect(onExternalDrop).toHaveBeenCalledWith(
+      expect.objectContaining({ sectionId: 'b', index: 1 }),
+    );
+  });
+});
+
+describe('a dragged block whose section moves', () => {
+  it('cancels the shift of its section while the drag runs', () => {
+    renderBuilder();
+    startDrag();
+    const frame = document.querySelector<HTMLElement>('[data-vantage-section-frame="a"]')!;
+    GRID_TOP.a = 40;
+    try {
+      moveTo(20, 320);
+      expect(frame.style.getPropertyValue('--vantage-drag-shift-y')).toBe('-40px');
+    } finally {
+      GRID_TOP.a = 0;
+    }
+    fireEvent.pointerUp(document, pointer(20, 320));
+    expect(frame.style.getPropertyValue('--vantage-drag-shift-y')).toBe('');
+  });
+});
