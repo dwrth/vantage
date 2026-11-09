@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import builder from '../styles/builder.module.css';
+import { VantageThemeProvider } from '../theme/VantageThemeProvider';
 import type { ComponentRegistry, GridItem, Layout, Section } from '../types';
 import { VantageBuilder, type VantageBuilderProps } from './Builder';
 
@@ -155,6 +156,44 @@ describe('rendered geometry', () => {
     expect(measuredCell('a', 'b1')).toEqual({ x: 1, y: 1, w: 2, h: 1 });
     expect(measuredCell('a', 'b2')).toEqual({ x: 4, y: 0, w: 3, h: 2 });
     expect(rectOf(gridEl('a')).height).toBe(4 * ROW);
+  });
+});
+
+describe('section max width', () => {
+  it('gives a 14-column section narrower cells and rows under the cap, and snaps to them', async () => {
+    const box = 1600;
+    const cell = 1152 / 14;
+    const changes: Layout[] = [];
+    function Host() {
+      const [value, setValue] = useState(
+        layoutOf(section('a', [block('b1', 0, 0, 7, 2)], { columns: 14 })),
+      );
+      return (
+        <div style={{ width: box }}>
+          <VantageThemeProvider tokens={{ '--vantage-section-max-px': '1152px' }}>
+            <VantageBuilder
+              value={value}
+              onChange={(next) => {
+                changes.push(next);
+                setValue(next);
+              }}
+              components={components}
+              showSectionActions={false}
+            />
+          </VantageThemeProvider>
+        </div>
+      );
+    }
+    render(<Host />);
+    await ready('a');
+    const grid = rectOf(gridEl('a'));
+    const b = rectOf(blockEl('a', 'b1')!);
+    expect(b.left - grid.left).toBeCloseTo((box - 1152) / 2, 0);
+    expect(b.width).toBeCloseTo(7 * cell, 0);
+    expect(b.height).toBeCloseTo(2 * (cell / 2), 0);
+    await dragBy(handleOf('a', 'b1', '[data-vantage-drag-handle]'), 3 * cell, cell / 2);
+    await expect.poll(() => changes.length).toBe(1);
+    expect(itemIn(changes.at(-1), 'a', 'b1')).toMatchObject({ x: 3, y: 1, w: 7, h: 2 });
   });
 });
 

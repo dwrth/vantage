@@ -2,7 +2,12 @@ import fc from 'fast-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnabledBreakpoints, resolveItem, resolveSection, sectionRows } from '../lib/breakpoint';
 import { validateLayout } from '../lib/validate';
-import { arbLayout, deepFreeze } from '../test/arbitraries';
+import {
+  arbLayout,
+  arbSectionArrangement,
+  arbSectionColumns,
+  deepFreeze,
+} from '../test/arbitraries';
 import {
   allItemIds,
   arrangementViolations,
@@ -43,6 +48,7 @@ import {
   setItemFullBleed,
   setItemHidden,
   setItemVerticalAlign,
+  insertSection,
 } from './layout';
 import { removeItems } from './group';
 
@@ -607,6 +613,34 @@ describe('layout mutations: inverses and no-ops', () => {
         expect(placementAt(moved, section.id, other.id, bp)).toEqual(target);
         expect(validateLayout(moved).errors).toEqual([]);
       }),
+      RUNS,
+    );
+  });
+});
+
+describe('insertSection: columns', () => {
+  it('gives only the new section the columns asked for, free grid or arrangement', () => {
+    fc.assert(
+      fc.property(
+        arbLayout(),
+        fc.integer({ min: -2, max: 6 }),
+        arbSectionColumns,
+        fc.option(arbSectionArrangement, { nil: undefined }),
+        (start, index, columns, arrangement) => {
+          const layout = deepFreeze(start);
+          const { layout: next, sectionId } = insertSection(layout, index, {
+            columns,
+            ...(arrangement ? { arrangement } : {}),
+          });
+          const section = next.sections.find((s) => s.id === sectionId)!;
+          expect(section.columns).toBe(columns);
+          expect(section.items).toEqual([]);
+          expect(section.rows).toBe(arrangement ? undefined : 4);
+          expect(next.sections.filter((s) => s.id !== sectionId)).toEqual(layout.sections);
+          expect(validateLayout(next).errors).toEqual([]);
+          expect(arrangementViolations(next)).toEqual([]);
+        },
+      ),
       RUNS,
     );
   });

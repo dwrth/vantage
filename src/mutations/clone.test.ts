@@ -52,6 +52,30 @@ describe('section order', () => {
     expect(isValidLayout(layout)).toBe(true);
   });
 
+  it('gives the new section 12 columns, or the columns asked for', () => {
+    const plain = insertSection(base, 1);
+    expect(find(plain.layout, plain.sectionId).columns).toBe(12);
+    const fourteen = insertSection(base, 1, { columns: 14 });
+    expect(find(fourteen.layout, fourteen.sectionId)).toMatchObject({ columns: 14, rows: 4 });
+    const arranged = insertSection(base, 0, { columns: 14, arrangement: { preset: 'three' } });
+    const section = find(arranged.layout, arranged.sectionId);
+    expect(section).toMatchObject({ columns: 14, arrangement: { preset: 'three' } });
+    expect(section.rows).toBeUndefined();
+    expect(isValidLayout(arranged.layout)).toBe(true);
+  });
+
+  it('rounds the columns asked for to a whole count of at least 1', () => {
+    const columnsOf = (columns: number) => {
+      const created = insertSection(base, 0, { columns });
+      return find(created.layout, created.sectionId).columns;
+    };
+    expect(columnsOf(13.6)).toBe(14);
+    expect(columnsOf(0)).toBe(1);
+    expect(columnsOf(-5)).toBe(1);
+    expect(columnsOf(Number.NaN)).toBe(12);
+    expect(columnsOf(Infinity)).toBe(12);
+  });
+
   it('clamps the insert index', () => {
     expect(sectionIds(insertSection(base, -3).layout)[0]).not.toBe('a');
     expect(sectionIds(insertSection(base, 99).layout).slice(0, 3)).toEqual(['a', 'b', 'c']);

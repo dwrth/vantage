@@ -192,12 +192,26 @@ export function SectionView({ section }: SectionViewProps) {
   const tokens = useVantageTokens();
   const cellMaxPx = parsePxToken(tokens['--vantage-cell-max-px'], CELL_MAX_PX);
   const rowMaxPx = parsePxToken(tokens['--vantage-row-max-px'], ROW_MAX_PX);
+  const sectionMaxPx = parsePxToken(tokens['--vantage-section-max-px'], Infinity);
 
-  const cellWidth = getCellWidth(containerWidth, columns, colGap, cellMaxPx);
-  const flexRowPx = getFlexRowHeight(containerWidth, columns, colGap, rowMaxPx, cellMaxPx);
+  const cellWidth = getCellWidth(containerWidth, columns, colGap, cellMaxPx, sectionMaxPx);
+  const flexRowPx = getFlexRowHeight(
+    containerWidth,
+    columns,
+    colGap,
+    rowMaxPx,
+    cellMaxPx,
+    sectionMaxPx,
+  );
   const cellHeight = getCellHeight(flexRowPx, rowGap);
   const cellXStep = getCellXStep(cellWidth, colGap);
-  const contentOffsetX = getGridContentOffset(containerWidth, columns, colGap, cellMaxPx);
+  const contentOffsetX = getGridContentOffset(
+    containerWidth,
+    columns,
+    colGap,
+    cellMaxPx,
+    sectionMaxPx,
+  );
   const rowSteps = measuredRowSteps.length > 0 ? measuredRowSteps : null;
 
   useLayoutEffect(() => {

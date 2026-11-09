@@ -50,6 +50,8 @@ parsePxToken(value, fallback)   // '96px' → 96
 
 Changing `--vantage-cell-max-px` / `--vantage-row-max-px` via the provider updates both CSS layout and Builder snap math.
 
+`--vantage-section-max-px` (not in `DEFAULT_VANTAGE_TOKENS`, unset by default) caps the content width of every section, free grid and arrangement, in CSS and in the snap math (`getContentMaxWidth(columns, gap, cellMaxPx, sectionMaxPx)`). Unset, a section is at most `columns × --vantage-cell-max-px` wide, so a 14-column section is wider than a 12-column one. Set, sections of different column counts share one width and more columns mean narrower cells (and shorter rows, which follow the cell width). For example `'--vantage-section-max-px': '1152px'` keeps 12-column sections at their default width while 14-column sections get cells of `(1152 - 13 × gap) / 14` px.
+
 ## Builder chrome tokens
 
 Not in `DEFAULT_VANTAGE_TOKENS`; set them through the provider to theme the editor.

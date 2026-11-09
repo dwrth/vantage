@@ -74,6 +74,7 @@ For undo/redo, wrap your host `onChange` with [`useVantageHistory`](history.md) 
 ```ts
 const { layout: next, sectionId } = addSection(layout); // appends a default section
 insertSection(layout, index);                          // empty section at index, e.g. between two
+addSection(layout, { columns: 14 });                   // desktop columns of the new section (default 12)
 moveSection(layout, sectionId, toIndex);               // reorder; moveSectionBy(layout, id, -1 | 1)
 duplicateSection(layout, sectionId, { cloneItem? });   // copy inserted after the original
 removeSection(layout, sectionId);

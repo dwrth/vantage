@@ -52,7 +52,10 @@
    * @property initial-value instead (see tokens.css).
    */
   --cell-max-px: var(--vantage-cell-max-px);
-  --max-section-w: calc(var(--cols) * var(--cell-max-px));
+  --max-section-w: min(
+    calc(var(--cols) * var(--cell-max-px)),
+    var(--vantage-section-max-px, 1000000px)
+  );
   --content-w: min(
     max(0px, calc(100cqi - var(--canvas-pad-x) - var(--col-gap-px) - var(--col-gap-px))),
     var(--max-section-w)
@@ -98,10 +101,11 @@
 
 /*
  * Arrangement section: rows are as tall as their tallest block, the content is as wide as a
- * 12-column grid on every breakpoint (the track's own column count only divides it).
+ * 12-column grid on every breakpoint (the track's own column count only divides it), capped at
+ * --vantage-section-max-px like a free grid.
  */
 .preview-grid--flow {
-  --max-section-w: calc(12 * var(--cell-max-px));
+  --max-section-w: min(calc(12 * var(--cell-max-px)), var(--vantage-section-max-px, 1000000px));
   grid-auto-rows: auto;
 }
 
