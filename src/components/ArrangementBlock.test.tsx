@@ -426,6 +426,30 @@ describe('ArrangementBlock dragging', () => {
     expect(chromeOf(container).className).toMatch(/active/);
   });
 
+  it('takes the cell out of the flow at its start box while dragged, and back on drop', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(120);
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(40);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(300);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(90);
+    const { container } = setup();
+    const handle = screen.getByRole('button', { name: 'Drag A' });
+    fireEvent.pointerDown(handle, { pointerId: 1, isPrimary: true, button: 0, clientX: 0 });
+    fireEvent.pointerMove(document, { pointerId: 1, clientX: 40, clientY: 30 });
+    const c = cell(container);
+    expect(c.style.position).toBe('absolute');
+    expect([c.style.left, c.style.top, c.style.width, c.style.height]).toEqual([
+      '120px',
+      '40px',
+      '300px',
+      '90px',
+    ]);
+    expect(c.style.gridColumn).toBe('');
+    fireEvent.pointerUp(document, { pointerId: 1, clientX: 40, clientY: 30 });
+    expect(c.style.position).toBe('');
+    expect(c.style.gridColumn).toBe('6 / span 4');
+    vi.restoreAllMocks();
+  });
+
   it('tells the host drag handle that a drag is running', () => {
     const renderDragHandle = vi.fn<NonNullable<BuilderContextValue['renderDragHandle']>>(
       ({ listeners }) => (

@@ -50,6 +50,16 @@ parsePxToken(value, fallback)   // '96px' → 96
 
 Changing `--vantage-cell-max-px` / `--vantage-row-max-px` via the provider updates both CSS layout and Builder snap math.
 
+## Builder chrome tokens
+
+Not in `DEFAULT_VANTAGE_TOKENS`; set them through the provider to theme the editor.
+
+| Token                   | Default                | Role                                           |
+| ----------------------- | ---------------------- | ---------------------------------------------- |
+| `--vantage-drop-color`  | `#2563eb`              | Drop ghost, drop target outline, insert button |
+| `--vantage-slot-color`  | `--vantage-drop-color` | Arrangement drop slots                         |
+| `--vantage-slot-radius` | `6px`                  | Corner radius of arrangement drop slots        |
+
 ## Kind-facing convention
 
 Prefer `--vantage-kind-*` for block styles (e.g. `--vantage-kind-accent`). The library does not mandate names or a design system. Kinds read tokens with `var(--vantage-kind-…)` in CSS or `useVantageTokens()` in React.

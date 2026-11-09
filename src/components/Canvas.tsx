@@ -8,7 +8,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import builder from '../styles/builder.module.css';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { useBuilderContext } from '../context/BuilderContext';
@@ -25,6 +25,7 @@ import {
   type ClientPoint,
   type SectionBand,
 } from '../lib/dropTargeting';
+import type { DropSource } from '../lib/arrangementPreview';
 import { VantagePointerSensor } from '../lib/pointerSensor';
 import { moveItemToSection } from '../mutations/layout';
 import type { ResolvedItemLayout } from '../lib/breakpoint';
@@ -66,6 +67,18 @@ function visibleBand(el: HTMLElement): { top: number; bottom: number } {
   return { top: Math.max(0, rect.top), bottom: Math.min(window.innerHeight, rect.bottom) };
 }
 
+/**
+ * Height of the dragged block: its chrome (as large as the block) around the grabbed handle. The
+ * pointer sensor is the only one, so the activator is a pointerdown on a handle inside the block.
+ */
+function draggedHeight(event: DragStartEvent): number {
+  const handle = event.activatorEvent!.target as Element;
+  return handle.closest('[data-vantage-block]')!.getBoundingClientRect().height;
+}
+
+const topIn = (el: HTMLElement, root: HTMLElement) =>
+  el.getBoundingClientRect().top - root.getBoundingClientRect().top;
+
 export function Canvas() {
   const {
     layout,
@@ -88,6 +101,7 @@ export function Canvas() {
   const handles = useRef(new Map<string, SectionDropHandle>());
   const [dropTarget, setDropTargetState] = useState<DropTarget | null>(null);
   const [dragSourceSectionId, setDragSourceSectionId] = useState<string | null>(null);
+  const [blockDrag, setBlockDrag] = useState<{ source: DropSource; height: number } | null>(null);
 
   const setDropTarget = useCallback((next: DropTarget | null) => {
     setDropTargetState((prev) => (sameDropTarget(prev, next) ? prev : next));
@@ -153,13 +167,31 @@ export function Canvas() {
 
   const stopTracking = useRef<(() => void) | null>(null);
 
+  /*
+   * A preview in a section above the dragged block's own section changes its height and would
+   * move the dragged block away from the pointer. The source grid gets the opposite shift as
+   * `--vantage-drag-shift-y`, which the dragged block adds to its transform.
+   */
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const sourceOffset = useRef<{ el: HTMLElement; top: number } | null>(null);
+
   const endDrag = useCallback(() => {
     stopTracking.current?.();
     stopTracking.current = null;
+    sourceOffset.current?.el.style.removeProperty('--vantage-drag-shift-y');
+    sourceOffset.current = null;
     setInteracting(false);
     setDragSourceSectionId(null);
+    setBlockDrag(null);
     setDropTarget(null);
   }, [setInteracting, setDropTarget]);
+
+  useLayoutEffect(() => {
+    const source = sourceOffset.current;
+    if (!source) return;
+    const shift = source.top - topIn(source.el, canvasRef.current!);
+    source.el.style.setProperty('--vantage-drag-shift-y', `${shift}px`);
+  }, [dropTarget]);
 
   useEffect(() => () => stopTracking.current?.(), []);
 
@@ -168,6 +200,14 @@ export function Canvas() {
       setInteracting(true);
       const data = event.active.data.current as BlockDragData | undefined;
       setDragSourceSectionId(data?.sectionId ?? null);
+      if (data?.type === 'block') {
+        setBlockDrag({
+          source: { type: 'block', sectionId: data.sectionId, itemId: data.item.id },
+          height: draggedHeight(event),
+        });
+        const el = handles.current.get(data.sectionId)?.getElement();
+        sourceOffset.current = el ? { el, top: topIn(el, canvasRef.current!) } : null;
+      }
       setDropTarget(null);
       activeBlock.current = event.active;
       pointer.current = activatorPoint(event);
@@ -236,7 +276,6 @@ export function Canvas() {
    * New blocks dragged in from a palette (native HTML5 drag-and-drop). Handled on the canvas, not
    * per grid, so header bars and gaps between sections accept the drop too.
    */
-  const canvasRef = useRef<HTMLDivElement>(null);
   const externalPointer = useRef<ClientPoint | null>(null);
 
   const externalTarget = useCallback(
@@ -369,9 +408,26 @@ export function Canvas() {
 
   // A target left over from an aborted palette drag (no dragleave/drop fired) must not linger.
   const visibleDropTarget = externalDrag || dragSourceSectionId ? dropTarget : null;
+  const externalW = externalDrag?.w;
+  const externalH = externalDrag?.h;
+  const dragSource = useMemo<DropSource | null>(
+    () =>
+      blockDrag?.source ??
+      (externalW !== undefined && externalH !== undefined
+        ? { type: 'new', w: externalW, h: externalH }
+        : null),
+    [blockDrag, externalW, externalH],
+  );
   const dndValue = useMemo(
-    () => ({ registerSection, dropTarget: visibleDropTarget, setDropTarget, dragSourceSectionId }),
-    [registerSection, visibleDropTarget, setDropTarget, dragSourceSectionId],
+    () => ({
+      registerSection,
+      dropTarget: visibleDropTarget,
+      setDropTarget,
+      dragSourceSectionId,
+      dragSource,
+      dragHeight: blockDrag?.height ?? null,
+    }),
+    [registerSection, visibleDropTarget, setDropTarget, dragSourceSectionId, dragSource, blockDrag],
   );
 
   if (sections.length === 0) {

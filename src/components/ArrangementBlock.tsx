@@ -1,12 +1,15 @@
 import { useDraggable } from '@dnd-kit/core';
-import { createElement, useCallback } from 'react';
+import { createElement, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useBuilderContext } from '../context/BuilderContext';
+import { DRAG_SHIFT } from '../context/CanvasDndContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import type { ArrangementSlot } from '../lib/arrangement';
 import { resolveRenderer } from '../lib/registry';
 import type { GridItem } from '../types';
 import arrangement from '../styles/arrangement.module.css';
 import chrome from '../styles/grid-block.module.css';
+
+type Box = { left: number; top: number; width: number; height: number };
 
 type ArrangementBlockProps = {
   sectionId: string;
@@ -34,6 +37,21 @@ export function ArrangementBlock({ sectionId, item, slot }: ArrangementBlockProp
     id: `${sectionId}:${item.id}`,
     data: { type: 'block', item, sectionId, placement: { x: 0, y: 0, w: item.w, h: item.h } },
   });
+
+  /*
+   * While dragged, the cell keeps the box it had when the drag started, out of the grid flow:
+   * the preview reflows the other blocks without moving the dragged one away from the pointer.
+   */
+  const cellRef = useRef<HTMLDivElement>(null);
+  const [frozen, setFrozen] = useState<Box | null>(null);
+  useLayoutEffect(() => {
+    const el = cellRef.current;
+    setFrozen(
+      isDragging && el
+        ? { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight }
+        : null,
+    );
+  }, [isDragging]);
 
   const descriptor = components[item.kind];
   const isSelected = selectedItems.some(
@@ -80,11 +98,16 @@ export function ArrangementBlock({ sectionId, item, slot }: ArrangementBlockProp
       className={[arrangement.cell, isDragging ? arrangement['cell--dragging'] : '']
         .filter(Boolean)
         .join(' ')}
-      style={{
-        gridColumn: `${slot.col + 2} / span ${slot.span}`,
-        gridRow: slot.row + 1,
-        ...(isDragging ? { zIndex: 3 } : {}),
-      }}
+      ref={cellRef}
+      style={
+        isDragging && frozen
+          ? { position: 'absolute', ...frozen, zIndex: 3, translate: DRAG_SHIFT }
+          : {
+              gridColumn: `${slot.col + 2} / span ${slot.span}`,
+              gridRow: slot.row + 1,
+              ...(isDragging ? { zIndex: 3 } : {}),
+            }
+      }
       data-vantage-arrangement-cell={item.id}
       data-vantage-dragging={isDragging ? '' : undefined}
     >

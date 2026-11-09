@@ -1,16 +1,14 @@
 import type { DragEndEvent } from '@dnd-kit/core';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  arrangementSlots,
-  arrangementTrack,
-  insertionIndexAt,
-  insertionLine,
-} from '../lib/arrangement';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { STACKED_TRACK, arrangementSlots, arrangementTrack } from '../lib/arrangement';
+import { CELL_ATTR, dropIndexAt, type ArrangementDropState } from '../lib/arrangementDropTarget';
+import { arrangementDropPreview, trailingSlot } from '../lib/arrangementPreview';
 import { resolveItem, resolveSection } from '../lib/breakpoint';
 import { resolveEffectiveItemData } from '../lib/entities';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useCanvasDnd, type SectionDropHandle } from '../context/CanvasDndContext';
 import { useResolveItemData } from '../hooks/useItemData';
+import { useReflow } from '../hooks/useReflow';
 import { moveItemToIndex } from '../mutations/layout';
 import { parsePxToken } from '../theme/tokens';
 import { useVantageTokens } from '../theme/useVantageTokens';
@@ -18,32 +16,21 @@ import type { Section } from '../types';
 import arrangement from '../styles/arrangement.module.css';
 import builder from '../styles/builder.module.css';
 import { ArrangementBlock } from './ArrangementBlock';
+import { ArrangementDropSlot } from './ArrangementDropSlot';
 import { CELL_MAX_PX, ROW_MAX_PX } from '../lib/grid';
 import { SectionActions } from './SectionActions';
 import { SectionBackground } from './SectionBackground';
 
-const CELL_ATTR = 'data-vantage-arrangement-cell';
+/** Tallest active drop slot, so a long block does not stretch the preview far down. */
+const SLOT_MAX_PX = 320;
 
-type Box = { left: number; top: number; right: number; bottom: number };
-type Line = { left: number; top: number; width: number; height: number };
-
-/**
- * Rects of the section's blocks without the one being dragged (and `excludeId`), relative to
- * `origin` when given.
- */
-function blockRects(grid: HTMLElement | null, excludeId?: string, origin?: DOMRect): Box[] {
-  if (!grid) return [];
-  return Array.from(
-    grid.querySelectorAll<HTMLElement>(`[${CELL_ATTR}]:not([data-vantage-dragging])`),
-  )
-    .filter((el) => el.getAttribute(CELL_ATTR) !== excludeId)
-    .map((el) => {
-      const r = el.getBoundingClientRect();
-      const dx = origin?.left ?? 0;
-      const dy = origin?.top ?? 0;
-      return { left: r.left - dx, top: r.top - dy, right: r.right - dx, bottom: r.bottom - dy };
-    });
-}
+const EMPTY_DROP: ArrangementDropState = {
+  itemIds: [],
+  visibleIds: [],
+  slots: new Map(),
+  reversed: false,
+  preview: null,
+};
 
 function editorCanvasMaxWidth(
   breakpoint: ReturnType<typeof useBuilderContext>['activeBreakpoint'],
@@ -70,7 +57,8 @@ export function ArrangementSectionView({ section }: { section: Section }) {
     renderSectionFooter,
     showSectionActions,
   } = useBuilderContext();
-  const { registerSection, dropTarget, dragSourceSectionId } = useCanvasDnd();
+  const { registerSection, dropTarget, dragSourceSectionId, dragSource, dragHeight } =
+    useCanvasDnd();
   const resolveEntity = useResolveItemData();
   const enabled = layout.breakpoints;
   const tokens = useVantageTokens();
@@ -102,9 +90,45 @@ export function ArrangementSectionView({ section }: { section: Section }) {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const latest = useRef({ layout, onChange, id });
+  const ghost = dropTarget?.sectionId === id ? dropTarget : null;
+  const dropIndex = ghost?.index;
+  // How the section looks after a drop at the hovered index; nothing is written until the drop.
+  const preview = useMemo(
+    () =>
+      dropIndex === undefined || !dragSource
+        ? null
+        : arrangementDropPreview(layout, id, dragSource, dropIndex, activeBreakpoint),
+    [layout, id, dragSource, dropIndex, activeBreakpoint],
+  );
+  const draggedId =
+    dragSource?.type === 'block' && dragSource.sectionId === id ? dragSource.itemId : undefined;
+  const activeSlot = preview?.slots.get(preview.droppedId);
+  const inactiveSlot =
+    dragSource && !activeSlot ? trailingSlot(visible.length, track, config.align) : undefined;
+  const slotHeight = !dragSource
+    ? 0
+    : Math.min(
+        SLOT_MAX_PX,
+        dragSource.type === 'block' ? (dragHeight ?? 0) : dragSource.h * rowMaxPx,
+      );
+
+  // Blocks glide to their preview slots, and back when the drag leaves or is cancelled.
+  useReflow(containerRef, CELL_ATTR, preview !== null);
+
+  const latest = useRef({ layout, onChange, id, drop: EMPTY_DROP });
   useLayoutEffect(() => {
-    latest.current = { layout, onChange, id };
+    latest.current = {
+      layout,
+      onChange,
+      id,
+      drop: {
+        itemIds: items.map((item) => item.id),
+        visibleIds: visible.map((item) => item.id),
+        slots,
+        reversed: track === STACKED_TRACK && config.mobileOrder === 'reversed',
+        preview,
+      },
+    };
   });
   useEffect(() => {
     const handle: SectionDropHandle = {
@@ -115,40 +139,31 @@ export function ArrangementSectionView({ section }: { section: Section }) {
         y: 0,
         w,
         h,
-        index: insertionIndexAt(blockRects(containerRef.current, excludeItemId), {
-          x: left,
-          y: top,
-        }),
+        index: dropIndexAt(
+          containerRef.current,
+          latest.current.drop,
+          { x: left, y: top },
+          excludeItemId,
+        ),
       }),
       blockSize: () => ({ width: 0, height: 0 }),
       dropWithin: (event: DragEndEvent) => {
         const dragged = (event.active.data.current as { item?: { id: string } } | undefined)?.item;
         const rect = event.active.rect.current.translated;
         if (!dragged || !rect) return;
-        const index = insertionIndexAt(blockRects(containerRef.current, dragged.id), {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        });
-        const { layout: current, onChange: emit, id: sectionId } = latest.current;
+        const { layout: current, onChange: emit, id: sectionId, drop } = latest.current;
+        const index = dropIndexAt(
+          containerRef.current,
+          drop,
+          { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+          dragged.id,
+        );
         const next = moveItemToIndex(current, sectionId, dragged.id, index);
         if (next !== current) emit(next);
       },
     };
     return registerSection(id, handle);
   }, [registerSection, id, containerRef]);
-
-  const ghost = dropTarget?.sectionId === id ? dropTarget : null;
-  const dropIndex = ghost?.index;
-  const [line, setLine] = useState<Line | null>(null);
-  useLayoutEffect(() => {
-    const grid = containerRef.current;
-    if (dropIndex === undefined || !grid) {
-      setLine(null);
-      return;
-    }
-    const origin = grid.getBoundingClientRect();
-    setLine(insertionLine(blockRects(grid, undefined, origin), dropIndex, resolved.colGap));
-  }, [dropIndex, containerRef, resolved.colGap]);
 
   const hasSelection = selection?.sectionId === id;
   const chromeCtx = { section, activeBreakpoint, hasSelection, isDropTarget: ghost !== null };
@@ -211,16 +226,19 @@ export function ArrangementSectionView({ section }: { section: Section }) {
                 key={item.id}
                 sectionId={id}
                 item={item}
-                slot={slots.get(item.id)!}
+                slot={
+                  (item.id === draggedId ? undefined : preview?.slots.get(item.id)) ??
+                  slots.get(item.id)!
+                }
               />
             ))}
-            {visible.length === 0 ? <div className={arrangement.empty} aria-hidden="true" /> : null}
-            {line ? (
-              <div
-                className={arrangement['insertion-line']}
-                aria-hidden="true"
-                style={{ left: line.left, top: line.top, width: line.width, height: line.height }}
-              />
+            {visible.length === 0 && !dragSource ? (
+              <div className={arrangement.empty} aria-hidden="true" />
+            ) : null}
+            {activeSlot ? (
+              <ArrangementDropSlot slot={activeSlot} active height={slotHeight || undefined} />
+            ) : inactiveSlot ? (
+              <ArrangementDropSlot slot={inactiveSlot} active={false} />
             ) : null}
           </div>
         </div>

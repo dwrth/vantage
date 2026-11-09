@@ -7,6 +7,7 @@ import { BuilderContext, type BuilderContextValue } from '../context/BuilderCont
 import {
   CanvasDndContext,
   type CanvasDndContextValue,
+  type DropTarget,
   type SectionDropHandle,
 } from '../context/CanvasDndContext';
 import { ItemDataProvider } from '../hooks/useItemData';
@@ -63,6 +64,8 @@ const cellRects: Record<string, Rect> = {
   c: { left: 210, top: 5, right: 310, bottom: 55 },
 };
 const frameRect: Rect = { left: 10, top: 5, right: 310, bottom: 55 };
+/** Per-test rects by cell id, or `slot` for the active drop slot; win over `cellRects`. */
+let shownRects: Record<string, Rect> = {};
 
 const domRect = (r: Rect): DOMRect => {
   const full = {
@@ -76,11 +79,13 @@ const domRect = (r: Rect): DOMRect => {
 };
 
 beforeEach(() => {
+  shownRects = {};
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
     this: HTMLElement,
   ) {
     const id = this.getAttribute('data-vantage-arrangement-cell');
-    if (id) return domRect(cellRects[id]!);
+    if (id) return domRect(shownRects[id] ?? cellRects[id]!);
+    if (this.getAttribute('data-vantage-drop-slot') === 'active') return domRect(shownRects.slot!);
     if (this.hasAttribute('data-vantage-section-frame')) return domRect(frameRect);
     return domRect({ left: 0, top: 0, right: 0, bottom: 0 });
   });
@@ -140,6 +145,8 @@ function build({ section: s = section(), context = {}, dnd = {}, wrap = (c) => c
     dropTarget: null,
     setDropTarget: vi.fn(),
     dragSourceSectionId: null,
+    dragSource: null,
+    dragHeight: null,
     ...dnd,
   };
   const tree = (current: Section, ctx: BuilderContextValue = builderValue) =>
@@ -172,6 +179,27 @@ const frameEl = (container: HTMLElement) =>
 const canvasFrame = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('[class*="canvas-frame"]')!;
 const prop = (el: HTMLElement, name: string) => el.style.getPropertyValue(name);
+const target = (index: number, sectionId = 's'): DropTarget => ({
+  sectionId,
+  x: 0,
+  y: 0,
+  w: 3,
+  h: 2,
+  index,
+});
+const placement = (el: Element | null) => {
+  const style = (el as HTMLElement).style;
+  return [style.gridColumn, style.gridRow];
+};
+const cellPlacements = (container: HTMLElement) =>
+  Object.fromEntries(
+    Array.from(container.querySelectorAll('[data-vantage-arrangement-cell]'), (el) => [
+      el.getAttribute('data-vantage-arrangement-cell'),
+      placement(el),
+    ]),
+  );
+const slotEl = (container: HTMLElement) =>
+  container.querySelector<HTMLElement>('[data-vantage-drop-slot]');
 
 describe('ArrangementSectionView structure', () => {
   it('renders the blocks in order inside a section tagged with id and preset', () => {
@@ -418,7 +446,7 @@ describe('ArrangementSectionView selection and chrome', () => {
 });
 
 describe('ArrangementSectionView drop target', () => {
-  it('flags the section and draws the insertion line at the drop index', () => {
+  it('flags the section as drop target', () => {
     const renderSectionHeader = vi.fn(() => null);
     const { container } = setup({
       context: { renderSectionHeader },
@@ -430,21 +458,6 @@ describe('ArrangementSectionView drop target', () => {
     expect(renderSectionHeader).toHaveBeenLastCalledWith(
       expect.objectContaining({ isDropTarget: true }),
     );
-    const line = container.querySelector<HTMLElement>('[class*="insertion-line"]')!;
-    expect(line.getAttribute('aria-hidden')).toBe('true');
-    expect(line.style.left).toBe('98.5px');
-    expect(line.style.top).toBe('0px');
-    expect(line.style.width).toBe('3px');
-    expect(line.style.height).toBe('50px');
-  });
-
-  it('draws the line after the last block for an index past the end', () => {
-    const { container } = setup({
-      dnd: { dropTarget: { sectionId: 's', x: 0, y: 0, w: 3, h: 2, index: 3 } },
-    });
-    const line = container.querySelector<HTMLElement>('[class*="insertion-line"]')!;
-    expect(line.style.left).toBe(`${310 - 10 + 8 - 1.5}px`);
-    expect(line.style.height).toBe('50px');
   });
 
   it('ignores drop targets of other sections', () => {
@@ -452,23 +465,6 @@ describe('ArrangementSectionView drop target', () => {
       dnd: { dropTarget: { sectionId: 'other', x: 0, y: 0, w: 3, h: 2, index: 1 } },
     });
     expect(sectionEl(container).hasAttribute('data-vantage-drop-target')).toBe(false);
-    expect(container.querySelector('[class*="insertion-line"]')).toBeNull();
-  });
-
-  it('shows no line for a grid-style drop target without index', () => {
-    const { container } = setup({
-      dnd: { dropTarget: { sectionId: 's', x: 0, y: 0, w: 3, h: 2 } },
-    });
-    expect(sectionEl(container).hasAttribute('data-vantage-drop-target')).toBe(true);
-    expect(container.querySelector('[class*="insertion-line"]')).toBeNull();
-  });
-
-  it('shows no line when the section has no blocks to line up with', () => {
-    const { container } = setup({
-      section: section({ items: [] }),
-      dnd: { dropTarget: { sectionId: 's', x: 0, y: 0, w: 3, h: 2, index: 0 } },
-    });
-    expect(container.querySelector('[class*="insertion-line"]')).toBeNull();
   });
 
   it('marks the section a drag starts from', () => {
@@ -520,6 +516,53 @@ describe('ArrangementSectionView drop handle', () => {
       .querySelector('[data-vantage-arrangement-cell="c"]')!
       .setAttribute('data-vantage-dragging', '');
     expect(handles[0]!.cellAt(300, 30, 3, 2).index).toBe(2);
+  });
+
+  it('keeps the index while the pointer is over the preview slot', () => {
+    // Preview of a new block at 0: slot, a, b in the first row, c in the second.
+    shownRects = {
+      slot: { left: 10, top: 5, right: 110, bottom: 55 },
+      a: { left: 110, top: 5, right: 210, bottom: 55 },
+      b: { left: 210, top: 5, right: 310, bottom: 55 },
+      c: { left: 10, top: 60, right: 110, bottom: 110 },
+    };
+    const { handles } = setup({
+      dnd: { dropTarget: target(0), dragSource: { type: 'new', w: 3, h: 2 } },
+    });
+    const { cellAt } = handles[0]!;
+    expect(cellAt(30, 30, 3, 2).index).toBe(0);
+    expect(cellAt(100, 30, 3, 2).index).toBe(0);
+    expect(cellAt(130, 30, 3, 2).index).toBe(0);
+    expect(cellAt(190, 30, 3, 2).index).toBe(1);
+    expect(cellAt(300, 30, 3, 2).index).toBe(2);
+    expect(cellAt(100, 100, 3, 2).index).toBe(3);
+  });
+
+  it('maps the reversed stack back to the order of the items', () => {
+    shownRects = {
+      c: { left: 10, top: 0, right: 310, bottom: 50 },
+      b: { left: 10, top: 50, right: 310, bottom: 100 },
+      a: { left: 10, top: 100, right: 310, bottom: 150 },
+    };
+    const { handles } = setup({
+      section: section({ arrangement: { preset: 'three', mobileOrder: 'reversed' } }),
+      context: { activeBreakpoint: 'mobile' },
+    });
+    const { cellAt } = handles[0]!;
+    expect(cellAt(100, 10, 3, 2).index).toBe(3);
+    expect(cellAt(100, 140, 3, 2).index).toBe(0);
+    expect(cellAt(100, 60, 3, 2).index).toBe(2);
+  });
+
+  it('counts hidden blocks when mapping to an index of the items', () => {
+    const hiddenB = section({
+      overrides: { tablet: { items: { b: { hidden: true } } } },
+    });
+    const { handles } = setup({ section: hiddenB, context: { activeBreakpoint: 'tablet' } });
+    const { cellAt } = handles[0]!;
+    expect(cellAt(250, 30, 3, 2).index).toBe(2);
+    expect(cellAt(300, 30, 3, 2).index).toBe(3);
+    expect(cellAt(20, 30, 3, 2).index).toBe(0);
   });
 
   const dragEnd = (id: string | undefined, centre: { x: number; y: number } | null): DragEndEvent =>
@@ -580,5 +623,175 @@ describe('ArrangementSectionView drop handle', () => {
     // blocks now in DOM order c, b, a; dragging c over a's rect lands before a (index 1 of [b, a])
     handles[0]!.dropWithin(dragEnd('c', { x: 20, y: 30 }));
     expect(order(onChange)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+describe('ArrangementSectionView drop preview', () => {
+  const newBlock = { type: 'new', w: 3, h: 2 } as const;
+
+  it('shows no slot without a drag', () => {
+    const { container } = setup();
+    expect(slotEl(container)).toBeNull();
+  });
+
+  it('reflows the blocks around an active slot at the hovered index', () => {
+    const { container, onChange } = setup({
+      dnd: { dropTarget: target(1), dragSource: newBlock },
+    });
+    const slot = slotEl(container)!;
+    expect(slot.getAttribute('data-vantage-drop-slot')).toBe('active');
+    expect(slot.getAttribute('aria-hidden')).toBe('true');
+    expect(slot.className).toMatch(/slot--active/);
+    expect(placement(slot)).toEqual(['6 / span 4', '1']);
+    // A new block's slot is as tall as its rows (2 x 48px).
+    expect(slot.style.minHeight).toBe('96px');
+    expect(cellPlacements(container)).toEqual({
+      a: ['2 / span 4', '1'],
+      b: ['10 / span 4', '1'],
+      c: ['2 / span 4', '2'],
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('puts the slot at the end of the flow for the last index', () => {
+    const { container } = setup({ dnd: { dropTarget: target(3), dragSource: newBlock } });
+    expect(placement(slotEl(container))).toEqual(['2 / span 4', '2']);
+    expect(cellPlacements(container)).toEqual({
+      a: ['2 / span 4', '1'],
+      b: ['6 / span 4', '1'],
+      c: ['10 / span 4', '1'],
+    });
+  });
+
+  it('shows an inactive slot after the blocks of a section that is not hovered', () => {
+    const { container } = setup({ dnd: { dropTarget: target(0, 'other'), dragSource: newBlock } });
+    const slot = slotEl(container)!;
+    expect(slot.getAttribute('data-vantage-drop-slot')).toBe('inactive');
+    expect(slot.className).not.toMatch(/slot--active/);
+    expect(slot.style.minHeight).toBe('');
+    expect(placement(slot)).toEqual(['2 / span 4', '2']);
+    expect(cellPlacements(container).c).toEqual(['10 / span 4', '1']);
+  });
+
+  it('starts a new row for the inactive slot when the next slot is taken', () => {
+    const { container } = setup({
+      section: section({ arrangement: { preset: 'three', align: 'center' }, items: [item('a')] }),
+      dnd: { dragSource: newBlock },
+    });
+    expect(placement(slotEl(container))).toEqual(['6 / span 4', '2']);
+  });
+
+  it('replaces the empty placeholder by a slot while dragging', () => {
+    const empty = section({ items: [] });
+    const idle = setup({ section: empty, dnd: { dragSource: newBlock } });
+    expect(idle.container.querySelector('[class*="empty"]')).toBeNull();
+    expect(placement(slotEl(idle.container))).toEqual(['2 / span 4', '1']);
+    expect(slotEl(idle.container)!.getAttribute('data-vantage-drop-slot')).toBe('inactive');
+    cleanup();
+    const hovered = setup({ section: empty, dnd: { dropTarget: target(0), dragSource: newBlock } });
+    expect(slotEl(hovered.container)!.getAttribute('data-vantage-drop-slot')).toBe('active');
+    expect(placement(slotEl(hovered.container))).toEqual(['2 / span 4', '1']);
+  });
+
+  it('shows the slot for a block of the section and leaves the dragged block where it was', () => {
+    const { container } = setup({
+      dnd: {
+        dropTarget: target(2),
+        dragSource: { type: 'block', sectionId: 's', itemId: 'a' },
+        dragHeight: 500,
+      },
+    });
+    expect(placement(slotEl(container))).toEqual(['10 / span 4', '1']);
+    expect(slotEl(container)!.style.minHeight).toBe('320px');
+    expect(cellPlacements(container)).toEqual({
+      a: ['2 / span 4', '1'],
+      b: ['2 / span 4', '1'],
+      c: ['6 / span 4', '1'],
+    });
+  });
+
+  it('previews a block from another section', () => {
+    const s = section();
+    const other: Section = { id: 'o', columns: 12, colGap: 0, rowGap: 0, items: [item('x')] };
+    const { container } = setup({
+      section: s,
+      context: { layout: { ...layoutOf(s), sections: [s, other] } },
+      dnd: {
+        dropTarget: target(0),
+        dragSource: { type: 'block', sectionId: 'o', itemId: 'x' },
+        dragHeight: 80,
+      },
+    });
+    expect(placement(slotEl(container))).toEqual(['2 / span 4', '1']);
+    expect(slotEl(container)!.style.minHeight).toBe('80px');
+    expect(cellPlacements(container).c).toEqual(['2 / span 4', '2']);
+  });
+
+  it('shows no active slot when the hovered drop changes nothing it can preview', () => {
+    const { container } = setup({
+      dnd: { dropTarget: target(0), dragSource: { type: 'block', sectionId: 's', itemId: 'zz' } },
+    });
+    expect(slotEl(container)!.getAttribute('data-vantage-drop-slot')).toBe('inactive');
+  });
+
+  describe('reflow animation', () => {
+    const animate = vi.fn();
+    const columnOf = (el: HTMLElement) => parseInt(el.style.gridColumn, 10) || 0;
+
+    beforeEach(() => {
+      animate.mockReset();
+      Object.defineProperty(Element.prototype, 'animate', { value: animate, configurable: true });
+      vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        return columnOf(this) * 25;
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        return (parseInt(this.style.gridRow, 10) || 0) * 60;
+      });
+    });
+
+    afterEach(() => {
+      delete (Element.prototype as { animate?: unknown }).animate;
+    });
+
+    const hover = (rerender: (ui: ReactNode) => void, dnd: Partial<CanvasDndContextValue>) =>
+      rerender(build({ dnd }).tree(section()));
+
+    it('glides the moved blocks into the preview and back when the drag leaves', () => {
+      const { rerender } = setup({ dnd: { dragSource: newBlock } });
+      expect(animate).not.toHaveBeenCalled();
+      hover(rerender, { dropTarget: target(0), dragSource: newBlock });
+      // a, b move one slot right, c to the next row: body and chrome of each animate.
+      expect(animate).toHaveBeenCalledTimes(6);
+      expect(animate.mock.calls[0]![0]).toEqual([
+        { translate: '-100px 0px' },
+        { translate: '0 0' },
+      ]);
+      animate.mockReset();
+      hover(rerender, { dragSource: newBlock });
+      expect(animate).toHaveBeenCalledTimes(6);
+      animate.mockReset();
+      hover(rerender, { dragSource: newBlock });
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it('does not animate under reduced motion', () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+      }));
+      const { rerender } = setup({ dnd: { dragSource: newBlock } });
+      hover(rerender, { dropTarget: target(0), dragSource: newBlock });
+      expect(animate).not.toHaveBeenCalled();
+    });
+
+    it('moves without animation where the Web Animations API is missing', () => {
+      delete (Element.prototype as { animate?: unknown }).animate;
+      const { rerender, container } = setup({ dnd: { dragSource: newBlock } });
+      hover(rerender, { dropTarget: target(0), dragSource: newBlock });
+      expect(cellPlacements(container).a).toEqual(['6 / span 4', '1']);
+    });
   });
 });

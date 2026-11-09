@@ -6,6 +6,7 @@ import {
   toCssUrl,
   usesLegacyBackgroundPosition,
 } from '../lib/backgroundDisplay';
+import { prefersReducedMotion } from '../lib/motion';
 
 /** Extra vertical size (fraction of section height) so translate doesn't show gaps. */
 const PARALLAX_OVERFLOW = 0.25;
@@ -34,11 +35,6 @@ function hasAny(background: SectionBackgroundType): boolean {
     typeof background.blur === 'number' ||
     typeof background.opacity === 'number',
   );
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function collectScrollRoots(node: HTMLElement): Array<Element | Window> {

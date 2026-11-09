@@ -1,5 +1,9 @@
 import { createContext, useContext } from 'react';
 import type { DragEndEvent } from '@dnd-kit/core';
+import type { DropSource } from '../lib/arrangementPreview';
+
+/** `translate` of a dragged block: undoes the shift of its section while it is dragged (see `Canvas`). */
+export const DRAG_SHIFT = '0 var(--vantage-drag-shift-y, 0px)';
 
 /** Ghost placement shown in a section while something is dragged over it. */
 export type DropTarget = {
@@ -40,6 +44,10 @@ export type CanvasDndContextValue = {
   setDropTarget: (next: DropTarget | null) => void;
   /** Section whose item is currently being dragged. */
   dragSourceSectionId: string | null;
+  /** What is being dragged (a block or a palette item); `null` without a drag. */
+  dragSource: DropSource | null;
+  /** Height in px of the dragged block when the drag started (`null` for a palette item). */
+  dragHeight: number | null;
 };
 
 export const CanvasDndContext = createContext<CanvasDndContextValue | null>(null);

@@ -87,7 +87,7 @@ Breakpoints, overrides, layers, persistence — all opt-in. Default: single-sect
 | [Components](docs/components.md)           | `VantageBuilder`, `VantagePreview`, `defineKind`     |
 | [Layout model & mutations](docs/layout.md) | Data shape, sections, items, layering, import/export |
 | [Breakpoints](docs/breakpoints.md)         | Responsive overrides, resolution helpers             |
-| [Arrangement](docs/arrangement.md)         | Preset-driven flow sections, automatic breakpoints   |
+| [Arrangement](docs/arrangement.md)         | Preset flow sections, drop preview, breakpoints      |
 | [Alignment](docs/alignment.md)             | Guides, content alignment                            |
 | [Overlap safety](docs/overlap.md)          | Content minimum size, overlap warning, move below    |
 | [Selection](docs/selection.md)             | Controlled / uncontrolled selection                  |
