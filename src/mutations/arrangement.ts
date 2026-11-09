@@ -1,4 +1,4 @@
-import { resolveItem } from '../lib/breakpoint';
+import { defaultColumnsForBreakpoint, resolveItem } from '../lib/breakpoint';
 import {
   ARRANGEMENT_COLUMNS,
   arrangementSlots,
@@ -63,14 +63,26 @@ function toArrangement(section: Section, arrangement: SectionArrangement): Secti
   return next;
 }
 
-/** Free-grid placement that reproduces the arrangement on `breakpoint`; rows are as tall as their tallest block. */
+/** Columns of the free grid a section switched back from an arrangement gets on `breakpoint`. */
+function freeGridColumns(section: Section, breakpoint: Breakpoint): number {
+  return breakpoint === 'desktop'
+    ? section.columns
+    : defaultColumnsForBreakpoint(section.columns, breakpoint);
+}
+
+/**
+ * Free-grid placement on a grid of `columns` that reproduces the arrangement on `breakpoint`:
+ * slots scale from the preset's track to `columns`, rows are as tall as their tallest block.
+ */
 function gridPlacement(
   section: Section,
   arrangement: SectionArrangement,
   breakpoint: Breakpoint,
+  columns: number,
 ): Map<string, Pick<GridItem, 'x' | 'y' | 'w' | 'h'>> {
   const visible = section.items.filter((item) => !resolveItem(item, section, breakpoint).hidden);
   const slots = arrangementSlots(visible, arrangement, breakpoint);
+  const scale = columns / arrangementTrack(arrangement, breakpoint).columns;
   const rowHeights: number[] = [];
   for (const item of visible) {
     const slot = slots.get(item.id) as ArrangementSlot;
@@ -85,7 +97,10 @@ function gridPlacement(
   const placements = new Map<string, Pick<GridItem, 'x' | 'y' | 'w' | 'h'>>();
   for (const item of visible) {
     const slot = slots.get(item.id) as ArrangementSlot;
-    placements.set(item.id, { x: slot.col, y: rowTops[slot.row] ?? 0, w: slot.span, h: item.h });
+    const x = Math.min(Math.round(slot.col * scale), columns - 1);
+    const end = Math.round((slot.col + slot.span) * scale);
+    const w = Math.min(Math.max(1, end - x), columns - x);
+    placements.set(item.id, { x, y: rowTops[slot.row] ?? 0, w, h: item.h });
   }
   return placements;
 }
@@ -93,18 +108,23 @@ function gridPlacement(
 function toFreeGrid(section: Section): Section {
   const { arrangement, ...rest } = section;
   if (!arrangement) return section;
-  const desktop = gridPlacement(section, arrangement, 'desktop');
+  const desktop = gridPlacement(
+    section,
+    arrangement,
+    'desktop',
+    freeGridColumns(section, 'desktop'),
+  );
   const next: Section = {
     ...rest,
-    columns: arrangementTrack(arrangement, 'desktop').columns,
     items: section.items.map((item) => ({ ...item, ...desktop.get(item.id) })),
   };
   const overrides: NonNullable<Section['overrides']> = { ...section.overrides };
   for (const bp of NON_DESKTOP_BREAKPOINTS) {
-    const placements = gridPlacement(section, arrangement, bp);
+    const columns = freeGridColumns(section, bp);
+    const placements = gridPlacement(section, arrangement, bp, columns);
     const items: Record<string, ItemOverride> = { ...overrides[bp]?.items };
     for (const [id, placement] of placements) items[id] = { ...items[id], ...placement };
-    overrides[bp] = { ...overrides[bp], columns: arrangementTrack(arrangement, bp).columns, items };
+    overrides[bp] = { ...overrides[bp], columns, items };
   }
   next.overrides = overrides;
   return next;
@@ -113,7 +133,8 @@ function toFreeGrid(section: Section): Section {
 /**
  * Switch a section between free grid and arrangement, or change its arrangement. `null` makes
  * it a free grid: the current arrangement is written out as explicit placement on every
- * breakpoint. An arrangement from a free grid orders the blocks by their desktop reading order
+ * breakpoint, on the grid a free-grid section of the same desktop columns gets (desktop keeps
+ * `section.columns`, tablet and mobile use `defaultColumnsForBreakpoint`). An arrangement from a free grid orders the blocks by their desktop reading order
  * and drops the grid placement of the breakpoints.
  */
 export function setSectionArrangement(

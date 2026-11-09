@@ -1,6 +1,10 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { getEnabledBreakpoints, resolveSection } from '../lib/breakpoint';
+import {
+  defaultColumnsForBreakpoint,
+  getEnabledBreakpoints,
+  resolveSection,
+} from '../lib/breakpoint';
 import { validateLayout } from '../lib/validate';
 import { arbLayout, arbSectionArrangement, deepFreeze } from '../test/arbitraries';
 import {
@@ -125,6 +129,51 @@ describe('setSectionArrangement: arrangement to free grid', () => {
           }
         }
       }),
+      RUNS,
+    );
+  });
+
+  it('gets the columns of a free-grid section with the same desktop columns', () => {
+    fc.assert(
+      fc.property(arbLayout({ arrangements: 1 }), fc.nat(), (start, n) => {
+        const source = pickSection(start, n);
+        const section = sectionById(setSectionArrangement(start, source.id, null), source.id);
+        expect(section.columns).toBe(source.columns);
+        for (const bp of NON_DESKTOP_BREAKPOINTS) {
+          expect(section.overrides?.[bp]?.columns).toBe(
+            defaultColumnsForBreakpoint(source.columns, bp),
+          );
+        }
+      }),
+      RUNS,
+    );
+  });
+
+  it('keeps every block and the free-grid columns over repeated round trips', () => {
+    fc.assert(
+      fc.property(
+        arbLayout({ arrangements: 0 }),
+        fc.nat(),
+        fc.array(arbSectionArrangement, { minLength: 1, maxLength: 4 }),
+        (start, n, arrangements) => {
+          const source = pickSection(start, n);
+          let layout = start;
+          for (const arrangement of arrangements) {
+            layout = setSectionArrangement(layout, source.id, arrangement);
+            layout = setSectionArrangement(layout, source.id, null);
+          }
+          const section = sectionById(layout, source.id);
+          expect(section.columns).toBe(12);
+          for (const bp of NON_DESKTOP_BREAKPOINTS) {
+            expect(section.overrides?.[bp]?.columns).toBe(defaultColumnsForBreakpoint(12, bp));
+          }
+          expect(section.items.map((i) => i.id).sort()).toEqual(
+            source.items.map((i) => i.id).sort(),
+          );
+          expect(validateLayout(layout).errors).toEqual([]);
+          expect(columnBoundsViolations({ ...layout, sections: [section] })).toEqual([]);
+        },
+      ),
       RUNS,
     );
   });

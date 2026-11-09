@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
+import { ARRANGEMENT_PRESET_IDS } from '../lib/arrangement';
 import { applyBlockAction } from '../lib/keyboard';
 import { validateLayout } from '../lib/validate';
 import { VantagePreview } from '../components/VantagePreview';
@@ -163,9 +164,69 @@ describe('setSectionArrangement', () => {
       [6, 6],
     ]);
     expect(section.items[2]!.y).toBe(section.items[0]!.h);
-    expect(section.overrides?.mobile?.columns).toBe(1);
-    expect(section.overrides?.mobile?.items?.i1).toMatchObject({ x: 0, w: 1, y: 2 });
-    expect(section.overrides?.tablet?.columns).toBe(2);
+    expect(section.columns).toBe(12);
+    expect(section.overrides?.mobile?.columns).toBe(4);
+    expect(section.overrides?.mobile?.items?.i1).toMatchObject({ x: 0, w: 4, y: 2 });
+    expect(section.overrides?.tablet?.columns).toBe(8);
+    expect(section.overrides?.tablet?.items?.i1).toMatchObject({ x: 4, w: 4, y: 0 });
+  });
+
+  it.each(ARRANGEMENT_PRESET_IDS)(
+    'switches preset %s back to the free grid of a new section (12 / 8 / 4 columns)',
+    (preset) => {
+      const { layout, sectionId } = arrangementLayout(5);
+      const arranged = setSectionArrangement(layout, sectionId, { preset });
+      const section = setSectionArrangement(arranged, sectionId, null).sections[0]!;
+      const expected = { desktop: 12, tablet: 8, mobile: 4 } as const;
+      expect(section.columns).toBe(expected.desktop);
+      expect(section.overrides?.tablet?.columns).toBe(expected.tablet);
+      expect(section.overrides?.mobile?.columns).toBe(expected.mobile);
+      for (const bp of ['desktop', 'tablet', 'mobile'] as const) {
+        const placed = section.items.map((item) =>
+          bp === 'desktop' ? item : section.overrides![bp]!.items![item.id]!,
+        );
+        expect(placed).toHaveLength(5);
+        for (const p of placed) {
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.w).toBeGreaterThanOrEqual(1);
+          expect(p.x! + p.w!).toBeLessThanOrEqual(expected[bp]);
+        }
+      }
+      expect(section.overrides?.mobile?.items?.i0).toMatchObject({ x: 0, w: 4 });
+    },
+  );
+
+  it('keeps the free-grid columns over repeated switching', () => {
+    let { layout } = arrangementLayout(3);
+    const sectionId = layout.sections[0]!.id;
+    for (const preset of ['single', 'two', 'single'] as const) {
+      layout = setSectionArrangement(layout, sectionId, null);
+      layout = setSectionArrangement(layout, sectionId, { preset });
+    }
+    const section = setSectionArrangement(layout, sectionId, null).sections[0]!;
+    expect(section.columns).toBe(12);
+    expect(section.overrides?.tablet?.columns).toBe(8);
+    expect(section.overrides?.mobile?.columns).toBe(4);
+    expect(section.items.map((i) => [i.x, i.w])).toEqual([
+      [0, 12],
+      [0, 12],
+      [0, 12],
+    ]);
+  });
+
+  it('scales the arrangement onto a section with other desktop columns', () => {
+    const { layout, sectionId } = arrangementLayout(2, 'two');
+    const wide: Layout = {
+      ...layout,
+      sections: layout.sections.map((s) => ({ ...s, columns: 24 })),
+    };
+    const section = setSectionArrangement(wide, sectionId, null).sections[0]!;
+    expect(section.columns).toBe(24);
+    expect(section.items.map((i) => [i.x, i.w])).toEqual([
+      [0, 12],
+      [12, 12],
+    ]);
+    expect(section.overrides?.tablet?.columns).toBe(16);
   });
 
   it('is a no-op for a free grid switched to free grid', () => {
