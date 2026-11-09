@@ -49,6 +49,29 @@ describe('validateLayout on generated layouts', () => {
       RUNS,
     );
   });
+
+  it('accepts blocks stacked on the same cells on every breakpoint', () => {
+    fc.assert(
+      fc.property(arbWithItem, ({ layout, s, i }) => {
+        const section = layout.sections[s]!;
+        const source = section.items[i]!;
+        const copy = { ...source, id: `${source.id}-copy` };
+        const overrides = structuredClone(section.overrides ?? {});
+        for (const bp of ['tablet', 'mobile'] as const) {
+          const ovr = overrides[bp]?.items?.[source.id];
+          if (ovr) overrides[bp]!.items![copy.id] = { ...ovr };
+        }
+        const stacked: Layout = {
+          ...layout,
+          sections: layout.sections.map((entry, index) =>
+            index === s ? { ...entry, items: [...entry.items, copy], overrides } : entry,
+          ),
+        };
+        expect(validateLayout(stacked)).toEqual({ valid: true, errors: [] });
+      }),
+      RUNS,
+    );
+  });
 });
 
 describe('validateLayout rejects one targeted corruption with exactly one error', () => {

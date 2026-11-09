@@ -6,7 +6,6 @@ import { arbLayout, arbSectionArrangement, deepFreeze } from '../test/arbitrarie
 import {
   arrangementViolations,
   columnBoundsViolations,
-  overlapViolations,
   visibleRects,
 } from '../test/layoutInvariants';
 import { NON_DESKTOP_BREAKPOINTS, type Layout, type Section, type SectionOverride } from '../types';
@@ -100,7 +99,7 @@ describe('setSectionArrangement: free grid to arrangement', () => {
 });
 
 describe('setSectionArrangement: arrangement to free grid', () => {
-  it('writes overlap-free, in-bounds placement on every breakpoint and keeps flags', () => {
+  it('writes in-bounds placement on every breakpoint and keeps flags', () => {
     fc.assert(
       fc.property(arbLayout({ arrangements: 1 }), fc.nat(), (start, n) => {
         const layout = deepFreeze(start);
@@ -114,7 +113,6 @@ describe('setSectionArrangement: arrangement to free grid', () => {
         expect(section.items.map((i) => i.id)).toEqual(source.items.map((i) => i.id));
         expect(itemOverrideFlags(section)).toEqual(itemOverrideFlags(source));
         expect(validateLayout(next).errors).toEqual([]);
-        expect(overlapViolations({ ...next, sections: [section] })).toEqual([]);
         expect(columnBoundsViolations({ ...next, sections: [section] })).toEqual([]);
         const enabled = getEnabledBreakpoints(next);
         for (const bp of enabled) {

@@ -4,7 +4,6 @@ import { arbRect } from '../test/arbitraries';
 import {
   clampItem,
   getFlexRowHeight,
-  overlaps,
   pxToCell,
   resizeByHandle,
   resizeFloor,
@@ -32,12 +31,6 @@ function inBounds(rect: PlacementRect, columns: number, rows?: number) {
   expect(rect.x + rect.w).toBeLessThanOrEqual(columns);
   if (rows !== undefined) expect(rect.y + rect.h).toBeLessThanOrEqual(rows);
 }
-
-const cells = (r: PlacementRect) =>
-  Array.from({ length: Math.max(0, r.w) * Math.max(0, r.h) }, (_, k) => [
-    r.x + (k % r.w),
-    r.y + Math.floor(k / r.w),
-  ]);
 
 describe('clampItem', () => {
   it('lands inside the grid and is idempotent', () => {
@@ -98,26 +91,6 @@ describe('resizeByHandle', () => {
           if (!edge.includes('s')) expect(next.y + next.h).toBe(start.y + start.h);
         },
       ),
-      RUNS,
-    );
-  });
-});
-
-describe('overlaps', () => {
-  it('is symmetric and true exactly when the rects share a cell', () => {
-    const arbSmall = fc.record({
-      x: fc.integer({ min: 0, max: 6 }),
-      y: fc.integer({ min: 0, max: 6 }),
-      w: fc.integer({ min: 1, max: 4 }),
-      h: fc.integer({ min: 1, max: 4 }),
-    });
-    fc.assert(
-      fc.property(arbSmall, arbSmall, (a, b) => {
-        const bCells = new Set(cells(b).map(([x, y]) => `${x},${y}`));
-        const shared = cells(a).some(([x, y]) => bCells.has(`${x},${y}`));
-        expect(overlaps(a, b)).toBe(shared);
-        expect(overlaps(b, a)).toBe(shared);
-      }),
       RUNS,
     );
   });

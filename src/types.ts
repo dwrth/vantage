@@ -28,11 +28,6 @@ export type GridItem<TData = unknown> = {
    * which is usually the top. Content that fills its cell is unaffected.
    */
   verticalAlign?: ItemVerticalAlign;
-  /**
-   * Intended layering: the item may overlap other items without an overlap warning in the
-   * builder. Applies on every breakpoint. No effect on the published render.
-   */
-  allowOverlap?: boolean;
   meta?: Record<string, unknown>;
 };
 

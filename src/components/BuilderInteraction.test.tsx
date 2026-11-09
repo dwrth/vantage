@@ -6,12 +6,10 @@ import {
   duplicateSection,
   insertSection,
   moveItem,
-  moveItemBelowOverlaps,
   moveSectionBy,
   removeItem,
   resizeItem,
   resizeSection,
-  setItemAllowOverlap,
 } from '../mutations/layout';
 import { VantageThemeProvider } from '../theme/VantageThemeProvider';
 import type { Breakpoint, ComponentRegistry, GridItem, Layout } from '../types';
@@ -85,11 +83,7 @@ const layout: Layout = {
       paddingTop: 0,
       paddingBottom: 0,
       rows: 6,
-      items: [
-        item('a', 0, 0),
-        item('b', 1, 1, { allowOverlap: true }),
-        item('c', 0, 4, { fullBleed: true, h: 1, w: 12 }),
-      ],
+      items: [item('a', 0, 0), item('b', 1, 1), item('c', 0, 4, { fullBleed: true, h: 1, w: 12 })],
     },
     { id: 'r', columns: 12, colGap: 0, rowGap: 0, items: [], arrangement: { preset: 'two' } },
   ],
@@ -371,6 +365,27 @@ describe('selection on the grid', () => {
     expect(onSelectionChange).toHaveBeenCalledTimes(3);
   });
 
+  it('cycles through stacked blocks on measured rows of a centered fill-screen grid', async () => {
+    const measured = window.getComputedStyle;
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+      const styles = measured(el, pseudo);
+      if (!el.hasAttribute('data-vantage-section-frame')) return styles;
+      return { ...styles, gridTemplateRows: Array(6).fill('48px').join(' '), paddingTop: '0px' };
+    });
+    renderBuilder({
+      value: {
+        ...layout,
+        sections: [{ ...layout.sections[0]!, fillScreen: true, verticalAlign: 'center' }],
+      },
+    });
+    await act(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    const at = pointer(106, 58, { altKey: true });
+    fireEvent.pointerDown(grid('s'), at);
+    expect(selectedKeys()).toEqual(['s:b']);
+    fireEvent.pointerDown(grid('s'), at);
+    expect(selectedKeys()).toEqual(['s:a']);
+  });
+
   it('hits a full-bleed block anywhere across the width with Alt+click', () => {
     renderBuilder();
     fireEvent.pointerDown(grid('s'), pointer(1100, 4 * 48 + 10, { altKey: true }));
@@ -561,62 +576,14 @@ describe('block chrome', () => {
   });
 });
 
-describe('overlap warnings', () => {
-  const overlapping: Layout = {
-    ...layout,
-    sections: [{ ...layout.sections[0]!, items: [item('a', 0, 0), item('b', 1, 1)] }],
-  };
-
-  it('hands a custom warning the overlap and its fixes', () => {
-    const onChange = vi.fn();
-    render(
-      <VantageBuilder
-        value={overlapping}
-        onChange={onChange}
-        components={components}
-        renderOverlapWarning={({ item: it, overlapsWith, moveBelow, allowOverlap }) => (
-          <span>
-            <button type="button" onClick={moveBelow}>
-              below {it.id} {overlapsWith.join(',')}
-            </button>
-            <button type="button" onClick={allowOverlap}>
-              keep {it.id}
-            </button>
-          </span>
-        )}
-      />,
-    );
-    fireEvent.click(screen.getByText('below b a'));
-    expect(onChange.mock.calls.at(-1)![0]).toEqual(
-      moveItemBelowOverlaps(overlapping, 's', 'b', 'desktop'),
-    );
-    fireEvent.click(screen.getByText('keep a'));
-    expect(onChange.mock.calls.at(-1)![0]).toEqual(
-      setItemAllowOverlap(overlapping, 's', 'a', true),
-    );
-  });
-
-  it('keeps presses on the warning from reaching the page', () => {
-    const outer = vi.fn();
-    render(
-      <div onPointerDown={outer}>
-        <VantageBuilder value={overlapping} onChange={vi.fn()} components={components} />
-      </div>,
-    );
-    fireEvent.pointerDown(screen.getByRole('img', { name: 'B overlaps another block' }));
-    expect(outer).not.toHaveBeenCalled();
-  });
-
-  it('shows no warning when showOverlapWarnings is false', () => {
-    render(
-      <VantageBuilder
-        value={overlapping}
-        onChange={vi.fn()}
-        components={components}
-        showOverlapWarnings={false}
-      />,
-    );
+describe('overlapping blocks', () => {
+  it('render without a warning and move onto each other as dropped', () => {
+    const { lastLayout } = renderBuilder();
     expect(document.querySelector('[data-vantage-overlap]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /below|overlap/i })).toBeNull();
+    act(() => body('s:a').focus());
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+    expect(lastLayout()).toEqual(moveItem(layout, 's', 'a', 1, 0, 'desktop'));
   });
 });
 

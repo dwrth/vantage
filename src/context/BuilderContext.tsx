@@ -48,19 +48,6 @@ export type ExternalDropEvent = {
   dataTransfer: DataTransfer;
 };
 
-/** A block that overlaps other blocks without `allowOverlap`, for `renderOverlapWarning`. */
-export type ItemOverlapContext = {
-  sectionId: string;
-  item: GridItem;
-  isSelected: boolean;
-  /** Ids of the blocks it overlaps at the active breakpoint. */
-  overlapsWith: string[];
-  /** Move the block to the first free rows below them (one undo step). */
-  moveBelow: () => void;
-  /** Keep the overlap as intended layering: sets `allowOverlap`, which hides the warning. */
-  allowOverlap: () => void;
-};
-
 export type SectionChromeContext = {
   section: Section;
   activeBreakpoint: Breakpoint;
@@ -138,8 +125,6 @@ export type BuilderContextValue = {
   getItemMinSize?: (item: GridItem, breakpoint: Breakpoint) => ItemMinSize | null | undefined;
   /** Content minimum per mounted block (`sectionId:itemId`), in cells; read by the keyboard. */
   minSizesRef: MutableRefObject<Map<string, GridMinSize>>;
-  showOverlapWarnings: boolean;
-  renderOverlapWarning?: (ctx: ItemOverlapContext) => ReactNode;
 };
 
 export const BuilderContext = createContext<BuilderContextValue | null>(null);

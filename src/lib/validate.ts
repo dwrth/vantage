@@ -79,7 +79,6 @@ function checkItem(raw: unknown, path: string, report: Report): void {
   checkOptionalBoolean(raw.fullBleed, `${path}.fullBleed`, report);
   checkOptionalBoolean(raw.hidden, `${path}.hidden`, report);
   checkItemVerticalAlign(raw.verticalAlign, `${path}.verticalAlign`, report);
-  checkOptionalBoolean(raw.allowOverlap, `${path}.allowOverlap`, report);
   checkMeta(raw.meta, `${path}.meta`, report);
 }
 

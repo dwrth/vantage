@@ -79,7 +79,7 @@ Each group action is one layout change, so one undo step.
 
 Group resize is out of scope: Shift+arrows and the layer keys do nothing while several blocks are
 selected, and grouped blocks hide their resize handles. The edit renderer
-(`editPlaceholder` swap) and the overlap fix buttons need a single selection.
+(`editPlaceholder` swap) needs a single selection.
 
 The built-in toolbar sits above the group's bounding box (`showGroupToolbar={false}` hides it).
 Its labels come from `blockLabels.groupToolbar(count)`, `blockLabels.align(alignment)` and

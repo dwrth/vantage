@@ -23,7 +23,7 @@ it. Shift+arrows and the layer keys do nothing for a group.
 
 Moves and resizes stay inside the section, like pointer drags, and write the active
 breakpoint's override off desktop. Resizes stop at the block's content minimum
-(`getItemMinSize`, see [Overlap safety](overlap.md)), like pointer resizes. Full-bleed blocks only move and resize vertically.
+(`getItemMinSize`, see [Content minimum size](min-size.md)), like pointer resizes. Full-bleed blocks only move and resize vertically.
 
 **Not handled by the library:** Cmd/Ctrl+C, V, D and every other key. Copy, paste and duplicate
 need host decisions (entity records, clipboard scope), so the host binds them. Each key has

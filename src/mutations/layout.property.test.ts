@@ -8,8 +8,7 @@ import {
   arrangementViolations,
   columnBoundsViolations,
   danglingOverrideKeys,
-  overlappingPairs,
-  overlapViolations,
+  blocksPlacedOnContent,
   overridePlacementViolations,
 } from '../test/layoutInvariants';
 import {
@@ -30,7 +29,6 @@ import {
   exportLayout,
   importLayout,
   moveItem,
-  moveItemBelowOverlaps,
   moveItemToIndex,
   moveItemToSection,
   moveSection,
@@ -42,7 +40,6 @@ import {
   sendItemBackward,
   setBreakpointPreviewWidth,
   setBreakpointWidth,
-  setItemAllowOverlap,
   setItemFullBleed,
   setItemHidden,
   setItemVerticalAlign,
@@ -195,23 +192,18 @@ describe('layout mutations: random sequences', () => {
     );
   });
 
-  const OVERLAP_SAFE_EVERYWHERE: LayoutOpName[] = [
+  const NON_PLACING: LayoutOpName[] = [
     'addSection',
     'insertSection',
     'moveSection',
     'moveSectionBy',
     'duplicateSection',
     'removeSection',
-    'updateSection',
     'updateLayoutMeta',
     'updateSectionMeta',
     'updateItemMeta',
     'updateItemData',
-    'setSectionOverride',
-    'clearSectionOverride',
     'setItemVerticalAlign',
-    'setItemAllowOverlap',
-    'moveItemBelowOverlaps',
     'removeItem',
     'removeItems',
     'bringItemForward',
@@ -220,17 +212,25 @@ describe('layout mutations: random sequences', () => {
     'sendItemToBack',
     'reorderItemAtIndex',
     'moveItemToIndex',
-    'setLayoutBreakpoints',
     'setBreakpointWidth',
     'setBreakpointPreviewWidth',
     'importExport',
   ];
 
-  it('keep free-grid sections overlap-free on every breakpoint under non-placing ops', () => {
+  it('keep the desktop placement of every remaining block, overlapping or not, under non-placing ops', () => {
     fc.assert(
-      fc.property(arbLayout(), arbOps(OVERLAP_SAFE_EVERYWHERE), (start, ops) => {
-        runOps(start, ops, (_before, after) => {
-          expect(overlapViolations(after)).toEqual([]);
+      fc.property(arbLayout(), arbOps(NON_PLACING), (start, ops) => {
+        runOps(start, ops, (before, after) => {
+          for (const section of after.sections) {
+            const previous = before.sections.find((s) => s.id === section.id);
+            if (!previous || section.arrangement) continue;
+            for (const item of section.items) {
+              const was = previous.items.find((i) => i.id === item.id);
+              if (!was) continue;
+              const { x, y, w, h } = item;
+              expect({ x, y, w, h }).toEqual({ x: was.x, y: was.y, w: was.w, h: was.h });
+            }
+          }
         });
       }),
       RUNS,
@@ -245,17 +245,17 @@ describe('layout mutations: random sequences', () => {
     'moveItemToSection',
   ];
 
-  it('place new, duplicated, pasted and moved-in blocks below the desktop content without overlap', () => {
+  it('place new, duplicated, pasted and moved-in blocks below the desktop content', () => {
     const desktopOps = fc
-      .array(arbLayoutOp([...OVERLAP_SAFE_EVERYWHERE, ...DESKTOP_PLACING]), {
+      .array(arbLayoutOp([...NON_PLACING, ...DESKTOP_PLACING]), {
         minLength: 1,
         maxLength: 12,
       })
       .map((ops) => ops.map((op) => ({ ...op, place: false, breakpoint: 0 })));
     fc.assert(
       fc.property(arbLayout(), desktopOps, (start, ops) => {
-        runOps(start, ops, (_before, after) => {
-          expect(overlapViolations(after, ['desktop'])).toEqual([]);
+        runOps(start, ops, (before, after) => {
+          expect(blocksPlacedOnContent(before, after)).toEqual([]);
         });
       }),
       RUNS,
@@ -276,7 +276,6 @@ describe('moveItemToSection: shrunk counterexamples', () => {
       breakpointPreviewWidths: {},
     };
     const moved = moveItemToSection(layout, 's1', 'b', 's0');
-    expect(overlapViolations(moved)).toEqual([]);
     expect(placementAt(moved, 's0', 'b', 'desktop')).toMatchObject({ x: 0, y: 1 });
     expect(sectionRows(sectionOf(moved, 's0'), 'desktop')).toBe(2);
   });
@@ -286,12 +285,11 @@ describe('autoArrangeBreakpoint', () => {
   const arbWithBreakpoint = (bp: Exclude<Breakpoint, 'desktop'>) =>
     arbLayout({ arrangements: 0, breakpoints: fc.constant<Breakpoint[]>(['desktop', bp]) });
 
-  it('stacks every free-grid section overlap-free at full mobile width', () => {
+  it('stacks every free-grid section at full mobile width, keeping flags', () => {
     fc.assert(
       fc.property(arbWithBreakpoint('mobile'), (start) => {
         const layout = deepFreeze(start);
         const arranged = autoArrangeBreakpoint(layout, 'mobile');
-        expect(overlapViolations(arranged)).toEqual([]);
         expect(itemFlags(arranged, ['mobile'])).toEqual(itemFlags(layout, ['mobile']));
         expect(validateLayout(arranged).errors).toEqual([]);
       }),
@@ -316,28 +314,6 @@ describe('autoArrangeBreakpoint', () => {
       }),
       RUNS,
     );
-  });
-
-  it.fails('keeps desktop-disjoint blocks disjoint when scaling onto tablet columns', () => {
-    const layout: Layout = {
-      sections: [
-        {
-          id: 's0',
-          columns: 12,
-          colGap: 8,
-          rowGap: 8,
-          items: [
-            { id: 'a', kind: 'text', x: 1, y: 0, w: 1, h: 1 },
-            { id: 'b', kind: 'text', x: 2, y: 0, w: 1, h: 1 },
-          ],
-        },
-      ],
-      breakpoints: ['desktop', 'tablet'],
-      breakpointWidths: { tablet: 1023 },
-      breakpointPreviewWidths: { tablet: 768 },
-    };
-    expect(overlapViolations(layout)).toEqual([]);
-    expect(overlapViolations(autoArrangeBreakpoint(layout, 'tablet'))).toEqual([]);
   });
 });
 
@@ -487,7 +463,6 @@ describe('layout mutations: inverses and no-ops', () => {
         const plain = { ...item };
         delete plain.hidden;
         delete plain.fullBleed;
-        delete plain.allowOverlap;
         const start = deepFreeze({
           ...layout,
           sections: layout.sections.map((s) =>
@@ -499,7 +474,6 @@ describe('layout mutations: inverses and no-ops', () => {
         const toggles = [
           (l: Layout, on: boolean) => setItemHidden(l, section.id, item.id, 'desktop', on),
           (l: Layout, on: boolean) => setItemFullBleed(l, section.id, item.id, on),
-          (l: Layout, on: boolean) => setItemAllowOverlap(l, section.id, item.id, on),
         ];
         for (const toggle of toggles) expect(toggle(toggle(start, true), false)).toEqual(start);
       }),
@@ -583,7 +557,6 @@ describe('layout mutations: inverses and no-ops', () => {
         const layout = deepFreeze(start);
         expect(moveSection(layout, 'missing', 0)).toBe(layout);
         expect(duplicateSection(layout, 'missing').layout).toBe(layout);
-        expect(moveItemBelowOverlaps(layout, 'missing', 'x')).toBe(layout);
         for (const bp of NON_DESKTOP_BREAKPOINTS) {
           if (layout.breakpoints.includes(bp)) continue;
           expect(setBreakpointWidth(layout, bp, 500)).toBe(layout);
@@ -596,10 +569,6 @@ describe('layout mutations: inverses and no-ops', () => {
           for (const item of section.items) {
             if (!section.arrangement) {
               expect(moveItemToSection(layout, section.id, item.id, section.id)).toBe(layout);
-            }
-            for (const bp of enabled) {
-              if (section.arrangement) continue;
-              expect(moveItemBelowOverlaps(layout, section.id, item.id, bp)).toBe(layout);
             }
           }
           for (const bp of enabled) {
@@ -615,24 +584,28 @@ describe('layout mutations: inverses and no-ops', () => {
     );
   });
 
-  it('moveItemBelowOverlaps clears every overlap of the item, keeping its column and size', () => {
+  it('moveItem onto another block puts it there and leaves the other block in place', () => {
     fc.assert(
       fc.property(arbFreeGridPick, fc.nat(), ({ layout, section, item, bp }, o) => {
         const enabled = getEnabledBreakpoints(layout);
         fc.pre(section.items.length > 1);
-        const others = section.items.filter((i) => i.id !== item.id);
-        const target = resolveItem(others[o % others.length]!, section, bp, enabled);
-        const collided = moveItem(layout, section.id, item.id, target.x, target.y, bp);
-        const before = placementAt(collided, section.id, item.id, bp);
-        const resolved = moveItemBelowOverlaps(collided, section.id, item.id, bp);
-        const after = placementAt(resolved, section.id, item.id, bp);
-        expect({ ...after, y: 0 }).toEqual({ ...before, y: 0 });
-        const next = sectionOf(resolved, section.id);
-        expect(
-          overlappingPairs(next, bp, enabled).filter((pair) => pair.includes(item.id)),
-        ).toEqual([]);
-        expect(sectionRows(next, bp, enabled)).toBeGreaterThanOrEqual(after.y + after.h);
-        expect(validateLayout(resolved).valid).toBe(true);
+        const other = section.items.filter((i) => i.id !== item.id)[
+          o % (section.items.length - 1)
+        ]!;
+        const target = resolveItem(other, section, bp, enabled);
+        const before = placementAt(layout, section.id, item.id, bp);
+        fc.pre(!before.fullBleed);
+        fc.pre(target.x + before.w <= resolveSection(section, bp, enabled).columns);
+        fc.pre(target.y + before.h <= sectionRows(section, bp, enabled));
+        const moved = moveItem(layout, section.id, item.id, target.x, target.y, bp);
+        expect(placementAt(moved, section.id, item.id, bp)).toMatchObject({
+          x: target.x,
+          y: target.y,
+          w: before.w,
+          h: before.h,
+        });
+        expect(placementAt(moved, section.id, other.id, bp)).toEqual(target);
+        expect(validateLayout(moved).errors).toEqual([]);
       }),
       RUNS,
     );
