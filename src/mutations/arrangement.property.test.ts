@@ -58,7 +58,7 @@ describe('setSectionArrangement: free grid to arrangement', () => {
           expectOthersKept(layout, next, source.id);
           const section = sectionById(next, source.id);
           expect(section.arrangement).toBe(arrangement);
-          expect(section.columns).toBe(12);
+          expect(section.columns).toBe(source.columns);
           expect(arrangementViolations(next)).toEqual([]);
           expect(validateLayout(next).errors).toEqual([]);
           expect([...section.items].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
@@ -163,9 +163,11 @@ describe('setSectionArrangement: arrangement to free grid', () => {
             layout = setSectionArrangement(layout, source.id, null);
           }
           const section = sectionById(layout, source.id);
-          expect(section.columns).toBe(12);
+          expect(section.columns).toBe(source.columns);
           for (const bp of NON_DESKTOP_BREAKPOINTS) {
-            expect(section.overrides?.[bp]?.columns).toBe(defaultColumnsForBreakpoint(12, bp));
+            expect(section.overrides?.[bp]?.columns).toBe(
+              defaultColumnsForBreakpoint(source.columns, bp),
+            );
           }
           expect(section.items.map((i) => i.id).sort()).toEqual(
             source.items.map((i) => i.id).sort(),

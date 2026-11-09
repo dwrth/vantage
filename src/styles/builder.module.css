@@ -21,7 +21,10 @@
    * @property initial-value instead (see tokens.css).
    */
   --cell-max-px: var(--vantage-cell-max-px);
-  --max-section-w: calc(var(--cols) * var(--cell-max-px));
+  --max-section-w: min(
+    calc(var(--cols) * var(--cell-max-px)),
+    var(--vantage-section-max-px, 1000000px)
+  );
   --content-w: min(
     max(0px, calc(100cqi - var(--canvas-pad-x) - var(--col-gap-px) - var(--col-gap-px))),
     var(--max-section-w)

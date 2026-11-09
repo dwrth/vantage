@@ -1,9 +1,10 @@
 /*
  * Builder surface of an arrangement section. The grid is the same one the preview draws:
- * content as wide as 12 columns, rows as tall as their tallest block.
+ * content as wide as 12 columns (capped at --vantage-section-max-px), rows as tall as their
+ * tallest block.
  */
 .flow.flow {
-  --max-section-w: calc(12 * var(--cell-max-px));
+  --max-section-w: min(calc(12 * var(--cell-max-px)), var(--vantage-section-max-px, 1000000px));
   grid-auto-rows: auto;
   min-height: 3rem;
 }

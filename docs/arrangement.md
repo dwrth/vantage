@@ -23,10 +23,10 @@ type SectionArrangement = {
 
 ## Mutations
 
-- `addSection(layout, { arrangement })` creates an arrangement section.
+- `addSection(layout, { arrangement })` creates an arrangement section. `columns` (default 12) are the desktop columns of the free grid it becomes when switched back; the arrangement itself always divides its 12 column track.
 - `addItem(layout, sectionId, kind, { index })` inserts at an index (appended without one).
 - `moveItemToIndex(layout, sectionId, itemId, index)` reorders; `moveItemToSection(..., { index })` moves between sections.
-- `setSectionArrangement(layout, sectionId, arrangement | null)` switches a section. From a free grid the blocks are ordered by their desktop reading order and the grid placement of the breakpoints is dropped. `null` writes the current arrangement out as explicit `x / y / w / h` on every breakpoint (rows as tall as their tallest block), on the grid a free-grid section gets: desktop keeps `section.columns`, tablet and mobile get `defaultColumnsForBreakpoint(section.columns, bp)` (8 and 4 for 12 columns), and the preset's slots scale onto those columns. The preset's own track columns (one column when stacked) are not kept.
+- `setSectionArrangement(layout, sectionId, arrangement | null)` switches a section. From a free grid the blocks are ordered by their desktop reading order, the grid placement of the breakpoints is dropped and `section.columns` is kept. `null` writes the current arrangement out as explicit `x / y / w / h` on every breakpoint (rows as tall as their tallest block), on the grid a free-grid section gets: desktop keeps `section.columns`, tablet and mobile get `defaultColumnsForBreakpoint(section.columns, bp)` (8 and 4 for 12 columns), and the preset's slots scale onto those columns. The preset's own track columns (one column when stacked) are not kept.
 - `validateLayout` / `isValidLayout` check the preset and the options.
 
 ## Builder

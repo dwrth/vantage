@@ -177,7 +177,10 @@ export function applyLayoutOp(layout: Layout, op: LayoutOp): AppliedOp {
   switch (op.name) {
     case 'addSection':
       return {
-        layout: addSection(layout, op.arrangement ? { arrangement: op.arrangement } : {}).layout,
+        layout: addSection(layout, {
+          ...(op.arrangement ? { arrangement: op.arrangement } : {}),
+          ...(op.place ? { columns: op.w } : {}),
+        }).layout,
         touched: [],
       };
     case 'insertSection':

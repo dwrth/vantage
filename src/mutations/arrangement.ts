@@ -1,10 +1,5 @@
 import { defaultColumnsForBreakpoint, resolveItem } from '../lib/breakpoint';
-import {
-  ARRANGEMENT_COLUMNS,
-  arrangementSlots,
-  arrangementTrack,
-  type ArrangementSlot,
-} from '../lib/arrangement';
+import { arrangementSlots, arrangementTrack, type ArrangementSlot } from '../lib/arrangement';
 import {
   NON_DESKTOP_BREAKPOINTS,
   type Breakpoint,
@@ -35,7 +30,6 @@ function inReadingOrder(items: GridItem[]): GridItem[] {
 function toArrangement(section: Section, arrangement: SectionArrangement): Section {
   const next: Section = {
     ...section,
-    columns: ARRANGEMENT_COLUMNS,
     arrangement,
     items: section.arrangement ? section.items : inReadingOrder(section.items),
   };
@@ -134,8 +128,9 @@ function toFreeGrid(section: Section): Section {
  * Switch a section between free grid and arrangement, or change its arrangement. `null` makes
  * it a free grid: the current arrangement is written out as explicit placement on every
  * breakpoint, on the grid a free-grid section of the same desktop columns gets (desktop keeps
- * `section.columns`, tablet and mobile use `defaultColumnsForBreakpoint`). An arrangement from a free grid orders the blocks by their desktop reading order
- * and drops the grid placement of the breakpoints.
+ * `section.columns`, tablet and mobile use `defaultColumnsForBreakpoint`). An arrangement from a
+ * free grid orders the blocks by their desktop reading order, drops the grid placement of the
+ * breakpoints and keeps `section.columns` for the way back.
  */
 export function setSectionArrangement(
   layout: Layout,

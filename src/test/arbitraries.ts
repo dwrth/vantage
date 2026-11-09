@@ -240,6 +240,12 @@ export const arbSectionArrangement: fc.Arbitrary<SectionArrangement> = fc.record
   { requiredKeys: ['preset'] },
 );
 
+/** Desktop columns of a section: the common 12 and 14 often, any count up to 24 otherwise. */
+export const arbSectionColumns: fc.Arbitrary<number> = fc.oneof(
+  fc.constantFrom(12, 14),
+  fc.integer({ min: 1, max: 24 }),
+);
+
 export type ArrangementSectionOptions = {
   id: string;
   breakpoints: Breakpoint[];
@@ -248,8 +254,9 @@ export type ArrangementSectionOptions = {
 };
 
 /**
- * An arrangement section: 12 columns, no `rows`, overrides that only carry gaps and per-item
- * `hidden` / `data` / `verticalAlign`. Item ids are `${id}-i${n}`.
+ * An arrangement section: any desktop columns (`arbSectionColumns`, kept for the free grid it
+ * becomes), no `rows`, overrides that only carry gaps and per-item `hidden` / `data` /
+ * `verticalAlign`. Item ids are `${id}-i${n}`.
  */
 export function arbArrangementSection({
   id,
@@ -257,11 +264,25 @@ export function arbArrangementSection({
   maxItems = 6,
   hidden = true,
 }: ArrangementSectionOptions): fc.Arbitrary<Section> {
+  return arbSectionColumns.chain((columns) =>
+    arrangementSectionIn(columns, id, breakpoints, maxItems, hidden),
+  );
+}
+
+function arrangementSectionIn(
+  columns: number,
+  id: string,
+  breakpoints: Breakpoint[],
+  maxItems: number,
+  hidden: boolean,
+): fc.Arbitrary<Section> {
   return fc
     .record({
       arrangement: arbSectionArrangement,
       label: fc.option(fc.string({ maxLength: 8 }), { nil: undefined }),
-      shapes: fc.array(arbItemShape(12, { fullBleed: false, hidden }), { maxLength: maxItems }),
+      shapes: fc.array(arbItemShape(columns, { fullBleed: false, hidden }), {
+        maxLength: maxItems,
+      }),
       perBreakpoint: fc.tuple(
         ...NON_DESKTOP_BREAKPOINTS.map(() =>
           fc.record({
@@ -273,7 +294,7 @@ export function arbArrangementSection({
     })
     .map(({ arrangement, label, shapes, perBreakpoint }) => {
       const items = shapes.map((shape, index) => toItem(`${id}-i${index}`, shape, shape.rect));
-      const section: Section = { id, columns: 12, colGap: 8, rowGap: 8, items, arrangement };
+      const section: Section = { id, columns, colGap: 8, rowGap: 8, items, arrangement };
       if (label !== undefined) section.label = label;
       const overrides: NonNullable<Section['overrides']> = {};
       NON_DESKTOP_BREAKPOINTS.forEach((bp, bpIndex) => {

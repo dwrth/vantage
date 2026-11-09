@@ -5,7 +5,6 @@ import {
   sectionContentRows,
   sectionRows,
 } from '../lib/breakpoint';
-import { ARRANGEMENT_COLUMNS } from '../lib/arrangement';
 import { clampItem, nextSlot } from '../lib/grid';
 import { createId } from '../lib/id';
 import {
@@ -430,7 +429,18 @@ export type InsertSectionOptions = {
   label?: (position: number) => string;
   /** Create an arrangement section instead of a free grid. */
   arrangement?: SectionArrangement;
+  /**
+   * Desktop columns of the new section. Default: `DEFAULT_SECTION.columns` (12). An arrangement
+   * section keeps them for the free grid it becomes when switched back.
+   */
+  columns?: number;
 };
+
+/** `columns` rounded to a whole count of at least 1; `DEFAULT_SECTION.columns` when not a finite number. */
+function newSectionColumns(columns: number | undefined): number {
+  if (columns === undefined || !Number.isFinite(columns)) return DEFAULT_SECTION.columns;
+  return Math.max(1, Math.round(columns));
+}
 
 /** Insert an empty section at `index` (clamped), e.g. between two sections. */
 export function insertSection(
@@ -444,9 +454,8 @@ export function insertSection(
     id,
     label: options.label ? options.label(count) : `Section ${count}`,
     ...DEFAULT_SECTION,
-    ...(options.arrangement
-      ? { columns: ARRANGEMENT_COLUMNS, arrangement: options.arrangement }
-      : {}),
+    columns: newSectionColumns(options.columns),
+    ...(options.arrangement ? { arrangement: options.arrangement } : {}),
     items: [],
   };
   if (options.arrangement) delete section.rows;

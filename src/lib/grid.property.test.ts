@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { arbRect } from '../test/arbitraries';
 import {
   clampItem,
+  getCellWidth,
+  getContentMaxWidth,
   getFlexRowHeight,
+  getGridContentOffset,
+  getGridContentWidth,
   pxToCell,
   resizeByHandle,
   resizeFloor,
@@ -117,5 +121,52 @@ describe('getFlexRowHeight', () => {
   it('is zero without a positive cell maximum', () => {
     expect(getFlexRowHeight(1200, 12, 8, 48, 0)).toBe(0);
     expect(getFlexRowHeight(1200, 12, 8, 48, -1)).toBe(0);
+  });
+});
+
+describe('section max width', () => {
+  const arbGeometry = fc.record({
+    containerWidth: fc.double({ min: 0, max: 4000, noNaN: true }),
+    columns: arbColumns,
+    gap: fc.integer({ min: 0, max: 32 }),
+    cellMaxPx: fc.integer({ min: 1, max: 200 }),
+    sectionMaxPx: fc.integer({ min: 1, max: 4000 }),
+    rowMaxPx: fc.integer({ min: 1, max: 200 }),
+  });
+
+  it('caps the content at the section max and leaves it alone above columns * cell max', () => {
+    fc.assert(
+      fc.property(arbGeometry, ({ containerWidth, columns, gap, cellMaxPx, sectionMaxPx }) => {
+        const capped = getGridContentWidth(containerWidth, columns, gap, cellMaxPx, sectionMaxPx);
+        const uncapped = getGridContentWidth(containerWidth, columns, gap, cellMaxPx);
+        expect(capped).toBe(Math.min(uncapped, sectionMaxPx));
+        expect(getContentMaxWidth(columns, gap, cellMaxPx, columns * cellMaxPx + 1)).toBe(
+          getContentMaxWidth(columns, gap, cellMaxPx),
+        );
+        expect(
+          getGridContentOffset(containerWidth, columns, gap, cellMaxPx, sectionMaxPx),
+        ).toBeCloseTo(Math.max(0, (containerWidth - capped) / 2), 9);
+      }),
+      RUNS,
+    );
+  });
+
+  it('gives a section of more columns narrower cells and rows under the same cap', () => {
+    fc.assert(
+      fc.property(
+        arbGeometry,
+        fc.integer({ min: 1, max: 6 }),
+        ({ containerWidth, columns, gap, cellMaxPx, sectionMaxPx, rowMaxPx }, extra) => {
+          const cell = (cols: number) =>
+            getCellWidth(containerWidth, cols, gap, cellMaxPx, sectionMaxPx);
+          const row = (cols: number) =>
+            getFlexRowHeight(containerWidth, cols, gap, rowMaxPx, cellMaxPx, sectionMaxPx);
+          expect(cell(columns + extra)).toBeLessThanOrEqual(cell(columns) + 1e-9);
+          expect(row(columns + extra)).toBeLessThanOrEqual(row(columns) + 1e-9);
+          expect(row(columns)).toBeCloseTo((cell(columns) * rowMaxPx) / cellMaxPx, 9);
+        },
+      ),
+      RUNS,
+    );
   });
 });

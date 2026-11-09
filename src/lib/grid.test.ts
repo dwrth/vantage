@@ -48,6 +48,18 @@ describe('grid sizing', () => {
     expect(getGridContentWidth(10, 12, 8)).toBe(0);
   });
 
+  it('caps content width at the section max, so more columns get narrower cells', () => {
+    expect(getGridContentWidth(2000, 14, 8)).toBe(14 * CELL_MAX_PX);
+    expect(getGridContentWidth(2000, 14, 8, CELL_MAX_PX, 1152)).toBe(1152);
+    expect(getGridContentWidth(2000, 12, 8, CELL_MAX_PX, 1152)).toBe(1152);
+    expect(getGridContentWidth(2000, 6, 8, CELL_MAX_PX, 1152)).toBe(6 * CELL_MAX_PX);
+    expect(getGridContentOffset(2000, 14, 8, CELL_MAX_PX, 1152)).toBe((2000 - 1152) / 2);
+    // 1152px over 14 columns with 13 gaps of 8: ~74.9px cells; rows are half a cell at 48 / 96.
+    expect(getCellWidth(2000, 14, 8, CELL_MAX_PX, 1152)).toBeCloseTo(74.857, 3);
+    expect(getCellWidth(2000, 12, 8, CELL_MAX_PX, 1152)).toBeCloseTo(88.667, 3);
+    expect(getFlexRowHeight(2000, 14, 8, 48, 96, 1152)).toBeCloseTo(37.429, 3);
+  });
+
   it('centers capped content', () => {
     expect(getGridContentOffset(2000, 12, 8)).toBe((2000 - 12 * CELL_MAX_PX) / 2);
     expect(getGridContentOffset(500, 12, 8)).toBe(8);

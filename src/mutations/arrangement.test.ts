@@ -132,6 +132,38 @@ describe('arrangement sections', () => {
 });
 
 describe('setSectionArrangement', () => {
+  it('keeps 14 columns through an arrangement and scales the 12 column track onto them', () => {
+    const spans = (preset: 'two' | 'three' | 'four', count: number) => {
+      let layout = setLayoutBreakpoints(createEmptyLayout(), ['desktop', 'tablet', 'mobile']);
+      const created = addSection(layout, { columns: 14 });
+      layout = created.layout;
+      for (let i = 0; i < count; i += 1) {
+        layout = addItem(layout, created.sectionId, 'block', { id: `i${i}`, x: i * 3, y: 0 });
+      }
+      const arranged = setSectionArrangement(layout, created.sectionId, { preset });
+      expect(arranged.sections[0]!.columns).toBe(14);
+      const free = setSectionArrangement(arranged, created.sectionId, null).sections[0]!;
+      expect(free.columns).toBe(14);
+      expect(free.overrides?.tablet?.columns).toBe(9);
+      return free.items.map((i) => [i.x, i.w]);
+    };
+    expect(spans('two', 2)).toEqual([
+      [0, 7],
+      [7, 7],
+    ]);
+    expect(spans('three', 3)).toEqual([
+      [0, 5],
+      [5, 4],
+      [9, 5],
+    ]);
+    expect(spans('four', 4)).toEqual([
+      [0, 4],
+      [4, 3],
+      [7, 4],
+      [11, 3],
+    ]);
+  });
+
   it('switches a free grid to an arrangement ordered by reading order and drops grid placement', () => {
     let layout = createEmptyLayout();
     const created = addSection(layout);

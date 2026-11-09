@@ -9,14 +9,20 @@ export function pxToCell(px: number, cellSize: number): number {
   return Math.sign(px) * Math.round(Math.abs(px) / cellSize);
 }
 
+/**
+ * Widest a section's content gets: `columns` cells of `cellMaxPx`, capped at `sectionMaxPx`
+ * (`--vantage-section-max-px`; no cap by default). With a cap, sections of more columns get
+ * narrower cells instead of a wider section.
+ */
 export function getContentMaxWidth(
   columns: number,
   _gap: number,
   cellMaxPx: number = CELL_MAX_PX,
+  sectionMaxPx: number = Infinity,
 ): number {
   // Section width is independent of column gap: changing gap shrinks
   // the cells, not the overall section width.
-  return columns * cellMaxPx;
+  return Math.min(columns * cellMaxPx, sectionMaxPx);
 }
 
 export function getFlexRowHeight(
@@ -25,9 +31,10 @@ export function getFlexRowHeight(
   gap: number,
   rowMaxPx: number = ROW_MAX_PX,
   cellMaxPx: number = CELL_MAX_PX,
+  sectionMaxPx: number = Infinity,
 ): number {
   if (cellMaxPx <= 0) return 0;
-  const cellWidth = getCellWidth(containerWidth, columns, gap, cellMaxPx);
+  const cellWidth = getCellWidth(containerWidth, columns, gap, cellMaxPx, sectionMaxPx);
   return (cellWidth * rowMaxPx) / cellMaxPx;
 }
 
@@ -36,9 +43,10 @@ export function getGridContentWidth(
   columns: number,
   gap: number,
   cellMaxPx: number = CELL_MAX_PX,
+  sectionMaxPx: number = Infinity,
 ): number {
   const available = Math.max(0, containerWidth - gap * 2);
-  return Math.min(available, getContentMaxWidth(columns, gap, cellMaxPx));
+  return Math.min(available, getContentMaxWidth(columns, gap, cellMaxPx, sectionMaxPx));
 }
 
 export function getGridContentOffset(
@@ -46,8 +54,9 @@ export function getGridContentOffset(
   columns: number,
   gap: number,
   cellMaxPx: number = CELL_MAX_PX,
+  sectionMaxPx: number = Infinity,
 ): number {
-  const contentWidth = getGridContentWidth(containerWidth, columns, gap, cellMaxPx);
+  const contentWidth = getGridContentWidth(containerWidth, columns, gap, cellMaxPx, sectionMaxPx);
   return Math.max(0, (containerWidth - contentWidth) / 2);
 }
 
@@ -145,9 +154,10 @@ export function getCellWidth(
   columns: number,
   gap: number,
   cellMaxPx: number = CELL_MAX_PX,
+  sectionMaxPx: number = Infinity,
 ): number {
   if (columns <= 0) return 0;
-  const inner = getGridContentWidth(containerWidth, columns, gap, cellMaxPx);
+  const inner = getGridContentWidth(containerWidth, columns, gap, cellMaxPx, sectionMaxPx);
   return Math.max(0, (inner - gap * (columns - 1)) / columns);
 }
 
