@@ -70,7 +70,7 @@ export function gridCellAt(
 
 /** Auto-scroll band at each edge of the visible scroll area, as a share of its height. */
 export const AUTO_SCROLL_THRESHOLD = 0.15;
-/** Auto-scroll speed at the very edge, in px per ms (dnd-kit: acceleration 10 per 5 ms). */
+/** Auto-scroll speed at the very edge, in px per ms. */
 export const AUTO_SCROLL_MAX_SPEED = 2;
 
 /**

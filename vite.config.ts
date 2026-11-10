@@ -21,7 +21,7 @@ export default defineConfig({
       fileName: (format) => `vantage.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', '@dnd-kit/core'],
+      external: ['react', 'react-dom', 'react/jsx-runtime'],
     },
     cssCodeSplit: false,
     emptyOutDir: true,

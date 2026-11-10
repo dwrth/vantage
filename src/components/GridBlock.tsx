@@ -1,5 +1,5 @@
-import { useDraggable } from '@dnd-kit/core';
 import { createElement, Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useBlockDrag } from '../lib/blockDrag';
 import { useBuilderContext } from '../context/BuilderContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
 import { DRAG_SHIFT, useCanvasDnd } from '../context/CanvasDndContext';
@@ -142,10 +142,10 @@ export function GridBlock({
         : placement;
 
   const { dropTarget } = useCanvasDnd();
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `${sectionId}:${item.id}`,
-    data: { type: 'block', item, sectionId, placement },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useBlockDrag(
+    `${sectionId}:${item.id}`,
+    { type: 'block', item, sectionId, placement },
+  );
   // Over another section the block follows the pointer freely; the target shows a snapped ghost.
   const leavingSection = isDragging && dropTarget !== null && dropTarget.sectionId !== sectionId;
 

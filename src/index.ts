@@ -16,6 +16,7 @@ export type {
   BlockAnnouncementContext,
   GroupAnnouncementContext,
 } from './components/Builder';
+export type { BlockDragAttributes, BlockDragListeners } from './lib/blockDrag';
 export { DEFAULT_LABELS } from './lib/defaultLabels';
 export { DEFAULT_SECTION_ACTION_LABELS } from './lib/sectionActionLabels';
 export { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from './lib/keyboardLabels';

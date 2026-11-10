@@ -1,4 +1,4 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
+import type { BlockDragAttributes, BlockDragListeners } from '../lib/blockDrag';
 import {
   createContext,
   useContext,
@@ -112,8 +112,8 @@ export type BuilderContextValue = {
     item: GridItem;
     isSelected: boolean;
     isDragging: boolean;
-    listeners: DraggableSyntheticListeners | undefined;
-    attributes: DraggableAttributes;
+    listeners: BlockDragListeners;
+    attributes: BlockDragAttributes;
   }) => ReactNode;
   renderDeleteButton?: (ctx: {
     sectionId: string;

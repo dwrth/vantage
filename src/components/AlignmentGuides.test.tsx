@@ -6,7 +6,7 @@ import { VantageBuilder } from './Builder';
 
 /*
  * jsdom has no layout: the grid reports 1152px wide (12 columns of 96px, no gaps or padding),
- * so a column is 96px and a row 48px. The dragged block reports its own rect for dnd-kit.
+ * so a column is 96px and a row 48px. The dragged block reports its own rect for the drag.
  */
 function rect(left: number, top: number, width: number, height: number): DOMRect {
   const r = {

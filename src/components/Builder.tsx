@@ -1,4 +1,4 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
+import type { BlockDragAttributes, BlockDragListeners } from '../lib/blockDrag';
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BuilderContext } from '../context/BuilderContext';
 import {
@@ -63,8 +63,9 @@ export type ItemEditButtonRenderProps = ItemChromeRenderProps;
 
 export type ItemDragHandleRenderProps = ItemChromeRenderProps & {
   isDragging: boolean;
-  listeners: DraggableSyntheticListeners | undefined;
-  attributes: DraggableAttributes;
+  /** Spread on the handle element: starts a drag on pointer down. */
+  listeners: BlockDragListeners;
+  attributes: BlockDragAttributes;
 };
 
 export type ItemDeleteButtonRenderProps = ItemChromeRenderProps & {
