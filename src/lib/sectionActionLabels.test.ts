@@ -19,7 +19,6 @@ describe('DEFAULT_SECTION_ACTION_LABELS', () => {
     expect(L.moveDown(s)).toBe('Move Hero down');
     expect(L.duplicate(s)).toBe('Duplicate Hero');
     expect(L.save(s)).toBe('Save Hero as template');
-    expect(L.insertBefore(s)).toBe('Add section above Hero');
   });
 
   it('falls back to "section" when the label is missing', () => {
@@ -29,7 +28,6 @@ describe('DEFAULT_SECTION_ACTION_LABELS', () => {
     expect(L.moveDown(s)).toBe('Move section down');
     expect(L.duplicate(s)).toBe('Duplicate section');
     expect(L.save(s)).toBe('Save section as template');
-    expect(L.insertBefore(s)).toBe('Add section above section');
   });
 
   it('only falls back for undefined, not for an empty label', () => {

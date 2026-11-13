@@ -123,13 +123,11 @@ export type VantageBuilderProps = {
    * (`section`, `block`), the empty canvas, and a few fallbacks. Defaults: `DEFAULT_LABELS`.
    */
   defaultLabels?: Partial<DefaultLabels>;
-  /** Section toolbar (move up / down, duplicate) and the insert-section button. Default: shown. */
-  showSectionActions?: boolean;
   /**
-   * Only the toolbar (move / duplicate / save) of the section actions; the insert-section button on the
-   * section edge stays. Set to false when the host renders its own toolbar. Default: shown.
+   * Section toolbar (move up / down, duplicate, save). Set to false when the host renders its own
+   * toolbar. Default: shown.
    */
-  showSectionToolbar?: boolean;
+  showSectionActions?: boolean;
   /** Accessible names of the section toolbar buttons, e.g. for translation. */
   sectionActionLabels?: Partial<SectionActionLabels>;
   /**
@@ -199,7 +197,6 @@ export function VantageBuilder({
   renderSectionFooter,
   sectionResizeLabel,
   showSectionActions = true,
-  showSectionToolbar = true,
   sectionActionLabels,
   defaultLabels: defaultLabelsProp,
   onDuplicateSection,
@@ -359,7 +356,6 @@ export function VantageBuilder({
         renderSectionFooter,
         sectionResizeLabel,
         showSectionActions,
-        showSectionToolbar,
         sectionActionLabels,
         defaultLabels,
         blockLabels,
