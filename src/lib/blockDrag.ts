@@ -138,7 +138,14 @@ export function useBlockDragController(handlers: BlockDragHandlers): BlockDragCo
   });
   const [store] = useState(createStore);
   const cancelActive = useRef<(() => void) | null>(null);
-  useEffect(() => () => cancelActive.current?.(), []);
+  const releaseClick = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      cancelActive.current?.();
+      releaseClick.current?.();
+    },
+    [],
+  );
 
   const begin = useCallback<BlockDragContextValue['begin']>(
     (id, getData, node, e) => {
@@ -192,6 +199,7 @@ export function useBlockDragController(handlers: BlockDragHandlers): BlockDragCo
         clearSelection();
         listen(true);
         // A drag that ends on its handle must not click it.
+        releaseClick.current?.();
         document.addEventListener('click', swallowClick, true);
         store.set({ id, transform: { x: 0, y: 0 } });
         handlersRef.current.onDragStart(current());
@@ -213,7 +221,13 @@ export function useBlockDragController(handlers: BlockDragHandlers): BlockDragCo
           if (!started) return;
           const event = current();
           listen(false);
-          setTimeout(() => document.removeEventListener('click', swallowClick, true), 50);
+          const release = () => {
+            clearTimeout(timer);
+            document.removeEventListener('click', swallowClick, true);
+            releaseClick.current = null;
+          };
+          const timer = setTimeout(release, 50);
+          releaseClick.current = release;
           store.set(null);
           if (cancelled) handlersRef.current.onDragCancel();
           else handlersRef.current.onDragEnd(event);
