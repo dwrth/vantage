@@ -175,6 +175,39 @@ describe('useBlockDrag', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps swallowing the click of a drag that starts right after another one', () => {
+    const { handle } = setup();
+    const onClick = vi.fn();
+    handle.addEventListener('click', onClick);
+    fireEvent.pointerDown(handle, pointer(10, 10));
+    fireEvent.pointerMove(document, pointer(40, 30));
+    fireEvent.pointerUp(document, pointer(40, 30));
+    vi.advanceTimersByTime(20);
+    fireEvent.pointerDown(handle, pointer(10, 10));
+    fireEvent.pointerMove(document, pointer(40, 30));
+    vi.advanceTimersByTime(40);
+    fireEvent.pointerUp(document, pointer(40, 30));
+    fireEvent.click(handle);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['right after a drag ended', false],
+    ['during a drag', true],
+  ])('leaves no timer or click listener behind when unmounted %s', (_name, midDrag) => {
+    const { handle } = setup();
+    fireEvent.pointerDown(handle, pointer(10, 10));
+    fireEvent.pointerMove(document, pointer(40, 30));
+    if (!midDrag) fireEvent.pointerUp(document, pointer(40, 30));
+    cleanup();
+    expect(vi.getTimerCount()).toBe(0);
+    const onClick = vi.fn();
+    document.body.addEventListener('click', onClick);
+    fireEvent.click(document.body);
+    document.body.removeEventListener('click', onClick);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ['a non-primary pointer', { isPrimary: false }],
     ['the right button', { button: 2 }],
