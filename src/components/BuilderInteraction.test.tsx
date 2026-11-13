@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBuilderContext, type SelectionRef } from '../context/BuilderContext';
 import {
   duplicateSection,
-  insertSection,
   moveItem,
   moveSectionBy,
   removeItem,
@@ -314,19 +313,11 @@ describe('section chrome', () => {
     expect(duplicated.sections).toHaveLength(3);
     fireEvent.click(screen.getByRole('button', { name: 'Move Hero down' }));
     expect(onChange.mock.calls.at(-1)![0]).toEqual(moveSectionBy(layout, 's', 1));
-    fireEvent.click(screen.getByRole('button', { name: 'Add section above Hero' }));
-    const inserted = onChange.mock.calls.at(-1)![0] as Layout;
-    expect(inserted.sections.map((s) => s.label)).toEqual(
-      insertSection(layout, 0, { label: (n) => `Section ${n}` }).layout.sections.map(
-        (s) => s.label,
-      ),
-    );
   });
 
   it('hides the section actions when showSectionActions is false', () => {
     renderBuilder({ showSectionActions: false });
     expect(screen.queryByRole('toolbar')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Add section above Hero' })).toBeNull();
   });
 
   it('aligns a fill-screen grid by its vertical alignment', () => {

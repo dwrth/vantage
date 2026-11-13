@@ -97,16 +97,6 @@ describe('section actions', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('inserts an empty section above a section', () => {
-    const onChange = vi.fn();
-    render(<VantageBuilder value={layout} onChange={onChange} components={components} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Add section above Footer' }));
-    const next = onChange.mock.calls[0][0] as Layout;
-    expect(next.sections.map((s) => s.id)[0]).toBe('a');
-    expect(next.sections[2].id).toBe('b');
-    expect(next.sections[1].items).toEqual([]);
-  });
-
   it('uses translated labels and can be turned off', () => {
     const { rerender } = render(
       <VantageBuilder
@@ -132,18 +122,5 @@ describe('section actions', () => {
       />,
     );
     expect(screen.queryAllByRole('toolbar')).toEqual([]);
-  });
-
-  it('can hide only the toolbar and keep the insert button', () => {
-    render(
-      <VantageBuilder
-        value={layout}
-        onChange={() => {}}
-        components={components}
-        showSectionToolbar={false}
-      />,
-    );
-    expect(screen.queryAllByRole('toolbar')).toEqual([]);
-    expect(screen.getAllByRole('button', { name: /^Add section above/ }).length).toBeGreaterThan(0);
   });
 });

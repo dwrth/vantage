@@ -22,13 +22,6 @@ export function useBuilderActions() {
         apply(result.layout);
         return result.sectionId;
       },
-      insertSection: (index: number) => {
-        const result = mutations.insertSection(layout, index, {
-          label: defaultLabels.section,
-        });
-        apply(result.layout);
-        return result.sectionId;
-      },
       moveSection: (sectionId: string, toIndex: number) =>
         apply(mutations.moveSection(layout, sectionId, toIndex)),
       moveSectionBy: (sectionId: string, delta: number) =>

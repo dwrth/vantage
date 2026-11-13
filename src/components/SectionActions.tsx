@@ -36,7 +36,6 @@ const ICONS = {
       <path d="M5 1.5v3.5h5V1.5M5 14.5v-4.5h6v4.5" />
     </>,
   ),
-  plus: icon(<path d="M8 3v10M3 8h10" />),
 };
 
 type SectionActionsProps = {
@@ -44,20 +43,13 @@ type SectionActionsProps = {
 };
 
 /**
- * Builder chrome of a section: move up / down, duplicate and (when the host passes
- * `onSaveSection`) save (top right), and a button on the
- * section's top edge that inserts an empty section above it. Shown on hover or focus.
+ * Builder toolbar of a section at its top right: move up / down, duplicate and (when the host
+ * passes `onSaveSection`) save. Shown on hover or focus.
  */
 export function SectionActions({ section }: SectionActionsProps) {
-  const {
-    layout,
-    sectionActionLabels,
-    defaultLabels,
-    onDuplicateSection,
-    onSaveSection,
-    showSectionToolbar,
-  } = useBuilderContext();
-  const { moveSectionBy, duplicateSection, insertSection } = useBuilderActions();
+  const { layout, sectionActionLabels, defaultLabels, onDuplicateSection, onSaveSection } =
+    useBuilderContext();
+  const { moveSectionBy, duplicateSection } = useBuilderActions();
   const labels = { ...DEFAULT_SECTION_ACTION_LABELS, ...sectionActionLabels };
   const named =
     section.label === undefined ? { ...section, label: defaultLabels.unnamedSection } : section;
@@ -82,30 +74,15 @@ export function SectionActions({ section }: SectionActionsProps) {
   );
 
   return (
-    <>
-      <div
-        className={[builder['section-insert'], isFirst ? builder['section-insert--first'] : '']
-          .filter(Boolean)
-          .join(' ')}
-      >
-        {button(labels.insertBefore(named), ICONS.plus, () => insertSection(index))}
-      </div>
-      {showSectionToolbar ? (
-        <div
-          className={builder['section-actions']}
-          role="toolbar"
-          aria-label={labels.toolbar(named)}
-        >
-          {button(labels.moveUp(named), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
-          {button(labels.moveDown(named), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
-          {button(labels.duplicate(named), ICONS.duplicate, () =>
-            onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
-          )}
-          {onSaveSection
-            ? button(labels.save(named), ICONS.save, () => onSaveSection(section.id))
-            : null}
-        </div>
-      ) : null}
-    </>
+    <div className={builder['section-actions']} role="toolbar" aria-label={labels.toolbar(named)}>
+      {button(labels.moveUp(named), ICONS.up, () => moveSectionBy(section.id, -1), isFirst)}
+      {button(labels.moveDown(named), ICONS.down, () => moveSectionBy(section.id, 1), isLast)}
+      {button(labels.duplicate(named), ICONS.duplicate, () =>
+        onDuplicateSection ? onDuplicateSection(section.id) : duplicateSection(section.id),
+      )}
+      {onSaveSection
+        ? button(labels.save(named), ICONS.save, () => onSaveSection(section.id))
+        : null}
+    </div>
   );
 }

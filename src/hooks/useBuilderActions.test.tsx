@@ -79,13 +79,6 @@ describe('useBuilderActions sections', () => {
     expect(next().sections[2]!.label).toBe('Bereich 3');
   });
 
-  it('insertSection places the section at the index', () => {
-    const { actions, next } = setup();
-    const id = actions().insertSection(1);
-    expect(next().sections.map((s) => s.id)).toEqual(['s', id, 't']);
-    expect(next().sections[1]!.label).toBe('Section 3');
-  });
-
   it('moveSection and moveSectionBy reorder sections', () => {
     const { actions, next } = setup();
     actions().moveSection('s', 1);
