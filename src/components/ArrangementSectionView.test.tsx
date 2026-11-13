@@ -131,7 +131,6 @@ function build({ section: s = section(), context = {}, dnd = {}, wrap = (c) => c
     breakpointPreviewWidths: { tablet: 768, mobile: 375 },
     sectionHeaderPlacement: 'section',
     showSectionActions: false,
-    showSectionToolbar: false,
     components,
     defaultLabels: DEFAULT_LABELS,
     blockLabels: DEFAULT_BLOCK_LABELS,
@@ -440,7 +439,7 @@ describe('ArrangementSectionView selection and chrome', () => {
     const off = setup();
     expect(screen.queryByRole('toolbar')).toBeNull();
     off.unmount();
-    setup({ context: { showSectionActions: true, showSectionToolbar: true } });
+    setup({ context: { showSectionActions: true } });
     expect(screen.getByRole('toolbar', { name: 'Flow actions' })).toBeTruthy();
   });
 });

@@ -87,7 +87,6 @@ export type BuilderContextValue = {
   renderSectionFooter?: (ctx: SectionChromeContext) => ReactNode;
   sectionResizeLabel?: (section: Section) => string;
   showSectionActions: boolean;
-  showSectionToolbar: boolean;
   sectionActionLabels?: Partial<SectionActionLabels>;
   /** Defaults merged in. */
   defaultLabels: DefaultLabels;

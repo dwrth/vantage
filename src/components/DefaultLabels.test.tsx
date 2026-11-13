@@ -57,14 +57,14 @@ describe('defaultLabels prop', () => {
     render(
       <VantageBuilder
         components={components}
-        value={layout}
+        value={{ ...layout, sections: [] }}
         onChange={onChange}
         defaultLabels={{ section: (n) => `Abschnitt ${n}` }}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Add section above/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add section' }));
     const next = onChange.mock.calls.at(-1)![0] as Layout;
-    expect(next.sections[0].label).toBe('Abschnitt 2');
+    expect(next.sections[0].label).toBe('Abschnitt 1');
   });
 
   it('translates the resize edge and unnamed section fallbacks', () => {
@@ -80,7 +80,7 @@ describe('defaultLabels prop', () => {
       />,
     );
     expect(screen.getByLabelText('Höhe von Abschnitt anpassen')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add section above Abschnitt' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Duplicate Abschnitt' })).toBeTruthy();
   });
 
   it('translates the empty canvas', () => {
