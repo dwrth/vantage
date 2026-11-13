@@ -1,5 +1,5 @@
-import { useDraggable } from '@dnd-kit/core';
 import { createElement, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useBlockDrag } from '../lib/blockDrag';
 import { useBuilderContext } from '../context/BuilderContext';
 import { DRAG_SHIFT } from '../context/CanvasDndContext';
 import { useBuilderActions } from '../hooks/useBuilderActions';
@@ -33,10 +33,10 @@ export function ArrangementBlock({ sectionId, item, slot }: ArrangementBlockProp
     blockInstructionsId,
   } = useBuilderContext();
   const { removeItem } = useBuilderActions();
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `${sectionId}:${item.id}`,
-    data: { type: 'block', item, sectionId, placement: { x: 0, y: 0, w: item.w, h: item.h } },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useBlockDrag(
+    `${sectionId}:${item.id}`,
+    { type: 'block', item, sectionId, placement: { x: 0, y: 0, w: item.w, h: item.h } },
+  );
 
   /*
    * While dragged, the cell keeps the box it had when the drag started, out of the grid flow:

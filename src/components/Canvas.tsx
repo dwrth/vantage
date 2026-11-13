@@ -1,13 +1,3 @@
-import {
-  type Active,
-  type AutoScrollOptions,
-  DndContext,
-  type DragEndEvent,
-  type DragMoveEvent,
-  type DragStartEvent,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import builder from '../styles/builder.module.css';
 import { useBuilderActions } from '../hooks/useBuilderActions';
@@ -18,62 +8,17 @@ import {
   type DropTarget,
   type SectionDropHandle,
 } from '../context/CanvasDndContext';
-import {
-  AUTO_SCROLL_THRESHOLD,
-  edgeScrollSpeed,
-  sectionAtY,
-  type ClientPoint,
-  type SectionBand,
-} from '../lib/dropTargeting';
+import { sectionAtY, type ClientPoint, type SectionBand } from '../lib/dropTargeting';
 import type { DropSource } from '../lib/arrangementPreview';
-import { VantagePointerSensor } from '../lib/pointerSensor';
+import { edgeAutoScroll, scrollParent } from '../lib/autoScroll';
+import { BlockDragContext, useBlockDragController, type BlockDragEvent } from '../lib/blockDrag';
 import { moveItemToSection } from '../mutations/layout';
-import type { ResolvedItemLayout } from '../lib/breakpoint';
-import type { GridItem } from '../types';
 import { ArrangementSectionView } from './ArrangementSectionView';
 import { SectionView } from './SectionView';
 
-export type BlockDragData = {
-  type: 'block';
-  item: GridItem;
-  sectionId: string;
-  placement: ResolvedItemLayout;
-};
-
-/** Block drags auto-scroll vertically only (dnd-kit default: 20% on both axes). */
-const AUTO_SCROLL: AutoScrollOptions = { threshold: { x: 0, y: AUTO_SCROLL_THRESHOLD } };
-
-function activatorPoint(event: DragStartEvent): ClientPoint | null {
-  const start = event.activatorEvent as PointerEvent | null;
-  if (!start || typeof start.clientX !== 'number') return null;
-  return { x: start.clientX, y: start.clientY };
-}
-
-/** Nearest ancestor that scrolls vertically, else the page. */
-function scrollParent(node: HTMLElement | null): HTMLElement {
-  for (let el = node?.parentElement; el; el = el.parentElement) {
-    const { overflowY } = getComputedStyle(el);
-    if (/(auto|scroll|overlay)/.test(overflowY) && el.scrollHeight > el.clientHeight) return el;
-  }
-  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
-}
-
-/** Visible vertical extent of a scroll container in client coordinates. */
-function visibleBand(el: HTMLElement): { top: number; bottom: number } {
-  if (el === document.scrollingElement || el === document.documentElement) {
-    return { top: 0, bottom: window.innerHeight };
-  }
-  const rect = el.getBoundingClientRect();
-  return { top: Math.max(0, rect.top), bottom: Math.min(window.innerHeight, rect.bottom) };
-}
-
-/**
- * Height of the dragged block: its chrome (as large as the block) around the grabbed handle. The
- * pointer sensor is the only one, so the activator is a pointerdown on a handle inside the block.
- */
-function draggedHeight(event: DragStartEvent): number {
-  const handle = event.activatorEvent!.target as Element;
-  return handle.closest('[data-vantage-block]')!.getBoundingClientRect().height;
+/** Height of the dragged block: its chrome (as large as the block) around the grabbed handle. */
+function draggedHeight(event: BlockDragEvent): number {
+  return event.target.closest('[data-vantage-block]')!.getBoundingClientRect().height;
 }
 
 const topIn = (el: HTMLElement, root: HTMLElement) =>
@@ -129,19 +74,18 @@ export function Canvas() {
 
   /*
    * Everything here is in client (viewport) coordinates, read live, so scrolling during a drag
-   * cannot skew the target. dnd-kit's `event.delta` must not be used for this: it includes the scroll
+   * cannot skew the target. The drag's `delta` must not be used for this: it includes the scroll
    * distance since the drag started (content coordinates), while rects are client coordinates.
    */
   const pointer = useRef<ClientPoint | null>(null);
-  const activeBlock = useRef<Active | null>(null);
+  const activeBlock = useRef<BlockDragEvent | null>(null);
 
   /** Cross-section placement for a dragged block, or null when it stays in its section. */
   const crossSectionTarget = useCallback((): DropTarget | null => {
-    const active = activeBlock.current;
-    const data = active?.data.current as BlockDragData | undefined;
+    const data = activeBlock.current?.data;
     // The block as drawn under the pointer: its start rect plus the pointer's travel (no scroll).
-    const rect = active?.rect.current.translated;
-    if (data?.type !== 'block' || !pointer.current || !rect) return null;
+    const rect = activeBlock.current?.rect;
+    if (!data || !pointer.current || !rect) return null;
     const group = groupRef.current;
     if (
       group.length > 1 &&
@@ -196,32 +140,33 @@ export function Canvas() {
   useEffect(() => () => stopTracking.current?.(), []);
 
   const onDragStart = useCallback(
-    (event: DragStartEvent) => {
+    (event: BlockDragEvent) => {
       setInteracting(true);
-      const data = event.active.data.current as BlockDragData | undefined;
-      setDragSourceSectionId(data?.sectionId ?? null);
-      if (data?.type === 'block') {
-        setBlockDrag({
-          source: { type: 'block', sectionId: data.sectionId, itemId: data.item.id },
-          height: draggedHeight(event),
-        });
-        const el = handles.current.get(data.sectionId)?.getElement();
-        sourceOffset.current = el ? { el, top: topIn(el, canvasRef.current!) } : null;
-      }
+      const { data } = event;
+      setDragSourceSectionId(data.sectionId);
+      setBlockDrag({
+        source: { type: 'block', sectionId: data.sectionId, itemId: data.item.id },
+        height: draggedHeight(event),
+      });
+      const el = handles.current.get(data.sectionId)?.getElement();
+      sourceOffset.current = el ? { el, top: topIn(el, canvasRef.current!) } : null;
       setDropTarget(null);
-      activeBlock.current = event.active;
-      pointer.current = activatorPoint(event);
+      activeBlock.current = event;
+      pointer.current = event.origin;
 
       // Follow the real pointer, and re-target on any scroll (wheel, trackpad, auto-scroll, nested
       // scroll containers) even while the pointer rests.
+      const autoScroll = edgeAutoScroll(scrollParent(canvasRef.current));
       const onPointerMove = (e: PointerEvent) => {
         pointer.current = { x: e.clientX, y: e.clientY };
+        autoScroll.update(pointer.current);
       };
       const onScroll = () => setDropTarget(crossSectionTarget());
       window.addEventListener('pointermove', onPointerMove, true);
       window.addEventListener('scroll', onScroll, true);
       stopTracking.current?.();
       stopTracking.current = () => {
+        autoScroll.stop();
         window.removeEventListener('pointermove', onPointerMove, true);
         window.removeEventListener('scroll', onScroll, true);
         activeBlock.current = null;
@@ -232,20 +177,19 @@ export function Canvas() {
   );
 
   const onDragMove = useCallback(
-    (event: DragMoveEvent) => {
-      activeBlock.current = event.active;
+    (event: BlockDragEvent) => {
+      activeBlock.current = event;
       setDropTarget(crossSectionTarget());
     },
     [crossSectionTarget, setDropTarget],
   );
 
   const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const data = event.active.data.current as BlockDragData | undefined;
-      activeBlock.current = event.active;
+    (event: BlockDragEvent) => {
+      const { data } = event;
+      activeBlock.current = event;
       const target = crossSectionTarget();
       endDrag();
-      if (!data) return;
       if (!target) {
         handles.current.get(data.sectionId)?.dropWithin(event);
         return;
@@ -268,9 +212,12 @@ export function Canvas() {
     [crossSectionTarget, endDrag, layout, activeBreakpoint, onChange, setSelection],
   );
 
-  const sensors = useSensors(
-    useSensor(VantagePointerSensor, { activationConstraint: { distance: 4 } }),
-  );
+  const blockDragContext = useBlockDragController({
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDragCancel: endDrag,
+  });
 
   /*
    * New blocks dragged in from a palette (native HTML5 drag-and-drop). Handled on the canvas, not
@@ -350,36 +297,14 @@ export function Canvas() {
   const acceptsExternal = Boolean(externalDrag && onExternalDrop);
   useEffect(() => {
     if (!acceptsExternal) return;
-    const scroller = scrollParent(canvasRef.current);
-    let edgePointer: ClientPoint | null = null;
-    let raf = 0;
-    let last = 0;
+    const autoScroll = edgeAutoScroll(scrollParent(canvasRef.current));
 
     const onScroll = () => {
       if (externalPointer.current) setDropTarget(externalTarget(externalPointer.current));
     };
-    const tick = (now: number) => {
-      raf = 0;
-      if (!edgePointer) return;
-      const band = visibleBand(scroller);
-      const speed = edgeScrollSpeed(edgePointer.y, band.top, band.bottom);
-      if (speed === 0) return;
-      const elapsed = last ? Math.min(now - last, 50) : 16;
-      last = now;
-      scroller.scrollBy(0, speed * elapsed);
-      raf = requestAnimationFrame(tick);
-    };
     // Anywhere on the page, so the edge zones work over sticky headers too.
-    const onDocumentDragOver = (e: DragEvent) => {
-      edgePointer = { x: e.clientX, y: e.clientY };
-      if (!raf) {
-        last = 0;
-        raf = requestAnimationFrame(tick);
-      }
-    };
-    const stop = () => {
-      edgePointer = null;
-    };
+    const onDocumentDragOver = (e: DragEvent) => autoScroll.update({ x: e.clientX, y: e.clientY });
+    const stop = autoScroll.pause;
     // Leaving the window fires no further dragover; stop instead of scrolling on.
     const onDocumentDragLeave = (e: DragEvent) => {
       const outside =
@@ -396,7 +321,7 @@ export function Canvas() {
     document.addEventListener('drop', stop, true);
     document.addEventListener('dragend', stop, true);
     return () => {
-      cancelAnimationFrame(raf);
+      autoScroll.stop();
       window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('dragover', onDocumentDragOver, true);
       document.removeEventListener('dragleave', onDocumentDragLeave, true);
@@ -443,14 +368,7 @@ export function Canvas() {
 
   return (
     <CanvasDndContext.Provider value={dndValue}>
-      <DndContext
-        sensors={sensors}
-        onDragStart={onDragStart}
-        onDragMove={onDragMove}
-        onDragEnd={onDragEnd}
-        onDragCancel={endDrag}
-        autoScroll={AUTO_SCROLL}
-      >
+      <BlockDragContext.Provider value={blockDragContext}>
         <div
           ref={canvasRef}
           className={builder.canvas}
@@ -466,7 +384,7 @@ export function Canvas() {
             ),
           )}
         </div>
-      </DndContext>
+      </BlockDragContext.Provider>
     </CanvasDndContext.Provider>
   );
 }

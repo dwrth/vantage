@@ -82,7 +82,7 @@ beforeEach(() => {
   scrollY = 0;
   Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scrollY });
   Object.defineProperty(window, 'pageYOffset', { configurable: true, get: () => scrollY });
-  // jsdom has no scrollingElement; dnd-kit needs it to see the window as a scroll container.
+  // jsdom has no scrollingElement; the page is the canvas' scroll container.
   Object.defineProperty(document, 'scrollingElement', {
     configurable: true,
     get: () => document.documentElement,

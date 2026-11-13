@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
-import type { DragEndEvent } from '@dnd-kit/core';
 import type { DropSource } from '../lib/arrangementPreview';
+import type { BlockDragEvent } from '../lib/blockDrag';
 
 /** `translate` of a dragged block: undoes the shift of its section while it is dragged (see `Canvas`). */
 export const DRAG_SHIFT = '0 var(--vantage-drag-shift-y, 0px)';
@@ -35,7 +35,7 @@ export type SectionDropHandle = {
   /** Pixel size of a `w` x `h` block on this grid (for centering a dragged palette item). */
   blockSize: (w: number, h: number) => { width: number; height: number };
   /** In-section move from a drag delta (the original single-section behaviour). */
-  dropWithin: (event: DragEndEvent) => void;
+  dropWithin: (event: BlockDragEvent) => void;
 };
 
 export type CanvasDndContextValue = {

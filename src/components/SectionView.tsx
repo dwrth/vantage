@@ -1,4 +1,3 @@
-import type { DragEndEvent } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveItem, resolveSection, sectionContentRows, sectionRows } from '../lib/breakpoint';
 import { resolveItemVerticalAlign } from '../lib/contentAlign';
@@ -17,6 +16,7 @@ import {
   resolveMinSize,
 } from '../lib/grid';
 import { trackPointerDrag } from '../lib/pointerDrag';
+import type { BlockDragEvent } from '../lib/blockDrag';
 import { marqueeHits, mergeSelection, rectFromPoints, sameSelection } from '../lib/selection';
 import { groupBounds, groupMoveRange } from '../mutations/group';
 import type { SelectionRef } from '../context/BuilderContext';
@@ -306,11 +306,10 @@ export function SectionView({ section }: SectionViewProps) {
   );
 
   const dropWithin = useCallback(
-    (event: DragEndEvent) => {
-      const { active, delta } = event;
-      const dragged = (active.data.current as { item?: GridItem } | undefined)?.item;
-      const entry = resolvedItems.find(({ item }) => item.id === dragged?.id);
-      if (!entry || !delta) return;
+    (event: BlockDragEvent) => {
+      const { data, delta } = event;
+      const entry = resolvedItems.find(({ item }) => item.id === data.item.id);
+      if (!entry) return;
       const { dx, dy } = deltaToGrid(delta.x, delta.y, cellXStep, cellHeight);
       const nextY = rowSteps
         ? closestRowForOffset(

@@ -715,7 +715,7 @@ const SAMPLE_SECTIONS = [
           image: 'https://picsum.photos/seed/vantage-sandbox/800/500',
           imageAlt: 'Workspace desk',
           title: 'Stateful form nearby',
-          content: 'Interactive blocks stop pointer events so dnd-kit doesn’t steal clicks.',
+          content: 'Interactive blocks stop pointer events so a drag doesn’t steal clicks.',
           cta: 'Learn more',
         },
       },

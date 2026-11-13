@@ -13,8 +13,12 @@ export type PointerDragHandlers = {
  * Follow a pointer (mouse, touch or pen) from its `pointerdown` until release. Captures the
  * pointer so moves keep arriving outside the handle; give the handle `touch-action: none`.
  * Ends on pointerup, pointercancel, Escape, or when the capture is lost (e.g. the handle unmounts).
+ * Returns a function that cancels the drag.
  */
-export function trackPointerDrag(e: ReactPointerEvent, { onMove, onEnd }: PointerDragHandlers) {
+export function trackPointerDrag(
+  e: ReactPointerEvent,
+  { onMove, onEnd }: PointerDragHandlers,
+): () => void {
   const target = e.target as HTMLElement;
   target.setPointerCapture?.(e.pointerId);
 
@@ -43,4 +47,5 @@ export function trackPointerDrag(e: ReactPointerEvent, { onMove, onEnd }: Pointe
   window.addEventListener('pointercancel', onCancel);
   window.addEventListener('keydown', onKeyDown, true);
   target.addEventListener?.('lostpointercapture', onUp);
+  return onCancel;
 }

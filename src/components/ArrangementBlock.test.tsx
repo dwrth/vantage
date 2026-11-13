@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { DndContext } from '@dnd-kit/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BuilderContext, type BuilderContextValue } from '../context/BuilderContext';
 import type { ArrangementSlot } from '../lib/arrangement';
+import { BlockDragContext, useBlockDragController } from '../lib/blockDrag';
 import { DEFAULT_LABELS } from '../lib/defaultLabels';
 import { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from '../lib/keyboardLabels';
 import type { ComponentRegistry, GridItem, Layout } from '../types';
@@ -47,6 +48,17 @@ const slot: ArrangementSlot = { col: 4, span: 4, row: 1 };
 
 type Overrides = Partial<BuilderContextValue>;
 
+function DragProvider({ children }: { children: ReactNode }) {
+  const noop = () => {};
+  const value = useBlockDragController({
+    onDragStart: noop,
+    onDragMove: noop,
+    onDragEnd: noop,
+    onDragCancel: noop,
+  });
+  return <BlockDragContext.Provider value={value}>{children}</BlockDragContext.Provider>;
+}
+
 function setup(overrides: Overrides = {}, target: GridItem = layout.sections[0]!.items[0]!) {
   const onChange = vi.fn();
   const setSelection = vi.fn();
@@ -67,11 +79,11 @@ function setup(overrides: Overrides = {}, target: GridItem = layout.sections[0]!
   } as unknown as BuilderContextValue;
   const view = render(
     <BuilderContext.Provider value={value}>
-      <DndContext>
+      <DragProvider>
         <div onClick={parentClick} onPointerDown={parentPointerDown}>
           <ArrangementBlock sectionId="s" item={target} slot={slot} />
         </div>
-      </DndContext>
+      </DragProvider>
     </BuilderContext.Provider>,
   );
   return { onChange, setSelection, parentClick, parentPointerDown, ...view };

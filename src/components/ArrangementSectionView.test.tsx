@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { DndContext, type DragEndEvent } from '@dnd-kit/core';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +10,7 @@ import {
   type SectionDropHandle,
 } from '../context/CanvasDndContext';
 import { ItemDataProvider } from '../hooks/useItemData';
+import type { BlockDragEvent } from '../lib/blockDrag';
 import { DEFAULT_LABELS } from '../lib/defaultLabels';
 import { DEFAULT_BLOCK_ANNOUNCEMENTS, DEFAULT_BLOCK_LABELS } from '../lib/keyboardLabels';
 import { DEFAULT_SECTION_ACTION_LABELS } from '../lib/sectionActionLabels';
@@ -152,9 +152,7 @@ function build({ section: s = section(), context = {}, dnd = {}, wrap = (c) => c
     wrap(
       <BuilderContext.Provider value={ctx}>
         <CanvasDndContext.Provider value={dndValue}>
-          <DndContext>
-            <ArrangementSectionView section={current} />
-          </DndContext>
+          <ArrangementSectionView section={current} />
         </CanvasDndContext.Provider>
       </BuilderContext.Provider>,
     );
@@ -564,19 +562,11 @@ describe('ArrangementSectionView drop handle', () => {
     expect(cellAt(20, 30, 3, 2).index).toBe(0);
   });
 
-  const dragEnd = (id: string | undefined, centre: { x: number; y: number } | null): DragEndEvent =>
+  const dragEnd = (id: string, centre: { x: number; y: number } | null): BlockDragEvent =>
     ({
-      active: {
-        data: { current: id ? { item: { id } } : undefined },
-        rect: {
-          current: {
-            translated: centre
-              ? { left: centre.x - 50, top: centre.y - 25, width: 100, height: 50 }
-              : null,
-          },
-        },
-      },
-    }) as unknown as DragEndEvent;
+      data: { type: 'block', item: { id } },
+      rect: centre ? { left: centre.x - 50, top: centre.y - 25, width: 100, height: 50 } : null,
+    }) as unknown as BlockDragEvent;
 
   const order = (onChange: ReturnType<typeof vi.fn>) =>
     (onChange.mock.calls.at(-1)![0] as Layout).sections[0]!.items.map((i) => i.id);
@@ -606,9 +596,8 @@ describe('ArrangementSectionView drop handle', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('emits nothing without a dragged block or its rect', () => {
+  it('emits nothing without the dragged block rect', () => {
     const { handles, onChange } = setup();
-    handles[0]!.dropWithin(dragEnd(undefined, { x: 260, y: 30 }));
     handles[0]!.dropWithin(dragEnd('a', null));
     expect(onChange).not.toHaveBeenCalled();
   });

@@ -1,7 +1,7 @@
-import type { DragEndEvent } from '@dnd-kit/core';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { STACKED_TRACK, arrangementSlots, arrangementTrack } from '../lib/arrangement';
 import { CELL_ATTR, dropIndexAt, type ArrangementDropState } from '../lib/arrangementDropTarget';
+import type { BlockDragEvent } from '../lib/blockDrag';
 import { arrangementDropPreview, trailingSlot } from '../lib/arrangementPreview';
 import { resolveItem, resolveSection } from '../lib/breakpoint';
 import { resolveEffectiveItemData } from '../lib/entities';
@@ -147,10 +147,10 @@ export function ArrangementSectionView({ section }: { section: Section }) {
         ),
       }),
       blockSize: () => ({ width: 0, height: 0 }),
-      dropWithin: (event: DragEndEvent) => {
-        const dragged = (event.active.data.current as { item?: { id: string } } | undefined)?.item;
-        const rect = event.active.rect.current.translated;
-        if (!dragged || !rect) return;
+      dropWithin: (event: BlockDragEvent) => {
+        const dragged = event.data.item;
+        const { rect } = event;
+        if (!rect) return;
         const { layout: current, onChange: emit, id: sectionId, drop } = latest.current;
         const index = dropIndexAt(
           containerRef.current,
