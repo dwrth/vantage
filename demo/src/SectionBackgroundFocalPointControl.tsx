@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { SectionBackground, SectionBackgroundImageSize } from 'vantage';
+import type { SectionBackground, SectionBackgroundImageSize } from '@dwrth/vantage';
 import { FocalPointControl } from './blocks/image/FocalPointControl';
 import {
   clampCropScale,

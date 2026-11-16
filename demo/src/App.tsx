@@ -30,7 +30,7 @@ import {
   type SelectionRef,
   type Breakpoint,
   type VantageTokens,
-} from 'vantage';
+} from '@dwrth/vantage';
 import { LayersPanel } from './LayersPanel';
 import { createSampleLayout } from './sampleLayout';
 import { demoComponents } from './blocks';

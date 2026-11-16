@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { ButtonEdit, ButtonPreview } from './ButtonComponent';
 import { ButtonInspector } from './ButtonInspector';
 

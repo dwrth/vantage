@@ -1,4 +1,4 @@
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import { StatefulForm, type FormData } from './StatefulForm';
 
 export function FormPreview({ item }: PreviewRendererProps<FormData>) {

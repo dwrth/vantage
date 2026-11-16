@@ -18,7 +18,7 @@ import {
   type ComponentRegistry,
   type Layout,
   type LayoutChangeset,
-} from 'vantage';
+} from '@dwrth/vantage';
 
 const BREAKPOINT_LABELS: Record<Breakpoint, string> = {
   desktop: 'Desktop',

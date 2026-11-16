@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { CELL_MAX_PX, getCellWidth, getFlexRowHeight } from 'vantage';
+import { CELL_MAX_PX, getCellWidth, getFlexRowHeight } from '@dwrth/vantage';
 
 export type ImageObjectFit = 'cover' | 'contain' | 'fill';
 

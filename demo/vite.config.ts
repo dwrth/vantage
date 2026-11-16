@@ -13,11 +13,11 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
     alias: [
       {
-        find: 'vantage/style.css',
+        find: '@dwrth/vantage/style.css',
         replacement: path.resolve(__dirname, '../dist/vantage.css'),
       },
       {
-        find: 'vantage',
+        find: '@dwrth/vantage',
         replacement: path.resolve(__dirname, '../src'),
       },
       // Lib sources under ../src would otherwise pull React from parent node_modules

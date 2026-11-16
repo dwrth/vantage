@@ -13,7 +13,7 @@ import {
   type Layout,
   type LayoutChangeset,
   type Section,
-} from 'vantage';
+} from '@dwrth/vantage';
 
 type SectionHeaderProps = {
   layout: Layout;

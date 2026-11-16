@@ -1,4 +1,4 @@
-import { DEFAULT_VANTAGE_TOKENS, type VantageTokens } from 'vantage';
+import { DEFAULT_VANTAGE_TOKENS, type VantageTokens } from '@dwrth/vantage';
 
 export const DEMO_TOKEN_DEFAULTS: VantageTokens = {
   '--vantage-color': 'var(--color-base-content)',

@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { DEFAULT_IMAGE_URL } from '../constants';
 import { ImageComponent } from './ImageComponent';
 import { ImageInspector } from './ImageInspector';

@@ -1,4 +1,4 @@
-import type { ComponentRegistry } from 'vantage';
+import type { ComponentRegistry } from '@dwrth/vantage';
 import { blockKind } from './block';
 import { buttonKind } from './button';
 import { cardKind } from './card';

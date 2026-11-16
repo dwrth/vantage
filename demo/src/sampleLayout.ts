@@ -1,4 +1,4 @@
-import type { ItemOverride, Layout, Section, SectionOverride } from 'vantage';
+import type { ItemOverride, Layout, Section, SectionOverride } from '@dwrth/vantage';
 
 function createId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
