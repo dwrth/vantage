@@ -1,16 +1,16 @@
 {
-  "name": "vantage",
+  "name": "@dwrth/vantage",
   "version": "0.12.1",
   "description": "Controlled grid layout builder for React",
   "type": "module",
-  "main": "./dist/vantage.cjs.js",
+  "main": "./dist/vantage.cjs",
   "module": "./dist/vantage.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/vantage.es.js",
-      "require": "./dist/vantage.cjs.js"
+      "require": "./dist/vantage.cjs"
     },
     "./style.css": "./dist/vantage.css"
   },
@@ -72,5 +72,16 @@
     "builder",
     "drag-and-drop"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dwrth/vantage.git"
+  },
+  "homepage": "https://github.com/dwrth/vantage#readme",
+  "bugs": {
+    "url": "https://github.com/dwrth/vantage/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

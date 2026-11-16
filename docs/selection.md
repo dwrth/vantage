@@ -21,7 +21,7 @@ const [selection, setSelection] = useState<SelectionRef | null>(null);
 Or use the hook from inside any descendant of the builder:
 
 ```ts
-import { useSelection } from 'vantage';
+import { useSelection } from '@dwrth/vantage';
 const { selection, setSelection } = useSelection();
 ```
 

@@ -78,7 +78,7 @@ export const heroKind = defineKind<HeroData>({
 Plain object, keyed by `kind`. Keys are case-sensitive and must match `GridItem.kind` in saved layouts:
 
 ```ts
-import type { ComponentRegistry } from 'vantage';
+import type { ComponentRegistry } from '@dwrth/vantage';
 
 export const components: ComponentRegistry = {
   hero: heroKind,
@@ -114,7 +114,7 @@ Drag starts from the **cell handle only**, not from content. The builder `Pointe
 Kinds must **not** call `stopPropagation` for dnd. Preview has no drag system — mount `component` with normal interactive elements.
 
 ```tsx
-import { VantageInteractive } from 'vantage';
+import { VantageInteractive } from '@dwrth/vantage';
 
 function StageEdit({ item }: EditRendererProps<StageData>) {
   return (
@@ -139,6 +139,6 @@ function StageEdit({ item }: EditRendererProps<StageData>) {
 - **No layout CSS on your root.** Do not set `gridColumn`, `gridRow`, `position: absolute/fixed`, `transform`, or `inset` on your component's root element. Vantage owns cell placement; these styles break drag/resize math.
 - **Handle `item.data === undefined`.** After `importLayout` or for kinds without `defaults.data`, `data` may be missing. Always destructure with a fallback: `const data = item.data ?? {}`.
 - **Split surfaces on `defineKind`.** Preview and edit are different FCs. Don't branch on a `mode` prop — it does not exist.
-- **Library CSS is chrome only.** `vantage/style.css` styles the grid, drag handles, and section controls — not your content. Ship your own styles per block. For shared kind tokens (`--vantage-kind-*`), see [Theme / tokens](theme.md).
+- **Library CSS is chrome only.** `@dwrth/vantage/style.css` styles the grid, drag handles, and section controls — not your content. Ship your own styles per block. For shared kind tokens (`--vantage-kind-*`), see [Theme / tokens](theme.md).
 - **`kind` is your stable identifier.** Once layouts are persisted, renaming a `kind` orphans existing items. Treat it like a schema migration.
 - **Generic types stay sharp.** `defineKind<HeroData>(...)` makes `item.data` typed as `HeroData | undefined` inside the renderer. Don't widen to `unknown` unless you mean it.

@@ -20,7 +20,7 @@ import {
   isValidLayout,
   stripData,
   ItemDataProvider,
-} from 'vantage';
+} from '@dwrth/vantage';
 
 // Persist layout without payloads
 localStorage.setItem(KEY, JSON.stringify(exportLayout(stripData(layout), registry)));

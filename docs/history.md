@@ -6,7 +6,7 @@ Layout mutations are pure and already emit `(next, changeset)`. `useVantageHisto
 
 ```tsx
 import { useState } from 'react';
-import { useVantageHistory, VantageBuilder, type Layout } from 'vantage';
+import { useVantageHistory, VantageBuilder, type Layout } from '@dwrth/vantage';
 
 function Editor() {
   const [layout, setLayout] = useState<Layout>(/* … */);
