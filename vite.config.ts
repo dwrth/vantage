@@ -18,7 +18,7 @@ export default defineConfig({
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'Vantage',
       formats: ['es', 'cjs'],
-      fileName: (format) => `vantage.${format}.js`,
+      fileName: (format) => (format === 'cjs' ? 'vantage.cjs' : 'vantage.es.js'),
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime'],

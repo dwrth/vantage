@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { BlockEdit, BlockPreview } from './BlockComponent';
 
 export type BlockData = Record<string, never>;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { VantageTokens } from 'vantage';
+import type { VantageTokens } from '@dwrth/vantage';
 import { DEMO_TOKEN_DEFAULTS } from './demoTokens';
 
 type PxField = {

@@ -12,7 +12,7 @@ import {
   type SectionBackground,
   type SectionBackgroundImageRepeat,
   type SectionBackgroundImageSize,
-} from 'vantage';
+} from '@dwrth/vantage';
 import { SectionBackgroundFocalPointControl } from './SectionBackgroundFocalPointControl';
 
 type SectionInspectorProps = {

@@ -7,8 +7,13 @@ Hosts style Vantage chrome and kinds through an opaque CSS-variable map. No bran
 **One API:** `VantageThemeProvider` `tokens` prop. CSS custom properties are the transport; do not treat host stylesheets that set `--vantage-*` as the supported override story.
 
 ```tsx
-import { VantageThemeProvider, VantageBuilder, VantagePreview, useVantageTokens } from 'vantage';
-import 'vantage/style.css';
+import {
+  VantageThemeProvider,
+  VantageBuilder,
+  VantagePreview,
+  useVantageTokens,
+} from '@dwrth/vantage';
+import '@dwrth/vantage/style.css';
 
 const tokens = {
   '--vantage-color': '#0f172a',
@@ -68,4 +73,4 @@ Prefer `--vantage-kind-*` for block styles (e.g. `--vantage-kind-accent`). The l
 
 ## Chrome vs tokens
 
-`vantage/style.css` styles grid chrome (handles, overlays). Hosts may still theme that chrome with their own CSS. Token overrides for library roots and kinds go through the provider.
+`@dwrth/vantage/style.css` styles grid chrome (handles, overlays). Hosts may still theme that chrome with their own CSS. Token overrides for library roots and kinds go through the provider.

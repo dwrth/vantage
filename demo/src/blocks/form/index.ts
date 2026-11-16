@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import type { FormData } from './StatefulForm';
 import { FormEdit, FormPreview } from './FormComponent';
 

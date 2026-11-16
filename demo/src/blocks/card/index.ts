@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { CardEdit, CardPreview } from './CardComponent';
 
 export type CardData = {

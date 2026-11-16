@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import type { BlockData } from './index';
 
 export const BlockPreview: FC<PreviewRendererProps<BlockData>> = () => null;

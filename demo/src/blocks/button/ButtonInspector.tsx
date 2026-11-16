@@ -1,4 +1,4 @@
-import type { InspectorProps } from 'vantage';
+import type { InspectorProps } from '@dwrth/vantage';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './index';
 
 const H_ALIGN: ButtonAlign[] = ['left', 'center', 'right'];

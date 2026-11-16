@@ -50,7 +50,7 @@ Stack order inside a section is the order of `section.items` — later items ren
 Every helper is pure: it returns a new `Layout`. Emit via `onChange(next, changeset)` — Builder and `VantageInspector` compute the changeset for you. Host panels outside those trees should use `emitLayoutChange`:
 
 ```ts
-import { emitLayoutChange, updateSection } from 'vantage';
+import { emitLayoutChange, updateSection } from '@dwrth/vantage';
 
 emitLayoutChange(layout, updateSection(layout, sectionId, { columns: 16 }), onChange);
 // equivalent to: onChange(next, diffLayouts(layout, next))

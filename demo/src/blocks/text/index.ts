@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { LOREM_PARAGRAPH, LOREM_TITLE } from '../constants';
 import { TextEdit, TextPreview } from './TextComponent';
 import { TextInspector } from './TextInspector';

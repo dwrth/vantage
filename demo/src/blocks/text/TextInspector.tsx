@@ -1,4 +1,4 @@
-import type { InspectorProps } from 'vantage';
+import type { InspectorProps } from '@dwrth/vantage';
 import type { TextAlign, TextData, TextFontSize, TextFontWeight, TextVariant } from './types';
 import { TEXT_ALIGNS, TEXT_FONT_SIZES, TEXT_FONT_WEIGHTS } from './types';
 

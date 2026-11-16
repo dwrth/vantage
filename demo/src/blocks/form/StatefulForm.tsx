@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GridItem } from 'vantage';
+import type { GridItem } from '@dwrth/vantage';
 
 export type FormData = {
   title?: string;

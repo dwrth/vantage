@@ -10,17 +10,11 @@ cd demo && npm install && npm run dev
 
 ## Install
 
-Add as a git dependency:
-
-```json
-"vantage": "git+https://git@github.com/dwrth/vantage.git"
-```
-
 ```bash
-npm i
+npm i @dwrth/vantage
 ```
 
-`prepare` builds `dist/` on install. No separate consumer build step.
+Requires `react` and `react-dom` 18 or 19.
 
 ## Quick start
 
@@ -34,8 +28,8 @@ import {
   type Layout,
   type PreviewRendererProps,
   type EditRendererProps,
-} from 'vantage';
-import 'vantage/style.css';
+} from '@dwrth/vantage';
+import '@dwrth/vantage/style.css';
 
 type HeroData = { title: string; body: string };
 

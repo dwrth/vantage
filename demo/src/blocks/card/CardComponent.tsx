@@ -1,4 +1,4 @@
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import type { CardData } from './index';
 
 function CardBody({ item }: { item: PreviewRendererProps<CardData>['item'] }) {

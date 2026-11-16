@@ -1,4 +1,4 @@
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import type { InputData } from './index';
 
 function InputBody({ item }: { item: PreviewRendererProps<InputData>['item'] }) {

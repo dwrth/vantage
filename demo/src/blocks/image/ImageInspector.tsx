@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { resolveItem, resolveSection, type InspectorProps } from 'vantage';
+import { resolveItem, resolveSection, type InspectorProps } from '@dwrth/vantage';
 import { ImageFocalPointControl } from './ImageFocalPointControl';
 import { gridItemViewportAspectRatio, type ImageObjectFit } from './imageDisplay';
 import type { ImageData } from './index';

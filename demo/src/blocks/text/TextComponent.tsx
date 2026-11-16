@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import type { TextData } from './types';
 import { FONT_SIZE_PX, FONT_WEIGHT_VALUE } from './types';
 

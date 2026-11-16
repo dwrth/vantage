@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { EditRendererProps, PreviewRendererProps } from 'vantage';
+import type { EditRendererProps, PreviewRendererProps } from '@dwrth/vantage';
 import type { ButtonAlign, ButtonData, ButtonVAlign } from './index';
 
 const H_ALIGN: Record<ButtonAlign, CSSProperties['justifyContent']> = {

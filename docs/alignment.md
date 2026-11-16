@@ -14,7 +14,7 @@ A block dragged in from another section or a palette is compared through its dro
 The computation is pure and exported for hosts that draw their own overlay:
 
 ```ts
-import { computeAlignment, guideBox } from 'vantage';
+import { computeAlignment, guideBox } from '@dwrth/vantage';
 
 const { guides } = computeAlignment(
   { id: 'a', x: 2, y: 0, w: 4, h: 2 }, // moving block (cells), `fullBleed?` optional

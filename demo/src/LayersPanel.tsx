@@ -24,7 +24,7 @@ import {
   type Layout,
   type LayoutChangeset,
   type SelectionRef,
-} from 'vantage';
+} from '@dwrth/vantage';
 
 const KIND_STATUS: Record<string, string> = {
   text: 'status-info',

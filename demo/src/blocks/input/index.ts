@@ -1,4 +1,4 @@
-import { defineKind } from 'vantage';
+import { defineKind } from '@dwrth/vantage';
 import { InputEdit, InputPreview } from './InputComponent';
 
 export type InputData = {

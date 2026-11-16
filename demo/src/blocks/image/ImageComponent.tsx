@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { PreviewRendererProps } from 'vantage';
+import type { PreviewRendererProps } from '@dwrth/vantage';
 import { getSingleImageStyle } from './imageDisplay';
 import type { ImageData } from './index';
 
