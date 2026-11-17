@@ -17,7 +17,7 @@ import {
   type BlockDragData,
   type BlockDragEvent,
 } from '../lib/blockDrag';
-import { getEnabledBreakpoints, resolveSection } from '../lib/breakpoint';
+import { getEnabledBreakpoints, resolveSection, sectionRows } from '../lib/breakpoint';
 import { groupBounds, moveItemsToSection } from '../mutations/group';
 import { moveItemToSection } from '../mutations/layout';
 import type { SelectionRef } from '../context/BuilderContext';
@@ -44,8 +44,10 @@ function draggedGroup(data: BlockDragData, selection: SelectionRef[]): string[] 
 
 /**
  * Where a dragged group lands in a free-grid section: its bounding box anchored so that the
- * dragged block sits on `cell`, shifted into the target's columns. The box may reach below the
- * target's rows; the drop then grows the section (see `moveItemsToSection`).
+ * dragged block sits on `cell`, shifted into the target's columns. `cell` may lie below the
+ * target's rows. The box starts at most directly below the target's last row, so the drop grows
+ * the section by at most the box's height (see `moveItemsToSection`), and the preview stops
+ * growing there while the canvas auto-scrolls.
  */
 function groupDropBox(
   layout: Layout,
@@ -65,7 +67,7 @@ function groupDropBox(
   const top = cell.y - (data.placement.y - box.y);
   return {
     x: Math.max(0, Math.min(left, columns - box.w)),
-    y: Math.max(0, top),
+    y: Math.max(0, Math.min(top, sectionRows(target, breakpoint, enabled))),
     w: Math.min(box.w, columns),
     h: box.h,
   };
@@ -146,7 +148,8 @@ export function Canvas() {
     // arrangement reorders.
     if (sectionId === data.sectionId && (group || !handle.byPointer)) return null;
     if (group && !handle.byPointer) {
-      const anchor = handle.cellAt(rect.left, rect.top, 1, 1, data.item.id);
+      // The dragged block's cell may lie below the target's last row: the drop grows it.
+      const anchor = handle.cellAt(rect.left, rect.top, 1, 1, data.item.id, { grow: true });
       const box = groupDropBox(current, data, group, sectionId, anchor, bp);
       return box ? { sectionId, ...box } : null;
     }

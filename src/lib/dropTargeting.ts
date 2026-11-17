@@ -42,10 +42,19 @@ function cellIndex(px: number, step: number): number {
   return step > 0 ? Math.round(px / step) : 0;
 }
 
+/** Options of a grid hit test. */
+export type CellAtOptions = {
+  /**
+   * The cell may lie below the grid's last row, where a drop grows the section (a multi-selection
+   * dragged into another section). Rows past the measured ones use the fallback row step.
+   */
+  grow?: boolean;
+};
+
 /**
  * Grid cell whose top-left is closest to a client point, clamped so a `w` x `h` block stays inside
- * the grid. A point above the grid (e.g. on the header bar) clamps to row 0. The block shrinks to
- * the grid when it is wider or taller.
+ * the grid (with `grow`, only inside its columns). A point above the grid (e.g. on the header bar)
+ * clamps to row 0. The block shrinks to the grid when it is wider or taller.
  */
 export function gridCellAt(
   geometry: GridGeometry,
@@ -53,9 +62,11 @@ export function gridCellAt(
   clientTop: number,
   w: number,
   h: number,
+  options: CellAtOptions = {},
 ): { x: number; y: number; w: number; h: number } {
-  const { rect, contentOffsetX, contentOffsetY, columns, rows, cellXStep, cellHeight, rowSteps } =
+  const { rect, contentOffsetX, contentOffsetY, columns, cellXStep, cellHeight, rowSteps } =
     geometry;
+  const rows = options.grow ? Infinity : geometry.rows;
   const width = Math.max(1, Math.min(w, columns));
   const height = Math.max(1, Math.min(h, rows));
   const left = clientLeft - rect.left - contentOffsetX;

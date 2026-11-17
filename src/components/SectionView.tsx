@@ -343,7 +343,7 @@ export function SectionView({ section }: SectionViewProps) {
   );
 
   const cellAt = useCallback<SectionDropHandle['cellAt']>(
-    (clientLeft, clientTop, w, h) =>
+    (clientLeft, clientTop, w, h, _excludeItemId, options) =>
       gridCellAt(
         {
           // Read live: the grid moves while the page scrolls during a drag.
@@ -360,6 +360,7 @@ export function SectionView({ section }: SectionViewProps) {
         clientTop,
         w,
         h,
+        options,
       ),
     [
       containerRef,

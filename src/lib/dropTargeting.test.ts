@@ -80,6 +80,18 @@ describe('gridCellAt', () => {
     expect(gridCellAt(geometry(), 40, 300 + 900, 1, 2).y).toBe(2);
   });
 
+  it('with `grow`, maps a point below the grid to the row under it', () => {
+    expect(gridCellAt(geometry(), 40, 300 + 900, 1, 2, { grow: true }).y).toBe(18);
+    expect(gridCellAt(geometry(), 40, 300 + 200, 1, 1, { grow: true }).y).toBe(4);
+    expect(gridCellAt(geometry(), 40, 300 - 30, 1, 1, { grow: true }).y).toBe(0);
+    expect(gridCellAt(geometry(), 40 + 1150, 300, 3, 9, { grow: true })).toEqual({
+      x: 9,
+      y: 0,
+      w: 3,
+      h: 9,
+    });
+  });
+
   it('keeps the block inside the columns and shrinks oversized blocks', () => {
     expect(gridCellAt(geometry(), 40 + 1150, 300, 3, 1).x).toBe(9);
     expect(gridCellAt(geometry(), 0, 300, 3, 1).x).toBe(0);
