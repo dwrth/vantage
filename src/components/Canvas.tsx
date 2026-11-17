@@ -11,8 +11,17 @@ import {
 import { sectionAtY, type ClientPoint, type SectionBand } from '../lib/dropTargeting';
 import type { DropSource } from '../lib/arrangementPreview';
 import { edgeAutoScroll, scrollParent } from '../lib/autoScroll';
-import { BlockDragContext, useBlockDragController, type BlockDragEvent } from '../lib/blockDrag';
+import {
+  BlockDragContext,
+  useBlockDragController,
+  type BlockDragData,
+  type BlockDragEvent,
+} from '../lib/blockDrag';
+import { getEnabledBreakpoints, resolveSection } from '../lib/breakpoint';
+import { groupBounds, moveItemsToSection } from '../mutations/group';
 import { moveItemToSection } from '../mutations/layout';
+import type { SelectionRef } from '../context/BuilderContext';
+import type { Breakpoint, Layout } from '../types';
 import { ArrangementSectionView } from './ArrangementSectionView';
 import { SectionView } from './SectionView';
 
@@ -24,6 +33,44 @@ function draggedHeight(event: BlockDragEvent): number {
 const topIn = (el: HTMLElement, root: HTMLElement) =>
   el.getBoundingClientRect().top - root.getBoundingClientRect().top;
 
+/** Ids of the multi-selection the dragged block belongs to, or `null` for a single-block drag. */
+function draggedGroup(data: BlockDragData, selection: SelectionRef[]): string[] | null {
+  if (selection.length < 2) return null;
+  const inGroup = selection.some(
+    (ref) => ref.sectionId === data.sectionId && ref.itemId === data.item.id,
+  );
+  return inGroup ? selection.map((ref) => ref.itemId) : null;
+}
+
+/**
+ * Where a dragged group lands in a free-grid section: its bounding box anchored so that the
+ * dragged block sits on `cell`, shifted into the target's columns. The box may reach below the
+ * target's rows; the drop then grows the section (see `moveItemsToSection`).
+ */
+function groupDropBox(
+  layout: Layout,
+  data: BlockDragData,
+  itemIds: string[],
+  targetSectionId: string,
+  cell: { x: number; y: number },
+  breakpoint: Breakpoint,
+) {
+  const enabled = getEnabledBreakpoints(layout);
+  const source = layout.sections.find((s) => s.id === data.sectionId);
+  const target = layout.sections.find((s) => s.id === targetSectionId);
+  const box = source && groupBounds(source, itemIds, breakpoint, enabled);
+  if (!box || !target) return null;
+  const { columns } = resolveSection(target, breakpoint, enabled);
+  const left = data.item.fullBleed ? box.x : cell.x - (data.placement.x - box.x);
+  const top = cell.y - (data.placement.y - box.y);
+  return {
+    x: Math.max(0, Math.min(left, columns - box.w)),
+    y: Math.max(0, top),
+    w: Math.min(box.w, columns),
+    h: box.h,
+  };
+}
+
 export function Canvas() {
   const {
     layout,
@@ -31,15 +78,18 @@ export function Canvas() {
     activeBreakpoint,
     setInteracting,
     setSelection,
+    setSelectedItems,
     selectedItems,
     externalDrag,
     onExternalDrop,
     defaultLabels,
+    announce,
+    announcements,
   } = useBuilderContext();
-  // A group drag stays in its section (cross-section moves are single-block only).
-  const groupRef = useRef(selectedItems);
+  // Read during a drag, whose handlers are bound when it starts.
+  const latest = useRef({ selectedItems, layout, activeBreakpoint });
   useEffect(() => {
-    groupRef.current = selectedItems;
+    latest.current = { selectedItems, layout, activeBreakpoint };
   });
   const { addSection } = useBuilderActions();
   const { sections } = layout;
@@ -86,19 +136,20 @@ export function Canvas() {
     // The block as drawn under the pointer: its start rect plus the pointer's travel (no scroll).
     const rect = activeBlock.current?.rect;
     if (!data || !pointer.current || !rect) return null;
-    const group = groupRef.current;
-    if (
-      group.length > 1 &&
-      group.some((ref) => ref.sectionId === data.sectionId && ref.itemId === data.item.id)
-    ) {
-      return null;
-    }
+    const { selectedItems: selection, layout: current, activeBreakpoint: bp } = latest.current;
+    const group = draggedGroup(data, selection);
     const sectionId = sectionAtPointer(pointer.current.y);
     if (!sectionId) return null;
     const handle = handles.current.get(sectionId);
     if (!handle) return null;
-    // Inside its own section a free-grid block is moved by `dropWithin`; an arrangement reorders.
-    if (sectionId === data.sectionId && !handle.byPointer) return null;
+    // Inside its own section a free-grid block or a group is moved by `dropWithin`; an
+    // arrangement reorders.
+    if (sectionId === data.sectionId && (group || !handle.byPointer)) return null;
+    if (group && !handle.byPointer) {
+      const anchor = handle.cellAt(rect.left, rect.top, 1, 1, data.item.id);
+      const box = groupDropBox(current, data, group, sectionId, anchor, bp);
+      return box ? { sectionId, ...box } : null;
+    }
     const cell = handle.cellAt(
       handle.byPointer ? pointer.current.x : rect.left,
       handle.byPointer ? pointer.current.y : rect.top,
@@ -189,9 +240,39 @@ export function Canvas() {
       const { data } = event;
       activeBlock.current = event;
       const target = crossSectionTarget();
+      const group = draggedGroup(data, latest.current.selectedItems);
       endDrag();
       if (!target) {
         handles.current.get(data.sectionId)?.dropWithin(event);
+        return;
+      }
+      if (group) {
+        const next = moveItemsToSection(layout, data.sectionId, group, target.sectionId, {
+          x: target.x,
+          y: target.y,
+          index: target.index,
+          breakpoint: activeBreakpoint,
+        });
+        if (next === layout) return;
+        onChange(next);
+        const before = new Set(
+          layout.sections.find((s) => s.id === target.sectionId)?.items.map((i) => i.id),
+        );
+        const targetSection = next.sections.find((s) => s.id === target.sectionId)!;
+        const moved = targetSection.items.filter((i) => !before.has(i.id));
+        // The dragged block stays the primary (last) one, unless its id changed on a collision.
+        const ordered = [
+          ...moved.filter((i) => i.id !== data.item.id),
+          ...moved.filter((i) => i.id === data.item.id),
+        ];
+        setSelectedItems(ordered.map((i) => ({ sectionId: target.sectionId, itemId: i.id })));
+        announce(
+          announcements.groupMovedToSection({
+            count: moved.length,
+            items: moved,
+            section: targetSection,
+          }),
+        );
         return;
       }
       const next = moveItemToSection(layout, data.sectionId, data.item.id, target.sectionId, {
@@ -209,7 +290,17 @@ export function Canvas() {
           : targetItems?.at(-1);
       if (moved) setSelection({ sectionId: target.sectionId, itemId: moved.id });
     },
-    [crossSectionTarget, endDrag, layout, activeBreakpoint, onChange, setSelection],
+    [
+      crossSectionTarget,
+      endDrag,
+      layout,
+      activeBreakpoint,
+      onChange,
+      setSelection,
+      setSelectedItems,
+      announce,
+      announcements,
+    ],
   );
 
   const blockDragContext = useBlockDragController({

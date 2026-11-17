@@ -12,6 +12,7 @@ import {
   groupBounds,
   groupMoveRange,
   moveItems,
+  moveItemsToSection,
   removeItems,
 } from './group';
 import { removeItem } from './layout';
@@ -221,6 +222,98 @@ describe('removeItems', () => {
         expect(danglingOverrideKeys(next)).toEqual([]);
         expect(removeItems(layout, 'missing', ids)).toBe(layout);
       }),
+      RUNS,
+    );
+  });
+});
+
+type CrossPick = GroupPick & { target: Section };
+
+const arbCrossPick: fc.Arbitrary<CrossPick> = fc
+  .tuple(
+    arbLayout({ arrangements: 0, minSections: 2 }),
+    fc.nat(),
+    fc.nat(),
+    fc.nat(),
+    fc.array(fc.nat(), { maxLength: 5 }),
+  )
+  .map(([layout, s, t, b, picks]) => {
+    const count = layout.sections.length;
+    const section = layout.sections[s % count]!;
+    const target = layout.sections[(s + 1 + (t % (count - 1))) % count]!;
+    const enabled = getEnabledBreakpoints(layout);
+    const ids = section.items.length
+      ? [...new Set(picks.map((p) => section.items[p % section.items.length]!.id))]
+      : [];
+    return {
+      layout: deepFreeze(layout),
+      section,
+      target,
+      ids,
+      bp: enabled[b % enabled.length]!,
+      enabled,
+    };
+  });
+
+describe('moveItemsToSection', () => {
+  it('moves the shown blocks inside the target, keeping their arrangement, growing it minimally', () => {
+    fc.assert(
+      fc.property(
+        arbCrossPick,
+        fc.integer({ min: -4, max: 16 }),
+        fc.integer({ min: -4, max: 12 }),
+        (pick, x, y) => {
+          const { layout, section, target, ids, bp, enabled } = pick;
+          const snapshot = structuredClone(layout);
+          const next = moveItemsToSection(layout, section.id, ids, target.id, {
+            x,
+            y,
+            breakpoint: bp,
+          });
+          expect(layout).toEqual(snapshot);
+          const members = visibleMembers(pick);
+          if (members.length === 0) {
+            expect(next).toBe(layout);
+            return;
+          }
+          expect(validateLayout(next).errors).toEqual([]);
+          expect(danglingOverrideKeys(next)).toEqual([]);
+
+          const from = next.sections.find((s) => s.id === section.id)!;
+          const to = next.sections.find((s) => s.id === target.id)!;
+          const memberIds = new Set(members.map((r) => r.id));
+          expect(from.items.map((i) => i.id)).toEqual(
+            section.items.map((i) => i.id).filter((id) => !memberIds.has(id)),
+          );
+          expect(sectionRows(from, bp, enabled)).toBe(sectionRows(section, bp, enabled));
+
+          const added = to.items.slice(target.items.length);
+          expect(added).toHaveLength(members.length);
+          const { columns } = resolveSection(to, bp, enabled);
+          const rows = sectionRows(to, bp, enabled);
+          const box = groupBounds(section, ids, bp, enabled)!;
+          const anchorX = Math.max(0, Math.min(x, columns - box.w));
+          const anchorY = Math.max(0, y);
+          expect(rows).toBe(Math.max(sectionRows(target, bp, enabled), anchorY + box.h));
+
+          // Added blocks follow the source stacking order.
+          const ordered = section.items.filter((i) => memberIds.has(i.id));
+          added.forEach((moved, k) => {
+            const was = resolveItem(ordered[k]!, section, bp, enabled);
+            const now = resolveItem(moved, to, bp, enabled);
+            expect(now.hidden).toBeFalsy();
+            expect(now.x).toBeGreaterThanOrEqual(0);
+            expect(now.y).toBeGreaterThanOrEqual(0);
+            expect(now.x + now.w).toBeLessThanOrEqual(columns);
+            expect(now.y + now.h).toBeLessThanOrEqual(rows);
+            expect(now.y - anchorY).toBe(was.y - box.y);
+            expect(now.h).toBe(was.h);
+            if (!ordered[k]!.fullBleed && box.w <= columns) {
+              expect({ x: now.x - anchorX, w: now.w }).toEqual({ x: was.x - box.x, w: was.w });
+            }
+          });
+        },
+      ),
       RUNS,
     );
   });

@@ -1,7 +1,13 @@
-import { getEnabledBreakpoints, resolveItem, resolveSection, sectionRows } from '../lib/breakpoint';
+import {
+  getEnabledBreakpoints,
+  resolveItem,
+  resolveSection,
+  sectionContentRows,
+  sectionRows,
+} from '../lib/breakpoint';
 import type { PlacementRect } from '../lib/grid';
 import { BREAKPOINTS, type Breakpoint, type Layout, type Section } from '../types';
-import { moveItem, removeItem } from './layout';
+import { moveItem, moveItemToSection, removeItem, resizeItem, resizeSection } from './layout';
 
 /**
  * Group alignment over the selection's bounding box: `left` / `center` / `right` move blocks
@@ -136,6 +142,82 @@ export function moveItems(
     .map((p) => ({ id: p.id, x: p.fullBleed ? p.x : p.x + delta.dx, y: p.y + delta.dy, p }))
     .filter(({ x, y, p }) => x !== p.x || y !== p.y);
   return targets.length ? applyPlacements(layout, sectionId, targets, breakpoint) : layout;
+}
+
+export type MoveItemsToSectionOptions = {
+  /** Target column of the group's bounding box on `breakpoint`'s grid. Omitted: its current column. */
+  x?: number;
+  /** Target row of the group's bounding box on `breakpoint`'s grid. Omitted: below the target's content. */
+  y?: number;
+  /** Grid that `x` / `y` and the group's placement refer to. Defaults to `'desktop'`. */
+  breakpoint?: Breakpoint;
+  /** Arrangement target: index the first block is inserted at (omitted: appended). `x` / `y` are ignored there. */
+  index?: number;
+};
+
+/**
+ * Move several blocks of one section into another section as a unit, anchored at the group's
+ * bounding box (see `groupBounds`) on `breakpoint`'s grid. The blocks keep their offsets to each
+ * other and their stacking order, and land on top of the target stack. The box is shifted left
+ * to fit the target's columns (blocks wider than that shrink). When the box reaches below the
+ * target at `breakpoint`, the target grows to exactly the rows needed (it never shrinks; the
+ * source keeps its height). Each block travels like `moveItemToSection`: id kept (a new one on
+ * collision), per-breakpoint `hidden` / `verticalAlign` / `data` overrides carried along,
+ * positions from the old grid not. Off desktop the blocks keep the size shown at `breakpoint`
+ * (written to its overrides) and get free desktop slots. Blocks hidden at `breakpoint` stay in
+ * the source. An arrangement target places the blocks by index, in stacking order (no growth).
+ * Same-section calls behave like `moveItems`. One layout, so one undo step; the same layout
+ * object when nothing moves.
+ */
+export function moveItemsToSection(
+  layout: Layout,
+  fromSectionId: string,
+  itemIds: readonly string[],
+  toSectionId: string,
+  options: MoveItemsToSectionOptions = {},
+): Layout {
+  const breakpoint = options.breakpoint ?? 'desktop';
+  const enabled = getEnabledBreakpoints(layout);
+  const source = layout.sections.find((s) => s.id === fromSectionId);
+  const target = layout.sections.find((s) => s.id === toSectionId);
+  if (!source || !target) return layout;
+  const box = groupBounds(source, itemIds, breakpoint, enabled);
+  if (!box) return layout;
+
+  if (fromSectionId === toSectionId) {
+    if (source.arrangement) return layout;
+    const dx = (options.x ?? box.x) - box.x;
+    const dy = (options.y ?? box.y) - box.y;
+    return moveItems(layout, fromSectionId, itemIds, dx, dy, breakpoint);
+  }
+
+  // Source stacking order, so the group keeps its layering.
+  const placed = placedGroup(source, itemIds, breakpoint, enabled);
+  let next = layout;
+  if (target.arrangement) {
+    placed.forEach(({ id }, i) => {
+      const index = options.index === undefined ? undefined : options.index + i;
+      next = moveItemToSection(next, fromSectionId, id, toSectionId, { breakpoint, index });
+    });
+    return next;
+  }
+
+  const { columns } = resolveSection(target, breakpoint, enabled);
+  const x = Math.max(0, Math.min(Math.round(options.x ?? box.x), columns - box.w));
+  const y = Math.max(0, Math.round(options.y ?? sectionContentRows(target, breakpoint, enabled)));
+  const needed = y + box.h;
+  if (needed > sectionRows(target, breakpoint, enabled)) {
+    next = resizeSection(next, toSectionId, needed, breakpoint);
+  }
+  for (const p of placed) {
+    const cell = { x: p.fullBleed ? 0 : x + p.x - box.x, y: y + p.y - box.y };
+    next = moveItemToSection(next, fromSectionId, p.id, toSectionId, { ...cell, breakpoint });
+    if (breakpoint === 'desktop') continue;
+    // Off desktop the block keeps the size it is shown at, not its desktop size.
+    const movedId = next.sections.find((s) => s.id === toSectionId)!.items.at(-1)!.id;
+    next = resizeItem(next, toSectionId, movedId, cell.x, cell.y, p.w, p.h, breakpoint);
+  }
+  return next;
 }
 
 /**
