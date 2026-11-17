@@ -306,6 +306,52 @@ describe('dragging a block by its handle', () => {
     await expect.poll(() => measuredCell('a', 'g2')).toEqual({ x: 3, y: 1, w: 2, h: 2 });
     await expect.poll(() => rectOf(gridEl('b')).height).toBe(2 * ROW);
   });
+
+  it('drops a multi-selection below the last row of another section and grows it to fit', async () => {
+    const { changes, last } = mount(
+      layoutOf(
+        section('a', [block('g1', 0, 0, 2, 1), block('g2', 3, 1, 2, 2)]),
+        section('b', [block('t', 0, 0, 2, 2)], { rows: 2 }),
+      ),
+    );
+    await ready('a', 'b');
+    await userEvent.click(blockEl('a', 'g1')!);
+    await userEvent.click(blockEl('a', 'g2')!, { modifiers: ['Shift'] });
+    await expect.poll(() => document.querySelector('[data-vantage-group-box]')).not.toBeNull();
+
+    // g1's top-left onto cell (6, 2) of b, just below its last row: the group box (5 x 3)
+    // lands at (6, 2), so b grows from 2 to exactly 5 rows.
+    const source = rectOf(blockEl('a', 'g1')!);
+    const target = rectOf(gridEl('b'));
+    const from = center(handleOf('a', 'g1', '[data-vantage-drag-handle]'));
+    const to = {
+      x: from.x + target.left + 6 * CELL + 10 - source.left,
+      y: from.y + target.top + 2 * ROW + 10 - source.top,
+    };
+    await userEvent.pointer([
+      { coords: from },
+      { keys: '[MouseLeft>]' },
+      { coords: { x: from.x + 6, y: from.y + 6 } },
+      { coords: to },
+    ]);
+    const ghost = () =>
+      document.querySelector<HTMLElement>(`[data-vantage-section="b"] .${builder['drop-ghost']}`);
+    await expect.poll(() => ghost()?.style.gridRow).toBe('3 / span 3');
+    expect(ghost()!.style.gridColumn).toBe('8 / span 5');
+    // Further down the box still starts directly below b's last row.
+    await userEvent.pointer([{ coords: { x: to.x, y: to.y + 3 * ROW } }]);
+    await expect.poll(() => ghost()?.style.gridRow).toBe('3 / span 3');
+    await userEvent.pointer([{ coords: to }, { keys: '[/MouseLeft]' }]);
+
+    await expect.poll(() => changes.length).toBe(1);
+    const b = last()!.sections[1]!;
+    expect(itemIn(last(), 'b', 'g1')).toMatchObject({ x: 6, y: 2, w: 2, h: 1 });
+    expect(itemIn(last(), 'b', 'g2')).toMatchObject({ x: 9, y: 3, w: 2, h: 2 });
+    expect(itemIn(last(), 'b', 't')).toMatchObject({ x: 0, y: 0, w: 2, h: 2 });
+    for (const item of b.items) expect(item.y + item.h).toBeLessThanOrEqual(b.rows!);
+    expect(b.rows).toBe(5);
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(5 * ROW);
+  });
 });
 
 describe('resizing a block by its handles', () => {

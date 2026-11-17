@@ -74,10 +74,11 @@ Each group action is one layout change, so one undo step.
 - **Move to another section (pointer only):** drag the handle of any selected block over another
   section. The target shows a ghost of the group's bounding box; on drop every shown block of
   the group moves there (`moveItemsToSection`), keeping its offsets to the others and its
-  stacking order. The box is anchored so that the dragged block lands on the cell under it,
-  shifted left to fit the target's columns. If the box reaches below the target, the target
-  grows to exactly the rows needed (on the active breakpoint); it never shrinks, and the source
-  keeps its height. The moved blocks stay selected in the target. Arrow keys never leave the
+  stacking order. The box is anchored so that the dragged block lands on the cell under it, also
+  below the target's last row, shifted left to fit the target's columns; it starts at most
+  directly below the target's last row. If the box reaches below the target, the target grows to
+  exactly the rows needed (on the active breakpoint); it never shrinks, and the source keeps its
+  height. The moved blocks stay selected in the target. Arrow keys never leave the
   section. Into an arrangement section the blocks are inserted at the drop slot, in stacking
   order.
 - **Align:** left / centre / right or top / middle / bottom over the group's bounding box (on the

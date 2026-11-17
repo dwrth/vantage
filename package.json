@@ -1,6 +1,6 @@
 {
   "name": "@dwrth/vantage",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Controlled grid layout builder for React",
   "type": "module",
   "main": "./dist/vantage.cjs",

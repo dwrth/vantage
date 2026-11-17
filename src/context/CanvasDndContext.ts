@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { DropSource } from '../lib/arrangementPreview';
 import type { BlockDragEvent } from '../lib/blockDrag';
+import type { CellAtOptions } from '../lib/dropTargeting';
 
 /** `translate` of a dragged block: undoes the shift of its section while it is dragged (see `Canvas`). */
 export const DRAG_SHIFT = '0 var(--vantage-drag-shift-y, 0px)';
@@ -21,7 +22,8 @@ export type SectionDropHandle = {
   getElement: () => HTMLElement | null;
   /**
    * Grid cell whose top-left is closest to a client point, clamped so a `w` x `h` item stays
-   * inside the section. Returns the item size after clamping (the section never grows).
+   * inside the section. Returns the item size after clamping. The section never grows, unless
+   * `options.grow` lets the cell lie below its last row (see `gridCellAt`).
    */
   cellAt: (
     clientLeft: number,
@@ -29,6 +31,7 @@ export type SectionDropHandle = {
     w: number,
     h: number,
     excludeItemId?: string,
+    options?: CellAtOptions,
   ) => { x: number; y: number; w: number; h: number; index?: number };
   /** Arrangement section: `cellAt` wants the pointer position, not a block corner. */
   byPointer?: boolean;
