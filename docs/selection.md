@@ -68,9 +68,18 @@ override) are skipped by every group action.
 Each group action is one layout change, so one undo step.
 
 - **Move:** drag the handle of any selected block, or press the arrow keys while a selected block
-  has focus. The group moves as a unit and stops when its first block reaches a section edge;
-  the section never grows. A group drag stays in its section (moving to another section is a
-  single-block action). Full-bleed blocks move only vertically. One held arrow key is one step.
+  has focus. Inside its section the group moves as a unit and stops when its first block reaches
+  a section edge; the section never grows. Full-bleed blocks move only vertically. One held
+  arrow key is one step.
+- **Move to another section (pointer only):** drag the handle of any selected block over another
+  section. The target shows a ghost of the group's bounding box; on drop every shown block of
+  the group moves there (`moveItemsToSection`), keeping its offsets to the others and its
+  stacking order. The box is anchored so that the dragged block lands on the cell under it,
+  shifted left to fit the target's columns. If the box reaches below the target, the target
+  grows to exactly the rows needed (on the active breakpoint); it never shrinks, and the source
+  keeps its height. The moved blocks stay selected in the target. Arrow keys never leave the
+  section. Into an arrangement section the blocks are inserted at the drop slot, in stacking
+  order.
 - **Align:** left / centre / right or top / middle / bottom over the group's bounding box (on the
   active breakpoint; centre and middle round down to whole cells). Full-bleed blocks ignore
   horizontal alignment.
@@ -88,19 +97,29 @@ Its labels come from `blockLabels.groupToolbar(count)`, `blockLabels.align(align
 
 ```ts
 moveItems(layout, sectionId, itemIds, dx, dy, breakpoint?); // clamped as a unit
+moveItemsToSection(layout, fromSectionId, itemIds, toSectionId, { x?, y?, breakpoint?, index? }); // x / y: top-left of the group's box
 alignItems(layout, sectionId, itemIds, 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom', breakpoint?);
 removeItems(layout, sectionId, itemIds);
 groupBounds(section, itemIds, breakpoint); // bounding box in cells, or null
 groupMoveRange(section, itemIds, breakpoint); // { minDx, maxDx, minDy, maxDy } or null
 ```
 
-All three mutations return the same layout object when nothing changes.
+All four mutations return the same layout object when nothing changes.
+
+`moveItemsToSection` moves each block like `moveItemToSection` (see [Layout](layout.md)): ids are
+kept (a new one on collision), per-breakpoint `hidden` / `verticalAlign` / `data` overrides
+travel along and are removed from the source, positions from the old grid do not. Off desktop
+the blocks keep the size they are shown at and get free desktop slots below the target's
+content. Blocks hidden at the breakpoint stay in the source. `onChange` fires once; its
+changeset lists every moved block in `itemsMoved` and the grown target in `sectionsUpdated`.
 
 ### Announcements
 
 The live region reads `announcements.selectionChanged({ count, items })` after Shift-click,
 marquee and Escape on a group, and `groupMoved`, `groupAligned` (with `alignment`) and
-`groupDeleted` after group actions. See [Keyboard](keyboard.md).
+`groupDeleted` after group actions. A group dropped into another section reads
+`groupMovedToSection({ count, items, section })` (default: "2 blocks moved to Hero", or "to
+another section" without a section label). See [Keyboard](keyboard.md).
 
 Pure helpers for custom selection UIs: `toggleSelection`, `marqueeHits`, `rectFromPoints`,
 `mergeSelection`, `sameSelection`.

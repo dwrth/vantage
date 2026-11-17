@@ -170,6 +170,19 @@ export function useBuilderActions() {
         );
         if (next !== layout) apply(next);
       },
+      /** Group move into another section (see `moveItemsToSection`); one change. */
+      moveItemsToSection: (
+        fromSectionId: string,
+        itemIds: string[],
+        toSectionId: string,
+        options: group.MoveItemsToSectionOptions = {},
+      ) => {
+        const next = group.moveItemsToSection(layout, fromSectionId, itemIds, toSectionId, {
+          ...options,
+          breakpoint: options.breakpoint ?? activeBreakpoint,
+        });
+        if (next !== layout) apply(next);
+      },
       /** Group align over the bounding box (see `alignItems`); one change. */
       alignItems: (
         sectionId: string,

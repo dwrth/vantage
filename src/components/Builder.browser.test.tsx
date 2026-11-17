@@ -5,6 +5,7 @@ import { userEvent } from 'vitest/browser';
 import builder from '../styles/builder.module.css';
 import { VantageThemeProvider } from '../theme/VantageThemeProvider';
 import type { ComponentRegistry, GridItem, Layout, Section } from '../types';
+import { useVantageHistory } from '../hooks/useVantageHistory';
 import { VantageBuilder, type VantageBuilderProps } from './Builder';
 
 /*
@@ -242,6 +243,68 @@ describe('dragging a block by its handle', () => {
     const moved = last()!.sections[1].items[0].id;
     await expect.poll(() => measuredCell('b', moved)).toEqual({ x: 3, y: 1, w: 2, h: 1 });
     expect(blockEl('a', 'b1')).toBeNull();
+  });
+
+  it('moves a multi-selection into another section, growing it, as one undo step', async () => {
+    const initial = layoutOf(
+      section('a', [block('g1', 0, 0, 2, 1), block('g2', 3, 1, 2, 2)]),
+      section('b', [], { rows: 2 }),
+    );
+    const changes: Layout[] = [];
+    let undo = () => {};
+    function Host() {
+      const [value, setValue] = useState(initial);
+      const history = useVantageHistory(value, (next) => {
+        changes.push(next);
+        setValue(next);
+      });
+      undo = history.undo;
+      return (
+        <div style={{ width: WIDTH }}>
+          <VantageBuilder
+            value={history.layout}
+            onChange={history.onChange}
+            history={history}
+            components={components}
+            showSectionActions={false}
+          />
+        </div>
+      );
+    }
+    render(<Host />);
+    await ready('a', 'b');
+    await userEvent.click(blockEl('a', 'g1')!);
+    await userEvent.click(blockEl('a', 'g2')!, { modifiers: ['Shift'] });
+    await expect.poll(() => document.querySelector('[data-vantage-group-box]')).not.toBeNull();
+
+    // g2's top-left onto cell (6, 1) of b: the group box (5 x 3) lands at (3, 0) and b,
+    // 2 rows tall, grows to 3.
+    const source = rectOf(blockEl('a', 'g2')!);
+    const target = rectOf(gridEl('b'));
+    const dx = target.left + 6 * CELL + 10 - source.left;
+    const dy = target.top + ROW + 10 - source.top;
+    await dragBy(handleOf('a', 'g2', '[data-vantage-drag-handle]'), dx, dy);
+    await expect.poll(() => changes.length).toBe(1);
+    const moved = changes[0]!;
+    expect(moved.sections[0]!.items).toHaveLength(0);
+    expect(moved.sections[0]!.rows).toBe(4);
+    expect(moved.sections[1]!.rows).toBe(3);
+    expect(itemIn(moved, 'b', 'g1')).toMatchObject({ x: 3, y: 0, w: 2, h: 1 });
+    expect(itemIn(moved, 'b', 'g2')).toMatchObject({ x: 6, y: 1, w: 2, h: 2 });
+    await expect.poll(() => measuredCell('b', 'g2')).toEqual({ x: 6, y: 1, w: 2, h: 2 });
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(3 * ROW);
+    await expect
+      .poll(() => document.body.textContent)
+      .toContain('2 blocks moved to another section');
+    expect(
+      document.querySelectorAll('[data-vantage-section="b"] [data-vantage-selected]').length,
+    ).toBe(2);
+
+    undo();
+    await expect.poll(() => changes.length).toBe(2);
+    expect(changes[1]).toEqual(initial);
+    await expect.poll(() => measuredCell('a', 'g2')).toEqual({ x: 3, y: 1, w: 2, h: 2 });
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(2 * ROW);
   });
 });
 

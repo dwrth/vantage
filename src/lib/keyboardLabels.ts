@@ -1,5 +1,5 @@
 import type { GroupAlignment } from '../mutations/group';
-import type { GridItem } from '../types';
+import type { GridItem, Section } from '../types';
 
 /** Accessible names and descriptions of builder blocks and their chrome, e.g. for translation. */
 export type BlockLabels = {
@@ -58,6 +58,8 @@ export type BlockAnnouncements = {
    */
   selectionChanged?: (ctx: GroupAnnouncementContext) => string;
   groupMoved?: (ctx: GroupAnnouncementContext) => string;
+  /** A group dragged into another section; `section` is the target. */
+  groupMovedToSection?: (ctx: GroupAnnouncementContext & { section: Section }) => string;
   groupAligned?: (ctx: GroupAnnouncementContext & { alignment: GroupAlignment }) => string;
   groupDeleted?: (ctx: GroupAnnouncementContext) => string;
 };
@@ -101,6 +103,10 @@ export const DEFAULT_BLOCK_ANNOUNCEMENTS: Required<BlockAnnouncements> = {
         ? '1 block selected'
         : `${count} blocks selected`,
   groupMoved: ({ count }) => `${count} blocks moved`,
+  groupMovedToSection: ({ count, section }) =>
+    section.label
+      ? `${count} blocks moved to ${section.label}`
+      : `${count} blocks moved to another section`,
   groupAligned: ({ count, alignment }) => `${count} blocks aligned ${alignment}`,
   groupDeleted: ({ count }) => `${count} blocks deleted`,
 };

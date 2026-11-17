@@ -87,12 +87,15 @@ Section height is `rows` grid rows. The builder sets it with the resize edge at 
 
 Dragging blocks never resizes a section. `moveItem`, `resizeItem`, `moveItemToSection` and `addItem` with an explicit `y` first pin the section's current height at that breakpoint (writing `rows` if it was unset), then clamp the block into it: it stops at the last row, and a block taller than the section shrinks to its height, the same way a too-wide block shrinks to `columns`. `addItem` without a position still appends below the content and extends the section.
 
+One exception: a multi-selection dropped into another section (`moveItemsToSection`, see [Selection](selection.md)) grows the target when the group's bounding box reaches below it, to exactly `y + box height` rows at that breakpoint, written like `resizeSection`. The target never shrinks and the source keeps its height. Single-block drops still clamp into the target.
+
 ### Items
 
 ```ts
 addItem(layout, sectionId, 'hero', heroKind.defaults);   // pass the kind's defaults
 moveItem(layout, sectionId, itemId, x, y, breakpoint?);
 moveItemToSection(layout, fromSectionId, itemId, toSectionId, { x?, y?, breakpoint? });
+moveItemsToSection(layout, fromSectionId, itemIds, toSectionId, { x?, y?, breakpoint? }); // group, grows the target
 resizeItem(layout, sectionId, itemId, x, y, w, h, breakpoint?);
 removeItem(layout, sectionId, itemId);                   // also strips per-breakpoint overrides
 updateItemData<HeroData>(layout, sectionId, itemId, { title: 'New' }, breakpoint?); // shallow merge into data
@@ -102,7 +105,7 @@ setItemVerticalAlign(layout, sectionId, itemId, 'center', breakpoint?); // see A
 
 `addItem` accepts optional desktop `x` / `y` in its defaults (otherwise the next free slot).
 
-`moveItemToSection` keeps the item's id, size, `ref`, `data`, `meta` and desktop `hidden`, puts it on top of the target stack and carries per-breakpoint `hidden` / `verticalAlign` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsRemoved` + `itemsAdded`.
+`moveItemToSection` keeps the item's id, size, `ref`, `data`, `meta` and desktop `hidden`, puts it on top of the target stack and carries per-breakpoint `hidden` / `verticalAlign` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsMoved` (as `itemsRemoved` + `itemsAdded` when the id changed on a collision).
 
 `moveItem` / `resizeItem` / `updateItemData` write to the section's items when `breakpoint === 'desktop'` (the default) and to that breakpoint's overrides otherwise. For `updateItemData`, the patch is shallow-merged on top of the resolved data (base + any existing override) so unaffected fields keep falling through from desktop.
 

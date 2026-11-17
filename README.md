@@ -108,3 +108,13 @@ cd demo
 npm install
 npm run dev        # http://localhost:5173
 ```
+
+## Releasing
+
+Releases go to npm from GitHub Actions (`.github/workflows/release.yml`, trusted publishing with
+provenance; no npm token).
+
+1. Bump `version` in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`) in a PR.
+2. Merge it into `main`.
+3. Create a GitHub release with the tag `vX.Y.Z` on `main`. Publishing it runs the workflow, which
+   fails if the tag does not match `package.json`, then typechecks, tests, builds and publishes.

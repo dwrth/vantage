@@ -64,4 +64,5 @@ with `announcements` and `blockLabels`:
 
 Positions and sizes in `BlockAnnouncementContext` are 1-based grid cells. Selection and group
 messages (`selectionChanged`, `groupMoved`, `groupAligned`, `groupDeleted`) get a
-`GroupAnnouncementContext` (`{ count, items }`).
+`GroupAnnouncementContext` (`{ count, items }`); `groupMovedToSection` (pointer drop of a group
+into another section) also gets the target `section`.

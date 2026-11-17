@@ -134,6 +134,7 @@ export {
 
 export {
   moveItems,
+  moveItemsToSection,
   alignItems,
   removeItems,
   groupBounds,
@@ -141,7 +142,7 @@ export {
   clampGroupDelta,
   GROUP_ALIGNMENTS,
 } from './mutations/group';
-export type { GroupAlignment, GroupMoveRange } from './mutations/group';
+export type { GroupAlignment, GroupMoveRange, MoveItemsToSectionOptions } from './mutations/group';
 export {
   toggleSelection,
   marqueeHits,
