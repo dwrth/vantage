@@ -59,6 +59,8 @@ Keep those in separate state. They never touch the history stack.
 One gesture is one undo step. Merging is by gesture, not by time:
 
 - **Pointer drag, resize and section resize** emit once at the end, so each is one step.
+- **Drops into another section** (a single block or a group, and a palette block inserted with
+  `addItem(..., { grow: true })`) are one layout change including the target's growth, so one step.
 - **Group move (also into another section, including the target's growth), align and delete**
   (multi-selection, see [Selection](selection.md)) are one
   layout change each, so one step for the whole group.

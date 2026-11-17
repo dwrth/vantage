@@ -37,7 +37,12 @@ export type ExternalDragItem = {
   h: number;
 };
 
-/** Where an external drag was dropped. `x` / `y` refer to `breakpoint`'s grid of that section. */
+/**
+ * Where an external drag was dropped. `x` / `y` refer to `breakpoint`'s grid of that section.
+ * In a free-grid section `y + h` may reach below the section's rows (at most directly below its
+ * last row): pass the event to `addItem` with `breakpoint` and `grow: true` so the section grows
+ * to fit, in the same layout.
+ */
 export type ExternalDropEvent = {
   sectionId: string;
   x: number;

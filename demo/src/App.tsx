@@ -6,7 +6,6 @@ import {
   VantageThemeProvider,
   ItemDataProvider,
   addItem,
-  moveItem,
   resolveDescriptorForKind,
   resolveRegistry,
   bringItemForward,
@@ -314,15 +313,29 @@ function App() {
     return { w: defaults?.w ?? 3, h: defaults?.h ?? 2 };
   }, [draggedKind, resolvedRegistry]);
 
-  const handleExternalDrop = ({ sectionId, x, y, breakpoint, dataTransfer }: ExternalDropEvent) => {
+  const handleExternalDrop = ({
+    sectionId,
+    x,
+    y,
+    index,
+    breakpoint,
+    dataTransfer,
+  }: ExternalDropEvent) => {
     const kind = dataTransfer.getData('text/plain') || draggedKind;
     setDraggedKind(null);
     if (!kind || !demoComponents[kind]) return;
     const defaults = resolveDescriptorForKind(resolvedRegistry, kind)?.defaults;
-    const atDesktop = breakpoint === 'desktop';
-    let next = addItem(layout, sectionId, kind, { ...defaults, ...(atDesktop ? { x, y } : {}) });
-    const added = next.sections.find((s) => s.id === sectionId)?.items.at(-1);
-    if (added && !atDesktop) next = moveItem(next, sectionId, added.id, x, y, breakpoint);
+    const next = addItem(layout, sectionId, kind, {
+      ...defaults,
+      x,
+      y,
+      index,
+      breakpoint,
+      grow: true,
+    });
+    const target = next.sections.find((s) => s.id === sectionId);
+    const before = new Set(layout.sections.find((s) => s.id === sectionId)?.items.map((i) => i.id));
+    const added = target?.items.find((i) => !before.has(i.id));
     emitLayoutChange(layout, next, pushLayoutChange);
     if (added) handleSelectionChange({ sectionId, itemId: added.id });
   };

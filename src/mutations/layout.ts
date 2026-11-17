@@ -1,5 +1,6 @@
 import {
   defaultColumnsForBreakpoint,
+  getEnabledBreakpoints,
   resolveItem,
   resolveSection,
   sectionContentRows,
@@ -32,10 +33,20 @@ export type AddItemDefaults = {
   id?: string;
   /** External entity id for host-resolved payloads. */
   ref?: string;
-  /** Desktop column to place the item at. Omitted: next free slot. */
+  /** Column on `breakpoint`'s grid to place the item at. Omitted: next free slot. */
   x?: number;
-  /** Desktop row to place the item at. Omitted: next free slot. */
+  /** Row on `breakpoint`'s grid to place the item at. Omitted: next free slot. */
   y?: number;
+  /**
+   * Grid that `x` / `y` refer to. Defaults to `'desktop'`. Off desktop the item gets the next
+   * free desktop slot and `x` / `y` become that breakpoint's override.
+   */
+  breakpoint?: Breakpoint;
+  /**
+   * With an explicit `y`: grow the section at `breakpoint` to exactly the rows the item needs
+   * (`y + h`) instead of clamping the item into the current height. Never shrinks it.
+   */
+  grow?: boolean;
   /** Arrangement section: index in `items` to insert at. Omitted: appended. `x` / `y` are ignored there. */
   index?: number;
   w?: number;
@@ -939,23 +950,39 @@ export function addItem(
   const w = defaults.w ?? 3;
   const h = defaults.h ?? 2;
   const baseLabel = defaults.label ?? kind.charAt(0).toUpperCase() + kind.slice(1);
+  const breakpoint = defaults.breakpoint ?? 'desktop';
+  const isDesktop = breakpoint === 'desktop';
+  const enabled = getEnabledBreakpoints(layout);
 
   return {
     ...layout,
     sections: mapSection(layout.sections, sectionId, (current) => {
       const flow = current.arrangement !== undefined;
-      // An explicit row (a drop) lands inside the section; the next free slot may extend it.
-      const { section, rows } =
-        defaults.y !== undefined && !flow
-          ? pinSectionRows(current, 'desktop')
-          : { section: current, rows: undefined };
+      // An explicit row (a drop) lands inside the section, which grows to fit only with `grow`;
+      // the next free slot may extend it.
+      const dropped = defaults.y !== undefined && !flow;
+      let base = current;
+      if (dropped && defaults.grow) {
+        const needed = Math.max(0, Math.round(defaults.y!)) + h;
+        if (needed > sectionRows(current, breakpoint, enabled)) {
+          base = withSectionRows(current, breakpoint, needed);
+        }
+      }
+      const { section, rows } = dropped
+        ? pinSectionRows(base, breakpoint)
+        : { section: base, rows: undefined };
       const slot = nextSlot(desktopVisibleItems(section.items));
       const placement = flow
         ? { x: 0, y: 0, w, h }
         : clampItem(
-            { x: defaults.x ?? slot.x, y: defaults.y ?? slot.y, w, h },
+            {
+              x: isDesktop ? (defaults.x ?? slot.x) : slot.x,
+              y: isDesktop ? (defaults.y ?? slot.y) : slot.y,
+              w,
+              h,
+            },
             section.columns,
-            rows,
+            isDesktop ? rows : undefined,
           );
       const sameKindCount = section.items.filter((i) => i.kind === kind).length;
       const existingIds = new Set(section.items.map((item) => item.id));
@@ -979,10 +1006,20 @@ export function addItem(
         data: defaults.data,
         meta: defaults.meta,
       };
-      return {
+      const next: Section = {
         ...section,
         items: insertAt(section.items, newItem, flow ? defaults.index : undefined),
       };
+      if (flow || isDesktop || (defaults.x === undefined && defaults.y === undefined)) return next;
+      // The size asked for, not the desktop one clamped to the desktop columns.
+      const shown = resolveItem(newItem, next, breakpoint);
+      return writeItemOverride(
+        next,
+        newItem.id,
+        breakpoint,
+        { x: defaults.x ?? shown.x, y: defaults.y ?? shown.y, w, h },
+        rows,
+      );
     }),
   };
 }
@@ -1029,6 +1066,13 @@ export type MoveItemToSectionOptions = {
   /** Grid that `x` / `y` refer to. Defaults to `'desktop'`. */
   breakpoint?: Breakpoint;
   /**
+   * With an explicit `y` and a free-grid target in another section: grow the target at
+   * `breakpoint` to exactly the rows the block needs (`y + h`) instead of clamping the block into
+   * its current height. Never shrinks it; the source keeps its height. Off desktop the block keeps
+   * the size it is shown at (written to that breakpoint's override), like `moveItemsToSection`.
+   */
+  grow?: boolean;
+  /**
    * Arrangement target: index among the target's other blocks to insert at (omitted: appended).
    * `x` / `y` are ignored there.
    */
@@ -1045,7 +1089,8 @@ function pinUnlessArrangement(section: Section, breakpoint: Breakpoint) {
  * on top of the target stack. Desktop placement goes to `x` / `y` (or the next free slot);
  * when `breakpoint` is not desktop, `x` / `y` become that breakpoint's override instead.
  * Per-breakpoint `hidden` / `verticalAlign` / `data` overrides travel along; positions from the
- * old grid do not.
+ * old grid do not. A drop at an explicit row is clamped into the target's height, unless `grow`
+ * is set (see `MoveItemToSectionOptions`).
  * Same-section calls behave like `moveItem`.
  */
 export function moveItemToSection(
@@ -1077,6 +1122,10 @@ export function moveItemToSection(
       options.y ?? current.y,
       breakpoint,
     );
+  }
+
+  if (options.grow && !target.arrangement && options.y !== undefined) {
+    return moveItemToSectionGrowing(layout, source, item, target, options.x, options.y, breakpoint);
   }
 
   const isDesktop = breakpoint === 'desktop';
@@ -1141,6 +1190,36 @@ export function moveItemToSection(
       return section;
     }),
   };
+}
+
+/**
+ * `moveItemToSection` at an explicit cell of a free-grid target, which grows to fit the block.
+ * The rows the block needs are written first (like `resizeSection`), so the move clamps nothing.
+ */
+function moveItemToSectionGrowing(
+  layout: Layout,
+  source: Section,
+  item: GridItem,
+  target: Section,
+  optionX: number | undefined,
+  optionY: number,
+  breakpoint: Breakpoint,
+): Layout {
+  const enabled = getEnabledBreakpoints(layout);
+  const shown = resolveItem(item, source, breakpoint, enabled);
+  const { columns } = resolveSection(target, breakpoint, enabled);
+  const w = Math.min(shown.w, columns);
+  const x = item.fullBleed ? 0 : Math.max(0, Math.min(Math.round(optionX ?? shown.x), columns - w));
+  const y = Math.max(0, Math.round(optionY));
+  let next = layout;
+  if (y + shown.h > sectionRows(target, breakpoint, enabled)) {
+    next = resizeSection(next, target.id, y + shown.h, breakpoint);
+  }
+  next = moveItemToSection(next, source.id, item.id, target.id, { x, y, breakpoint });
+  if (breakpoint === 'desktop') return next;
+  // Off desktop the block keeps the size it is shown at, not its desktop size.
+  const movedId = next.sections.find((s) => s.id === target.id)!.items.at(-1)!.id;
+  return resizeItem(next, target.id, movedId, x, y, w, shown.h, breakpoint);
 }
 
 export function resizeItem(

@@ -6,6 +6,7 @@ import builder from '../styles/builder.module.css';
 import { VantageThemeProvider } from '../theme/VantageThemeProvider';
 import type { ComponentRegistry, GridItem, Layout, Section } from '../types';
 import { useVantageHistory } from '../hooks/useVantageHistory';
+import { addItem } from '../mutations/layout';
 import { VantageBuilder, type VantageBuilderProps } from './Builder';
 
 /*
@@ -351,6 +352,144 @@ describe('dragging a block by its handle', () => {
     for (const item of b.items) expect(item.y + item.h).toBeLessThanOrEqual(b.rows!);
     expect(b.rows).toBe(5);
     await expect.poll(() => rectOf(gridEl('b')).height).toBe(5 * ROW);
+  });
+});
+
+/** Mounts the builder with `useVantageHistory`, as a host with undo would. */
+function mountWithHistory(
+  initial: Layout,
+  extra: (history: ReturnType<typeof useVantageHistory>) => ExtraProps,
+) {
+  const changes: Layout[] = [];
+  const api = { undo: () => {} };
+  function Host() {
+    const [value, setValue] = useState(initial);
+    const history = useVantageHistory(value, (next) => {
+      changes.push(next);
+      setValue(next);
+    });
+    api.undo = history.undo;
+    return (
+      <div style={{ width: WIDTH }}>
+        <VantageBuilder
+          value={history.layout}
+          onChange={history.onChange}
+          history={history}
+          components={components}
+          showSectionActions={false}
+          {...extra(history)}
+        />
+      </div>
+    );
+  }
+  render(<Host />);
+  return { changes, undo: () => api.undo() };
+}
+
+const ghostIn = (sectionId: string) =>
+  document.querySelector<HTMLElement>(
+    `[data-vantage-section="${sectionId}"] .${builder['drop-ghost']}`,
+  );
+
+describe('drops that grow the target section', () => {
+  it('grows a shorter section to fit a single block dragged into it, as one undo step', async () => {
+    const initial = layoutOf(
+      section('a', [block('m', 0, 0, 2, 2)]),
+      section('b', [block('t', 0, 0, 2, 1)], { rows: 2 }),
+    );
+    const { changes, undo } = mountWithHistory(initial, () => ({}));
+    await ready('a', 'b');
+
+    // m's top-left onto cell (5, 1) of b: m (2 rows) needs 3 rows, b has 2.
+    const source = rectOf(blockEl('a', 'm')!);
+    const target = rectOf(gridEl('b'));
+    const from = center(handleOf('a', 'm', '[data-vantage-drag-handle]'));
+    const to = {
+      x: from.x + target.left + 5 * CELL + 10 - source.left,
+      y: from.y + target.top + ROW + 10 - source.top,
+    };
+    await userEvent.pointer([
+      { coords: from },
+      { keys: '[MouseLeft>]' },
+      { coords: { x: from.x + 6, y: from.y + 6 } },
+      { coords: to },
+    ]);
+    await expect.poll(() => ghostIn('b')?.style.gridRow).toBe('2 / span 2');
+    expect(ghostIn('b')!.style.gridColumn).toBe('7 / span 2');
+    // Further down the block starts at most directly below b's last row.
+    await userEvent.pointer([{ coords: { x: to.x, y: to.y + 4 * ROW } }]);
+    await expect.poll(() => ghostIn('b')?.style.gridRow).toBe('3 / span 2');
+    await userEvent.pointer([{ coords: to }, { keys: '[/MouseLeft]' }]);
+
+    await expect.poll(() => changes.length).toBe(1);
+    const moved = changes[0]!;
+    expect(moved.sections[0]!.items).toHaveLength(0);
+    expect(moved.sections[0]!.rows).toBe(4);
+    expect(moved.sections[1]!.rows).toBe(3);
+    expect(itemIn(moved, 'b', 'm')).toMatchObject({ x: 5, y: 1, w: 2, h: 2 });
+    expect(itemIn(moved, 'b', 't')).toMatchObject({ x: 0, y: 0, w: 2, h: 1 });
+    await expect.poll(() => measuredCell('b', 'm')).toEqual({ x: 5, y: 1, w: 2, h: 2 });
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(3 * ROW);
+
+    undo();
+    await expect.poll(() => changes.length).toBe(2);
+    expect(changes[1]).toEqual(initial);
+    await expect.poll(() => measuredCell('a', 'm')).toEqual({ x: 0, y: 0, w: 2, h: 2 });
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(2 * ROW);
+  });
+
+  it('grows a section to fit a palette block dropped below its last row, as one undo step', async () => {
+    const initial = layoutOf(
+      section('a', [block('s', 0, 0, 2, 1)]),
+      section('b', [block('t', 0, 0, 2, 1)], { rows: 2 }),
+    );
+    const { changes, undo } = mountWithHistory(initial, (history) => ({
+      externalDrag: { w: 2, h: 2 },
+      onExternalDrop: ({ sectionId, x, y, index, breakpoint }) =>
+        history.onChange(
+          addItem(history.layout, sectionId, 'block', {
+            id: 'new',
+            w: 2,
+            h: 2,
+            x,
+            y,
+            index,
+            breakpoint,
+            grow: true,
+          }),
+        ),
+    }));
+    await ready('a', 'b');
+
+    // The ghost (2 x 2, 192 x 96px) is centered on the pointer: its top-left 10px past cell
+    // (4, 2) of b, directly below b's last row.
+    const target = rectOf(gridEl('b'));
+    const point = {
+      clientX: target.left + 4 * CELL + 10 + CELL,
+      clientY: target.top + 2 * ROW + 10 + ROW,
+    };
+    const dataTransfer = new DataTransfer();
+    const fire = (type: string) =>
+      gridEl('b').dispatchEvent(
+        new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer, ...point }),
+      );
+    fire('dragover');
+    await expect.poll(() => ghostIn('b')?.style.gridRow).toBe('3 / span 2');
+    expect(ghostIn('b')!.style.gridColumn).toBe('6 / span 2');
+    fire('drop');
+
+    await expect.poll(() => changes.length).toBe(1);
+    const added = changes[0]!;
+    expect(added.sections[1]!.rows).toBe(4);
+    expect(added.sections[0]).toBe(initial.sections[0]);
+    expect(itemIn(added, 'b', 'new')).toMatchObject({ x: 4, y: 2, w: 2, h: 2 });
+    await expect.poll(() => measuredCell('b', 'new')).toEqual({ x: 4, y: 2, w: 2, h: 2 });
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(4 * ROW);
+
+    undo();
+    await expect.poll(() => changes.length).toBe(2);
+    expect(changes[1]).toEqual(initial);
+    await expect.poll(() => rectOf(gridEl('b')).height).toBe(2 * ROW);
   });
 });
 
