@@ -85,16 +85,22 @@ sectionRows(section, breakpoint);                     // rows the section spans 
 
 Section height is `rows` grid rows. The builder sets it with the resize edge at the bottom of each section (drag snaps to rows; arrow keys step one row). `resizeSection` never shrinks below the content at that breakpoint or `MIN_SECTION_ROWS`, and writes the breakpoint's override off desktop. `rows` is a floor when rendering: content below it still shows. Without `rows` (older layouts) the height follows the content, or `DEFAULT_SECTION_ROWS` while empty.
 
-Dragging blocks never resizes a section. `moveItem`, `resizeItem`, `moveItemToSection` and `addItem` with an explicit `y` first pin the section's current height at that breakpoint (writing `rows` if it was unset), then clamp the block into it: it stops at the last row, and a block taller than the section shrinks to its height, the same way a too-wide block shrinks to `columns`. `addItem` without a position still appends below the content and extends the section.
+Moving or resizing blocks inside their section never resizes it. `moveItem`, `resizeItem`, `moveItemToSection` and `addItem` with an explicit `y` first pin the section's current height at that breakpoint (writing `rows` if it was unset), then clamp the block into it: it stops at the last row, and a block taller than the section shrinks to its height, the same way a too-wide block shrinks to `columns`. `addItem` without a position still appends below the content and extends the section.
 
-One exception: a multi-selection dropped into another section (`moveItemsToSection`, see [Selection](selection.md)) grows the target when the group's bounding box reaches below it, to exactly `y + box height` rows at that breakpoint, written like `resizeSection`. The target never shrinks and the source keeps its height. Single-block drops still clamp into the target.
+Drops into a section from outside it grow the target instead: a block or a multi-selection dragged in from another section, and a new block dropped from a palette. When the block (or the group's bounding box) reaches below the target at the drop position, the target grows to exactly `y + h` rows at that breakpoint, written like `resizeSection` (`rows` on desktop, that breakpoint's override otherwise). The target never shrinks, the source keeps its height, horizontal overflow is still clamped to `columns`, and the growth is part of the same layout, so one `onChange` and one undo step. The builder's drop ghost may reach below the grid to preview this, starting at most directly below the target's last row. Arrangement targets place by index and never grow.
+
+- `moveItemsToSection` (group, see [Selection](selection.md)) always grows the target.
+- `moveItemToSection` grows it with `grow: true` and an explicit `y`; the canvas passes both for single-block drops into another section.
+- `addItem` grows the section with `grow: true` and an explicit `y`; pass the `onExternalDrop` event along (see below).
+
+Without `grow`, `moveItemToSection` and `addItem` clamp into the current height as before.
 
 ### Items
 
 ```ts
 addItem(layout, sectionId, 'hero', heroKind.defaults);   // pass the kind's defaults
 moveItem(layout, sectionId, itemId, x, y, breakpoint?);
-moveItemToSection(layout, fromSectionId, itemId, toSectionId, { x?, y?, breakpoint? });
+moveItemToSection(layout, fromSectionId, itemId, toSectionId, { x?, y?, breakpoint?, grow? });
 moveItemsToSection(layout, fromSectionId, itemIds, toSectionId, { x?, y?, breakpoint? }); // group, grows the target
 resizeItem(layout, sectionId, itemId, x, y, w, h, breakpoint?);
 removeItem(layout, sectionId, itemId);                   // also strips per-breakpoint overrides
@@ -103,9 +109,17 @@ reorderItemAtIndex(layout, sectionId, fromIndex, toIndex); // for layers-panel D
 setItemVerticalAlign(layout, sectionId, itemId, 'center', breakpoint?); // see Alignment
 ```
 
-`addItem` accepts optional desktop `x` / `y` in its defaults (otherwise the next free slot).
+`addItem` accepts an optional position in its defaults: `x` / `y` on `breakpoint`'s grid (`'desktop'` by default; otherwise the next free slot). Off desktop the new block gets the next free desktop slot, and `x` / `y` (with `w` / `h`) become that breakpoint's override. With `grow: true` and an explicit `y` the section grows to fit the block instead of clamping it. A palette drop passes the `onExternalDrop` event straight through:
 
-`moveItemToSection` keeps the item's id, size, `ref`, `data`, `meta` and desktop `hidden`, puts it on top of the target stack and carries per-breakpoint `hidden` / `verticalAlign` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). `diffLayouts` reports a cross-section move as `itemsMoved` (as `itemsRemoved` + `itemsAdded` when the id changed on a collision).
+```ts
+onExternalDrop={({ sectionId, x, y, index, breakpoint, dataTransfer }) => {
+  const kind = dataTransfer.getData('text/plain');
+  const defaults = resolveDescriptorForKind(registry, kind)?.defaults;
+  onChange(addItem(layout, sectionId, kind, { ...defaults, x, y, index, breakpoint, grow: true }));
+}}
+```
+
+`moveItemToSection` keeps the item's id, size, `ref`, `data`, `meta` and desktop `hidden`, puts it on top of the target stack and carries per-breakpoint `hidden` / `verticalAlign` / `data` overrides; positions from the old grid are dropped. `x` / `y` refer to `breakpoint`'s grid (desktop placement goes to the next free slot when moving on a non-desktop breakpoint). With `grow: true` the target grows to fit the block at `y` (see above), and off desktop the block keeps the size it is shown at, like `moveItemsToSection`. `diffLayouts` reports a cross-section move as `itemsMoved` (as `itemsRemoved` + `itemsAdded` when the id changed on a collision).
 
 `moveItem` / `resizeItem` / `updateItemData` write to the section's items when `breakpoint === 'desktop'` (the default) and to that breakpoint's overrides otherwise. For `updateItemData`, the patch is shallow-merged on top of the resolved data (base + any existing override) so unaffected fields keep falling through from desktop.
 

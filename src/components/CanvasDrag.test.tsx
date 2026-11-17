@@ -167,9 +167,10 @@ describe('dragging a block between sections', () => {
     startDrag();
     moveTo(20, 320);
     // The page scrolls 120px without the pointer moving: the pointer now sits on page y 440,
-    // still in b; the block top is at page y 420 -> 168px into b -> row 3 (last row).
+    // still in b; the block top is at page y 420 -> 168px into b -> row 4, directly below b's
+    // last row (the drop would grow b).
     scrollTo(120);
-    expect(ghost()).toEqual({ section: 'b', x: 0, y: 3 });
+    expect(ghost()).toEqual({ section: 'b', x: 0, y: 4 });
     // Moving afterwards uses the scrolled geometry too: client 200 = page 320 -> b row 1.
     moveTo(20, 200);
     expect(ghost()).toEqual({ section: 'b', x: 0, y: 1 });
@@ -185,6 +186,21 @@ describe('dragging a block between sections', () => {
     const next = onChange.mock.calls.at(-1)?.[0] as Layout;
     const moved = next.sections.find((s) => s.id === 'b')?.items[0];
     expect(moved).toMatchObject({ x: 0, y: 1 });
+  });
+
+  it('drops a block below the last row of another section and grows it by the rows needed', () => {
+    const { onChange } = renderBuilder();
+    startDrag();
+    // Block top at page y 420 -> 168px into b -> row 4, directly below b's last row.
+    moveTo(20, 440);
+    expect(ghost()).toEqual({ section: 'b', x: 0, y: 4 });
+    fireEvent.pointerUp(document, pointer(20, 440));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const next = onChange.mock.calls[0]![0] as Layout;
+    const b = next.sections.find((s) => s.id === 'b')!;
+    expect(b.items[0]).toMatchObject({ id: 'blk', x: 0, y: 4, w: 2, h: 1 });
+    expect(b.rows).toBe(5);
+    expect(next.sections.find((s) => s.id === 'a')!.rows).toBe(4);
   });
 
   it('targets the section below at row 0 while the pointer is on its header bar', () => {

@@ -73,6 +73,24 @@ function groupDropBox(
   };
 }
 
+/**
+ * A single block's drop cell in a free-grid section, from `cellAt` with `{ grow: true }`: it may
+ * reach below the target's rows, but starts at most directly below its last row, so the drop
+ * grows the section by at most the block's height (see `moveItemToSection` / `addItem` with
+ * `grow`), and the preview stops growing there while the canvas auto-scrolls.
+ */
+function growingCell<T extends { y: number }>(
+  layout: Layout,
+  targetSectionId: string,
+  cell: T,
+  breakpoint: Breakpoint,
+): T {
+  const target = layout.sections.find((s) => s.id === targetSectionId);
+  if (!target) return cell;
+  const rows = sectionRows(target, breakpoint, getEnabledBreakpoints(layout));
+  return { ...cell, y: Math.min(cell.y, rows) };
+}
+
 export function Canvas() {
   const {
     layout,
@@ -153,14 +171,27 @@ export function Canvas() {
       const box = groupDropBox(current, data, group, sectionId, anchor, bp);
       return box ? { sectionId, ...box } : null;
     }
+    if (handle.byPointer) {
+      const cell = handle.cellAt(
+        pointer.current.x,
+        pointer.current.y,
+        data.placement.w,
+        data.placement.h,
+        data.item.id,
+      );
+      return { sectionId, ...cell };
+    }
     const cell = handle.cellAt(
-      handle.byPointer ? pointer.current.x : rect.left,
-      handle.byPointer ? pointer.current.y : rect.top,
+      rect.left,
+      rect.top,
       data.placement.w,
       data.placement.h,
       data.item.id,
+      {
+        grow: true,
+      },
     );
-    return { sectionId, ...cell };
+    return { sectionId, ...growingCell(current, sectionId, cell, bp) };
   }, [sectionAtPointer]);
 
   const stopTracking = useRef<(() => void) | null>(null);
@@ -283,6 +314,7 @@ export function Canvas() {
         y: target.y,
         index: target.index,
         breakpoint: activeBreakpoint,
+        grow: true,
       });
       if (next === layout) return;
       onChange(next);
@@ -327,13 +359,18 @@ export function Canvas() {
       if (!sectionId || !handle) return null;
       // The ghost is centered on the pointer.
       const size = handle.blockSize(externalDrag.w, externalDrag.h);
-      const cell = handle.cellAt(
-        point.x - size.width / 2,
-        point.y - size.height / 2,
-        externalDrag.w,
-        externalDrag.h,
-      );
-      return { sectionId, ...cell };
+      const left = point.x - size.width / 2;
+      const top = point.y - size.height / 2;
+      if (handle.byPointer) {
+        return { sectionId, ...handle.cellAt(left, top, externalDrag.w, externalDrag.h) };
+      }
+      const cell = handle.cellAt(left, top, externalDrag.w, externalDrag.h, undefined, {
+        grow: true,
+      });
+      return {
+        sectionId,
+        ...growingCell(latest.current.layout, sectionId, cell, latest.current.activeBreakpoint),
+      };
     },
     [externalDrag, sectionAtPointer],
   );

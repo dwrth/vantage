@@ -287,6 +287,136 @@ describe('moveItemToSection: shrunk counterexamples', () => {
   });
 });
 
+/** A shown block of one free-grid section, a different free-grid target and a breakpoint. */
+const arbCrossDrop = fc
+  .tuple(arbLayout({ arrangements: 0, minSections: 2 }), fc.nat(), fc.nat(), fc.nat(), fc.nat())
+  .map(([layout, s, t, i, b]) => {
+    const count = layout.sections.length;
+    const source = layout.sections[s % count]!;
+    const target = layout.sections[(s + 1 + (t % (count - 1))) % count]!;
+    const enabled = getEnabledBreakpoints(layout);
+    const bp = enabled[b % enabled.length]!;
+    const item = source.items.length ? source.items[i % source.items.length]! : undefined;
+    return { layout: deepFreeze(layout), source, target, item, bp, enabled };
+  })
+  .filter(
+    ({ source, item, bp, enabled }) =>
+      item !== undefined && !resolveItem(item, source, bp, enabled).hidden,
+  );
+
+/** Resolved placements of every item of `section` at `bp`, keyed by id. */
+function placementsOf(section: Section, bp: Breakpoint, enabled: Breakpoint[]) {
+  return Object.fromEntries(
+    section.items.map((item) => [item.id, resolveItem(item, section, bp, enabled)]),
+  );
+}
+
+describe('drops that grow the target section', () => {
+  it('moveItemToSection with grow lands at the drop cell and grows the target minimally', () => {
+    fc.assert(
+      fc.property(
+        arbCrossDrop,
+        fc.integer({ min: -4, max: 16 }),
+        fc.integer({ min: -4, max: 12 }),
+        ({ layout, source, target, item, bp, enabled }, x, y) => {
+          const snapshot = structuredClone(layout);
+          const next = moveItemToSection(layout, source.id, item!.id, target.id, {
+            x,
+            y,
+            breakpoint: bp,
+            grow: true,
+          });
+          expect(layout).toEqual(snapshot);
+          expectStructurallySound(next);
+
+          const from = sectionOf(next, source.id);
+          const to = sectionOf(next, target.id);
+          expect(sectionRows(from, bp, enabled)).toBe(sectionRows(source, bp, enabled));
+          const moved = to.items.at(-1)!;
+          expect(to.items).toHaveLength(target.items.length + 1);
+
+          const shown = resolveItem(item!, source, bp, enabled);
+          const { columns } = resolveSection(to, bp, enabled);
+          const w = Math.min(shown.w, columns);
+          const cell = {
+            x: item!.fullBleed ? 0 : Math.max(0, Math.min(x, columns - w)),
+            y: Math.max(0, y),
+          };
+          const now = resolveItem(moved, to, bp, enabled);
+          expect(now.hidden).toBe(false);
+          expect({ x: now.x, y: now.y, h: now.h }).toEqual({ ...cell, h: shown.h });
+          if (!item!.fullBleed) expect(now.w).toBe(w);
+
+          // Inside the target, which grew by exactly the rows needed (never shrank).
+          const before = sectionRows(target, bp, enabled);
+          const after = sectionRows(to, bp, enabled);
+          expect(after).toBe(Math.max(before, cell.y + shown.h));
+          expect(now.y + now.h).toBeLessThanOrEqual(after);
+          expect(now.x + now.w).toBeLessThanOrEqual(columns);
+
+          // The blocks already there stay where they were: the drop overlaps nothing new.
+          const kept = placementsOf(to, bp, enabled);
+          for (const [id, was] of Object.entries(placementsOf(target, bp, enabled))) {
+            expect(kept[id]).toEqual(was);
+          }
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  it('addItem with grow lands at the drop cell and grows the section minimally', () => {
+    fc.assert(
+      fc.property(
+        arbLayout({ arrangements: 0 }),
+        fc.nat(),
+        fc.nat(),
+        fc.integer({ min: -4, max: 16 }),
+        fc.integer({ min: -4, max: 12 }),
+        fc.integer({ min: 1, max: 6 }),
+        fc.integer({ min: 1, max: 4 }),
+        (raw, s, b, x, y, w, h) => {
+          const layout = deepFreeze(raw);
+          const section = layout.sections[s % layout.sections.length]!;
+          const enabled = getEnabledBreakpoints(layout);
+          const bp = enabled[b % enabled.length]!;
+          const next = addItem(layout, section.id, 'block', {
+            id: 'new-block',
+            x,
+            y,
+            w,
+            h,
+            breakpoint: bp,
+            grow: true,
+          });
+          expectStructurallySound(next);
+          const to = sectionOf(next, section.id);
+          const added = to.items.at(-1)!;
+          const { columns } = resolveSection(to, bp, enabled);
+          const now = resolveItem(added, to, bp, enabled);
+          const cell = {
+            x: Math.max(0, Math.min(x, columns - Math.min(w, columns))),
+            y: Math.max(0, y),
+          };
+          expect({ x: now.x, y: now.y, w: now.w, h: now.h }).toEqual({
+            ...cell,
+            w: Math.min(w, columns),
+            h,
+          });
+          const before = sectionRows(section, bp, enabled);
+          const after = sectionRows(to, bp, enabled);
+          expect(after).toBe(Math.max(before, cell.y + h));
+          const kept = placementsOf(to, bp, enabled);
+          for (const [id, was] of Object.entries(placementsOf(section, bp, enabled))) {
+            expect(kept[id]).toEqual(was);
+          }
+        },
+      ),
+      RUNS,
+    );
+  });
+});
+
 describe('autoArrangeBreakpoint', () => {
   const arbWithBreakpoint = (bp: Exclude<Breakpoint, 'desktop'>) =>
     arbLayout({ arrangements: 0, breakpoints: fc.constant<Breakpoint[]>(['desktop', bp]) });

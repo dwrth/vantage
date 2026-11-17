@@ -80,7 +80,8 @@ Each group action is one layout change, so one undo step.
   exactly the rows needed (on the active breakpoint); it never shrinks, and the source keeps its
   height. The moved blocks stay selected in the target. Arrow keys never leave the
   section. Into an arrangement section the blocks are inserted at the drop slot, in stacking
-  order.
+  order. A single block dragged into another section grows the target the same way (see
+  [Layout](layout.md)).
 - **Align:** left / centre / right or top / middle / bottom over the group's bounding box (on the
   active breakpoint; centre and middle round down to whole cells). Full-bleed blocks ignore
   horizontal alignment.
